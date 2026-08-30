@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  country      String        @default("AE")
+  monthlyIncome Float        @default(0)
+  monthlyEssentials Float    @default(0)
+  strategy     String        @default("snowball")
+  createdAt    DateTime      @default(now())
+  debts        Debt[]
+  jars         Jar[]
+  sessions     CoachSession[]
+  commitments  Commitment[]
+  moods        MoodEntry[]
+}
+
+model Debt {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  issuer       String
+  kind         String   @default("credit_card")
+  balance      Float
+  monthlyRate  Float
+  minimumPayment Float
+  isIslamic    Boolean  @default(false)
+  promoEndsAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Jar {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  purpose   String   @default("emergency")
+  target    Float
+  saved     Float    @default(0)
+  createdAt DateTime @default(now())
+  deposits  Deposit[]
+}
+
+model Deposit {
+  id        String   @id @default(cuid())
+  jarId     String
+  jar       Jar      @relation(fields: [jarId], references: [id], onDelete: Cascade)
+  amount    Float
+  note      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model CoachSession {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId     String?  @unique
+  agenda             String   @default("")
+  openingFeeling     String   @default("")
+  closingFeeling     String   @default("")
+  strengthNamed      String   @default("")
+  summary            String   @default("")
+  startedAt          DateTime @default(now())
+  endedAt            DateTime?
+  commitments        Commitment[]
+}
+
+model Commitment {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
+  session     CoachSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  wish        String
+  outcome     String        @default("")
+  obstacle    String        @default("")
+  ifThenPlan  String        @default("")
+  dueAt       DateTime?
+  status      String        @default("open")
+  createdAt   DateTime      @default(now())
+}
+
+model MoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score     Int
+  note      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model BankOffer {
+  id                 String  @id @default(cuid())
+  country            String
+  bank               String
+  product            String
+  promoMonthlyRate   Float
+  promoMonths        Int
+  standardMonthlyRate Float
+  transferFeePct     Float
+  isIslamic          Boolean @default(false)
+  notes              String  @default("")
+
+  @@unique([bank, product])
+}
+
+model CreditFact {
+  id       String @id @default(cuid())
+  country  String @unique
+  bureau   String
+  regulator String
+  dbrCapPct Int
+  minPaymentPct Float
+  notes    String @default("")
+}
