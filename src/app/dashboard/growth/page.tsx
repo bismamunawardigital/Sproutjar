@@ -1,3 +1,4 @@
+import { Collapse } from "@/components/Collapse";
 import { DebtBoard } from "@/components/DebtBoard";
 import { GrowthTabs } from "@/components/GrowthTabs";
 import { JarBoard } from "@/components/JarBoard";
@@ -12,8 +13,34 @@ export default async function GrowthPage() {
   const currency = snap.country.currency;
   const plan = snap.plan;
 
+  const strategyLabel =
+    snap.strategy === "snowball" ? "Smallest card first" : "Most expensive card first";
+
   const clearing = (
     <div className="space-y-4">
+      <section className="rounded-card border border-rule bg-card p-5">
+        <dl className="grid grid-cols-3 gap-3">
+          <div>
+            <dt className="label">Left to pay</dt>
+            <dd className="n mt-1 text-[18px] text-ink-900">
+              {formatMoneyShort(snap.totals.debt, currency)}
+            </dd>
+          </div>
+          <div>
+            <dt className="label">Clear by</dt>
+            <dd className="n mt-1 text-[18px] text-ink-900">
+              {plan.feasible && plan.months > 0 ? plan.debtFreeOn : "Not yet"}
+            </dd>
+          </div>
+          <div>
+            <dt className="label">Start here</dt>
+            <dd className="mt-1 text-[15px] font-bold leading-snug text-stem-700">
+              {plan.order[0] ?? "Nothing yet"}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
       <DebtBoard
         debts={snap.debts.map((d) => ({
           id: d.id,
@@ -30,6 +57,7 @@ export default async function GrowthPage() {
         focusName={plan.order[0] ?? null}
       />
 
+      <Collapse title="Which card to pay off first" hint={strategyLabel}>
       <StrategyPicker
         current={snap.strategy}
         currency={currency}
@@ -54,11 +82,14 @@ export default async function GrowthPage() {
           },
         ]}
       />
+      </Collapse>
 
       {plan.feasible && plan.milestones.length > 0 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <p className="label">How this plays out</p>
-          <ol className="mt-4 space-y-4 border-l border-rule pl-5">
+        <Collapse
+          title="How this plays out"
+          hint={`${plan.milestones.length} cards, then done`}
+        >
+          <ol className="space-y-4 border-l border-rule pl-5">
             {plan.milestones.map((milestone) => (
               <li key={milestone.debtId} className="relative">
                 <span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-stem" />
@@ -96,7 +127,7 @@ export default async function GrowthPage() {
               </p>
             </li>
           </ol>
-        </section>
+        </Collapse>
       ) : null}
     </div>
   );

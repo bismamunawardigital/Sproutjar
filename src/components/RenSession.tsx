@@ -33,10 +33,12 @@ function RenSessionInner({
   userName,
   agenda,
   minutes,
+  onEnded,
 }: {
   userName: string;
   agenda: Agenda | null;
   minutes: number;
+  onEnded?: () => void;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<
@@ -53,6 +55,7 @@ function RenSessionInner({
     onConnect: () => setStatus("live"),
     onDisconnect: () => {
       setStatus("idle");
+      onEnded?.();
       // Ren may have logged a commitment or a jar deposit mid-call.
       router.refresh();
     },
@@ -133,7 +136,8 @@ function RenSessionInner({
   const stop = useCallback(() => {
     conversation.endSession();
     setStatus("idle");
-  }, [conversation]);
+    onEnded?.();
+  }, [conversation, onEnded]);
 
   const speaking = conversation.isSpeaking;
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
@@ -310,14 +314,21 @@ export function RenSession({
   userName,
   agenda = null,
   minutes = 20,
+  onEnded,
 }: {
   userName: string;
   agenda?: Agenda | null;
   minutes?: number;
+  onEnded?: () => void;
 }) {
   return (
     <ConversationProvider>
-      <RenSessionInner userName={userName} agenda={agenda} minutes={minutes} />
+      <RenSessionInner
+        userName={userName}
+        agenda={agenda}
+        minutes={minutes}
+        onEnded={onEnded}
+      />
     </ConversationProvider>
   );
 }

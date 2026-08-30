@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { CommitmentBoard } from "@/components/CommitmentBoard";
+import { HomeAgendas } from "@/components/HomeAgendas";
 import { Plant } from "@/components/Plant";
 import { formatMoneyShort } from "@/lib/money";
+import { agendasFor } from "@/lib/session-agendas";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export default async function Home() {
   const currency = snap.country.currency;
   const plan = snap.plan;
   const next = plan.milestones[0] ?? null;
+  const agendas = agendasFor(snap);
 
   return (
     <>
@@ -51,20 +53,7 @@ export default async function Home() {
         </dl>
       </section>
 
-      <Link
-        href="/dashboard/ren"
-        className="flex items-center justify-between rounded-card bg-ink-800 px-5 py-4 text-cream transition hover:bg-ink-700"
-      >
-        <span>
-          <span className="block text-[15px] font-bold">Talk to Ren</span>
-          <span className="block text-[13px] text-leaf-300">
-            {snap.sessions.length > 0
-              ? "Carry on from last time"
-              : "Have your first conversation"}
-          </span>
-        </span>
-        <span className="h-9 w-9 rounded-full bg-stem" aria-hidden />
-      </Link>
+      <HomeAgendas agendas={agendas} hasHistory={snap.sessions.length > 0} />
 
       <CommitmentBoard
         commitments={snap.commitments.map((c) => ({

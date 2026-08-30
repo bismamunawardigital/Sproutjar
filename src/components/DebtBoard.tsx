@@ -130,18 +130,19 @@ export function DebtBoard({
                 </p>
                 <p className="mt-1 text-[13px] text-ink-400">
                   {debt.issuer} · {formatRate(debt.monthlyRate)}
-                  {debt.isIslamic ? " profit rate" : ""}
+                  {debt.isIslamic ? " profit rate" : ""} ·{" "}
+                  <span className="text-root">
+                    <span className="n">{formatMoney(bleed, currency)}</span> interest this month
+                  </span>
+                  {cleared > 0 ? (
+                    <>
+                      {" · "}
+                      <span className="text-stem-700">
+                        <span className="n">{formatMoney(cleared, currency)}</span> paid off
+                      </span>
+                    </>
+                  ) : null}
                 </p>
-                <p className="mt-1.5 text-[13px] text-root">
-                  Costs you <span className="n">{formatMoney(bleed, currency)}</span> in interest
-                  this month
-                </p>
-                {cleared > 0 ? (
-                  <p className="text-[13px] text-stem-700">
-                    You&rsquo;ve paid off <span className="n">{formatMoney(cleared, currency)}</span>{" "}
-                    of it
-                  </p>
-                ) : null}
               </div>
               <div className="shrink-0 text-right">
                 <p className="n text-[19px] text-ink-900">{formatMoney(debt.balance, currency)}</p>

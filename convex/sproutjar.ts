@@ -192,6 +192,22 @@ export const addJar = mutation({
   },
 });
 
+export const removeJar = mutation({
+  args: { id: v.id("jars") },
+  handler: async (ctx, { id }) => {
+    const user = await demoUser(ctx);
+    const jar = await ctx.db.get(id);
+    if (!jar || jar.userId !== user._id) return null;
+    const deposits = await ctx.db
+      .query("deposits")
+      .withIndex("by_jar", (q) => q.eq("jarId", id))
+      .collect();
+    await Promise.all(deposits.map((deposit) => ctx.db.delete(deposit._id)));
+    await ctx.db.delete(id);
+    return id;
+  },
+});
+
 export const depositToJar = mutation({
   args: { jarId: v.id("jars"), amount: v.number(), note: v.string() },
   handler: async (ctx, { jarId, amount, note }) => {

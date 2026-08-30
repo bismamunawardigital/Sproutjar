@@ -37,9 +37,8 @@ export function StrategyPicker({
   }
 
   return (
-    <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <p className="label">Which card to pay off first</p>
-      <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
+    <div>
+      <p className="text-[14px] leading-relaxed text-ink-400">
         It&rsquo;s the same money either way. One clears a card sooner, the other saves you more.
         Pick whichever you&rsquo;ll actually stick to.
       </p>
@@ -78,6 +77,6 @@ export function StrategyPicker({
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

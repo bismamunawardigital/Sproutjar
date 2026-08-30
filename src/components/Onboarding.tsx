@@ -1,315 +1,213 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { COUNTRIES, type CountryCode } from "@/lib/money";
-import { Jar } from "@/components/Jar";
 
-type Step = 0 | 1 | 2 | 3 | 4;
+type Question = {
+  id: "why" | "pattern" | "carrying" | "help";
+  title: string;
+  note: string;
+  options: { value: string; label: string; mirror: string }[];
+};
 
-const STEPS = ["You", "Money", "Cards", "Jar", "Ready"];
+/**
+ * Onboarding is four questions about your relationship with money, not a form.
+ * Nothing financial is asked here — that lives in the app, later, if you want it.
+ */
+const QUESTIONS: Question[] = [
+  {
+    id: "why",
+    title: "What made you open this?",
+    note: "No wrong answer. Pick the closest one.",
+    options: [
+      {
+        value: "balance-stuck",
+        label: "I pay every month and the balance barely moves",
+        mirror: "Most of that payment is interest. You can see exactly how much, on day one.",
+      },
+      {
+        value: "want-savings",
+        label: "I want something set aside, for once",
+        mirror: "A small buffer is what stops the card getting used again. That's where we start.",
+      },
+      {
+        value: "avoiding",
+        label: "I've been avoiding the numbers",
+        mirror: "Looking once, with someone, is easier than looking alone every night.",
+      },
+      {
+        value: "want-plan",
+        label: "I'm okay — I just want a plan I'd stick to",
+        mirror: "Then the plan gets built with you, in your words, not handed to you.",
+      },
+    ],
+  },
+  {
+    id: "pattern",
+    title: "When money comes up, what usually happens?",
+    note: "The honest one, not the good-sounding one.",
+    options: [
+      {
+        value: "go-quiet",
+        label: "I go quiet and deal with it later",
+        mirror: "",
+      },
+      {
+        value: "plan-drop",
+        label: "I make a plan, then it fades in a week or two",
+        mirror: "",
+      },
+      {
+        value: "handle-repeat",
+        label: "I handle it, then it comes back around",
+        mirror: "",
+      },
+      {
+        value: "behind",
+        label: "I feel behind everyone around me",
+        mirror: "",
+      },
+    ],
+  },
+  {
+    id: "carrying",
+    title: "What would you most want to stop carrying?",
+    note: "",
+    options: [
+      { value: "interest", label: "What the interest costs me", mirror: "" },
+      { value: "not-knowing", label: "Not knowing where I actually stand", mirror: "" },
+      { value: "alone", label: "Doing it on my own", mirror: "" },
+      { value: "after-spending", label: "How I feel after I spend", mirror: "" },
+    ],
+  },
+  {
+    id: "help",
+    title: "What would help most right now?",
+    note: "",
+    options: [
+      { value: "think-aloud", label: "Someone to think out loud with", mirror: "" },
+      { value: "real-number", label: "A number I can trust", mirror: "" },
+      { value: "one-step", label: "One small thing a week", mirror: "" },
+      { value: "space", label: "Space, mostly. No pushing.", mirror: "" },
+    ],
+  },
+];
 
-const inputClass =
-  "mt-1 w-full rounded-sm border border-rule bg-cream px-3 py-2.5 text-[16px] text-ink-800 outline-none focus:border-stem";
+const BELIEF_FROM: Record<string, string> = {
+  "go-quiet": "When money comes up, I go quiet and deal with it later.",
+  "plan-drop": "I make a plan and it fades after a week or two.",
+  "handle-repeat": "I handle it, and then it comes back around.",
+  behind: "I'm behind everyone around me.",
+};
 
 export function Onboarding() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(0);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
-  const [name, setName] = useState("");
-  const [country, setCountry] = useState<CountryCode>("AE");
-  const [income, setIncome] = useState("");
-  const [essentials, setEssentials] = useState("");
-  const [card, setCard] = useState({ name: "", issuer: "", balance: "", rate: "", minimum: "" });
-  const [jar, setJar] = useState({ name: "One month of the basics", target: "" });
+  const question = QUESTIONS[step];
+  const done = step >= QUESTIONS.length;
 
-  const currency = COUNTRIES[country].currency;
-  const surplus = Math.max(0, Number(income || 0) - Number(essentials || 0));
-  const suggestedTarget = useMemo(
-    () => (Number(essentials) > 0 ? String(Math.round(Number(essentials))) : ""),
-    [essentials],
-  );
+  function pick(value: string) {
+    setAnswers({ ...answers, [question.id]: value });
+    setStep(step + 1);
+  }
 
-  async function finish() {
+  async function begin() {
     setBusy(true);
-    await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name || undefined,
-        country,
-        monthlyIncome: Number(income || 0),
-        monthlyEssentials: Number(essentials || 0),
-      }),
-    });
-
-    if (card.name && Number(card.balance) > 0) {
-      await fetch("/api/debts", {
+    const belief = BELIEF_FROM[answers.pattern ?? ""];
+    if (belief) {
+      await fetch("/api/beliefs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: card.name,
-          issuer: card.issuer || card.name,
-          kind: "credit_card",
-          balance: Number(card.balance),
-          monthlyRate: Number(card.rate || 0) / 100,
-          minimumPayment: Number(card.minimum || 0),
-          isIslamic: false,
-        }),
+        body: JSON.stringify({ text: belief }),
       });
     }
-
-    const target = Number(jar.target || suggestedTarget || 0);
-    if (jar.name && target > 0) {
-      await fetch("/api/jars", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: jar.name, purpose: "buffer", target, saved: 0 }),
-      });
-    }
-
     router.push("/dashboard");
-    router.refresh();
+  }
+
+  if (done) {
+    const why = QUESTIONS[0].options.find((o) => o.value === answers.why);
+    return (
+      <div className="space-y-4">
+        <section className="rounded-card border border-rule bg-card p-6">
+          <p className="label">Here&rsquo;s what you said</p>
+          <p className="mt-3 text-[19px] font-bold leading-snug text-ink-900">
+            {why?.label ?? "You want money to feel quieter."}
+          </p>
+          {why?.mirror ? (
+            <p className="mt-2 text-[15px] leading-relaxed text-ink-400">{why.mirror}</p>
+          ) : null}
+        </section>
+
+        <section className="rounded-card border border-rule bg-card p-6">
+          <p className="label">What Sproutjar does with that</p>
+          <ul className="mt-3 space-y-3 text-[15px] leading-relaxed text-ink-700">
+            <li>
+              <span className="font-bold text-ink-900">Ren, out loud.</span> A coach you talk to,
+              who already knows your numbers, so you never start from scratch.
+            </li>
+            <li>
+              <span className="font-bold text-ink-900">One plant, one picture.</span> Debt going
+              down and savings going up are the same growth, not two scoreboards.
+            </li>
+            <li>
+              <span className="font-bold text-ink-900">One small step a week.</span> Chosen by you
+              at the end of each call. Missing it is information, not a failure.
+            </li>
+          </ul>
+        </section>
+
+        <button
+          onClick={begin}
+          disabled={busy}
+          className="w-full rounded-full bg-ink-800 px-5 py-3.5 text-[16px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+        >
+          {busy ? "One moment" : "Go in"}
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex gap-1.5">
-        {STEPS.map((label, index) => (
+    <div className="space-y-4">
+      <div className="flex gap-1.5" aria-hidden>
+        {QUESTIONS.map((q, index) => (
           <span
-            key={label}
-            className={`h-1.5 flex-1 rounded-full transition ${
-              index <= step ? "bg-stem" : "bg-rule"
-            }`}
+            key={q.id}
+            className={`h-1 flex-1 rounded-full ${index <= step ? "bg-stem" : "bg-rule"}`}
           />
         ))}
       </div>
 
-      {step === 0 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <h1 className="text-[24px] font-bold leading-snug text-ink-900">
-            Let&rsquo;s start with your name.
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            Ren will use it on calls. Nothing here is shared with anyone.
-          </p>
-          <label className="mt-4 block text-[12px] font-bold text-ink-500">
-            What should Ren call you?
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Layla"
-              className={inputClass}
-            />
-          </label>
-          <label className="mt-3 block text-[12px] font-bold text-ink-500">
-            Where you live
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value as CountryCode)}
-              className={inputClass}
-            >
-              {Object.values(COUNTRIES).map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="mt-3 text-[13px] text-ink-300">
-            Rates, bureaus and rules differ by country, so Ren keeps to the ones where you are.
-          </p>
-        </section>
-      ) : null}
-
-      {step === 1 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <h1 className="text-[24px] font-bold leading-snug text-ink-900">
-            What have you got to work with?
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            Rough numbers are fine. You can change them any time.
-          </p>
-          <label className="mt-4 block text-[12px] font-bold text-ink-500">
-            What comes in each month ({currency})
-            <input
-              inputMode="decimal"
-              value={income}
-              onChange={(e) => setIncome(e.target.value)}
-              placeholder="18000"
-              className={inputClass}
-            />
-          </label>
-          <label className="mt-3 block text-[12px] font-bold text-ink-500">
-            What the basics cost ({currency})
-            <input
-              inputMode="decimal"
-              value={essentials}
-              onChange={(e) => setEssentials(e.target.value)}
-              placeholder="11500"
-              className={inputClass}
-            />
-          </label>
-          {surplus > 0 ? (
-            <p className="mt-3 text-[14px] text-stem-700">
-              That&rsquo;s{" "}
-              <span className="n">
-                {currency} {surplus.toLocaleString("en-US")}
-              </span>{" "}
-              a month you can point somewhere.
-            </p>
-          ) : null}
-        </section>
-      ) : null}
-
-      {step === 2 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <h1 className="text-[24px] font-bold leading-snug text-ink-900">
-            Add the first card.
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            One is enough to start. Seeing the real number is the part most people never do.
-          </p>
-          <div className="mt-4 grid gap-3">
-            <label className="text-[12px] font-bold text-ink-500">
-              What do you call it
-              <input
-                value={card.name}
-                onChange={(e) => setCard({ ...card, name: e.target.value })}
-                placeholder="Platinum"
-                className={inputClass}
-              />
-            </label>
-            <label className="text-[12px] font-bold text-ink-500">
-              Which bank
-              <input
-                value={card.issuer}
-                onChange={(e) => setCard({ ...card, issuer: e.target.value })}
-                placeholder="Emirates NBD"
-                className={inputClass}
-              />
-            </label>
-            <label className="text-[12px] font-bold text-ink-500">
-              Balance on it ({currency})
-              <input
-                inputMode="decimal"
-                value={card.balance}
-                onChange={(e) => setCard({ ...card, balance: e.target.value })}
-                placeholder="18400"
-                className={inputClass}
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="text-[12px] font-bold text-ink-500">
-                Monthly interest %
-                <input
-                  inputMode="decimal"
-                  value={card.rate}
-                  onChange={(e) => setCard({ ...card, rate: e.target.value })}
-                  placeholder="3.25"
-                  className={inputClass}
-                />
-              </label>
-              <label className="text-[12px] font-bold text-ink-500">
-                Minimum payment
-                <input
-                  inputMode="decimal"
-                  value={card.minimum}
-                  onChange={(e) => setCard({ ...card, minimum: e.target.value })}
-                  placeholder="920"
-                  className={inputClass}
-                />
-              </label>
-            </div>
-          </div>
-          <p className="mt-3 text-[13px] text-ink-300">
-            Not sure about the rate? Leave it — Ren can find it with you later.
-          </p>
-        </section>
-      ) : null}
-
-      {step === 3 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <h1 className="text-[24px] font-bold leading-snug text-ink-900">
-            Now the jar.
-          </h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            One month of the basics, set aside. It&rsquo;s what stops the next surprise going back on
-            a card — so it comes before the debt, not after.
-          </p>
-          <div className="mt-4 flex items-center gap-4">
-            <Jar pct={0} stage="seed" className="h-28 w-20" />
-            <div className="flex-1">
-              <label className="block text-[12px] font-bold text-ink-500">
-                What you&rsquo;re filling it to ({currency})
-                <input
-                  inputMode="decimal"
-                  value={jar.target || suggestedTarget}
-                  onChange={(e) => setJar({ ...jar, target: e.target.value })}
-                  className={inputClass}
-                />
-              </label>
-              <p className="mt-2 text-[13px] text-ink-300">
-                Suggested: one month of your basics.
-              </p>
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {step === 4 ? (
-        <section className="rounded-card border border-rule bg-card p-5">
-          <h1 className="text-[24px] font-bold leading-snug text-ink-900">
-            That&rsquo;s everything Ren needs.
-          </h1>
-          <ul className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-ink-400">
-            <li>
-              <span className="font-bold text-ink-900">Home</span> shows one plant. It grows as money
-              comes off the cards and as you turn up.
-            </li>
-            <li>
-              <span className="font-bold text-ink-900">Ren</span> is a real call. Pick how long, pick
-              what you want out of it, talk.
-            </li>
-            <li>
-              <span className="font-bold text-ink-900">Growth</span> holds the cards and the jars,
-              with a real date rather than a guess.
-            </li>
-            <li>
-              <span className="font-bold text-ink-900">You</span> keeps what you&rsquo;ve said, what
-              you&rsquo;ve tried, and what changed.
-            </li>
-          </ul>
-        </section>
-      ) : null}
-
-      <div className="flex items-center gap-3">
-        {step > 0 ? (
-          <button
-            onClick={() => setStep((s) => (s - 1) as Step)}
-            className="rounded-full border border-rule px-5 py-3 text-[15px] font-bold text-ink-400"
-          >
-            Back
-          </button>
+      <section className="rounded-card border border-rule bg-card p-6">
+        <h1 className="text-[21px] font-bold leading-snug text-ink-900">{question.title}</h1>
+        {question.note ? (
+          <p className="mt-1.5 text-[13px] text-ink-400">{question.note}</p>
         ) : null}
-        {step < 4 ? (
-          <button
-            onClick={() => setStep((s) => (s + 1) as Step)}
-            className="flex-1 rounded-full bg-ink-800 px-6 py-3 text-[15px] font-bold text-cream transition hover:bg-ink-700"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            onClick={finish}
-            disabled={busy}
-            className="flex-1 rounded-full bg-stem px-6 py-3 text-[15px] font-bold text-cream transition hover:opacity-90 disabled:opacity-60"
-          >
-            {busy ? "Setting up" : "Open Sproutjar"}
-          </button>
-        )}
-      </div>
+
+        <div className="mt-5 space-y-2.5">
+          {question.options.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => pick(option.value)}
+              className="w-full rounded-card border border-rule bg-cream px-4 py-3.5 text-left text-[15px] leading-snug text-ink-800 transition hover:border-stem hover:shadow-sh-2"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {step > 0 ? (
+        <button
+          onClick={() => setStep(step - 1)}
+          className="text-[13px] font-bold text-ink-300 underline underline-offset-2"
+        >
+          Back
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -35,6 +35,15 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
     router.refresh();
   }
 
+  async function removeJar(jarId: string, name: string) {
+    if (!window.confirm(`Remove ${name}? What's in it stays yours — only the jar goes.`))
+      return;
+    setPending(jarId);
+    await fetch(`/api/jars/${jarId}`, { method: "DELETE" });
+    setPending(null);
+    router.refresh();
+  }
+
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
       <p className="label">What you&rsquo;re building up</p>
@@ -101,6 +110,12 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
                     Add
                   </button>
                 </form>
+                <button
+                  onClick={() => removeJar(jar.id, jar.name)}
+                  className="text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
+                >
+                  Take it off
+                </button>
               </div>
             </div>
           </div>
