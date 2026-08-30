@@ -38,6 +38,10 @@ conversation token server side and returns it alongside the dynamic variables (n
 currency, total debt, surplus, debt-free date, jar progress, open commitment) that Ren is primed
 with, so the call never opens by asking the user to re-explain their situation.
 
+Ren also gets one client-side tool, `refresh_dashboard`, handled in the browser by `RenSession`.
+When Ren logs a commitment or a jar deposit mid-call, it calls `refresh_dashboard` and the card
+appears on the dashboard behind the conversation while the user is still talking.
+
 ## Running it
 
 ```bash
@@ -61,9 +65,18 @@ Open http://localhost:3000 for the landing page and http://localhost:3000/dashbo
 
 ### Pointing Ren at a deployment
 
-The tool routes must be reachable from ElevenLabs' servers. After deploying, update each webhook
-tool's URL on the agent to `https://<your-domain>/api/tools/<route>` and set the same
-`X-API-Key` value the deployment uses.
+The tool routes must be reachable from ElevenLabs' servers, so they are configured against a
+public base URL rather than `localhost`. Each webhook tool on agent
+`agent_5601kzg7nxztft3vv50nrcs8fx6h` is registered as `<base>/api/tools/<route>` with the shared
+`X-API-Key`. After deploying, repoint them:
+
+```bash
+curl -X PATCH https://api.elevenlabs.io/v1/convai/tools/<tool_id> \
+  -H "xi-api-key: $ELEVENLABS_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"tool_config":{"api_schema":{"url":"https://<your-domain>/api/tools/<route>"}}}'
+```
+
+and set `SPROUTJAR_TOOL_API_KEY` on the deployment to the same value the tools send.
 
 ## Scope and safety
 

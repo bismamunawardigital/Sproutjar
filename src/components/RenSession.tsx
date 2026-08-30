@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useConversation } from "@elevenlabs/react";
-import { Loader2, Mic, PhoneOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
+import { Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
 
 type SessionConfig =
   | {
@@ -15,7 +16,8 @@ type SessionConfig =
 
 type Line = { role: "ren" | "you"; text: string };
 
-export function RenSession({ userName }: { userName: string }) {
+function RenSessionInner({ userName }: { userName: string }) {
+  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
@@ -23,13 +25,24 @@ export function RenSession({ userName }: { userName: string }) {
 
   const conversation = useConversation({
     onConnect: () => setStatus("live"),
-    onDisconnect: () => setStatus("idle"),
-    onError: (message: string) => {
-      setError(message);
+    onDisconnect: () => {
+      setStatus("idle");
+      // Ren may have logged a commitment or a jar deposit mid-call.
+      router.refresh();
+    },
+    onError: (message) => {
+      setError(typeof message === "string" ? message : "Something went wrong on the call.");
       setStatus("error");
     },
-    onMessage: ({ message, source }: { message: string; source: string }) => {
+    onMessage: ({ message, source }) => {
       setLines((prev) => [...prev, { role: source === "user" ? "you" : "ren", text: message }]);
+    },
+    // Ren calls this after writing a commitment or a deposit so the dashboard updates live.
+    clientTools: {
+      refresh_dashboard: () => {
+        router.refresh();
+        return "Dashboard refreshed.";
+      },
     },
   });
 
@@ -50,7 +63,7 @@ export function RenSession({ userName }: { userName: string }) {
         return;
       }
       setLines([]);
-      await conversation.startSession({
+      conversation.startSession({
         conversationToken: config.conversationToken,
         connectionType: "webrtc",
         dynamicVariables: config.dynamicVariables,
@@ -61,8 +74,8 @@ export function RenSession({ userName }: { userName: string }) {
     }
   }, [conversation]);
 
-  const stop = useCallback(async () => {
-    await conversation.endSession();
+  const stop = useCallback(() => {
+    conversation.endSession();
     setStatus("idle");
   }, [conversation]);
 
@@ -105,12 +118,21 @@ export function RenSession({ userName }: { userName: string }) {
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             {status === "live" ? (
-              <button
-                onClick={stop}
-                className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-medium text-white transition hover:bg-bark"
-              >
-                <PhoneOff size={18} /> End session
-              </button>
+              <>
+                <button
+                  onClick={stop}
+                  className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-medium text-white transition hover:bg-bark"
+                >
+                  <PhoneOff size={18} /> End session
+                </button>
+                <button
+                  onClick={() => conversation.setMuted(!conversation.isMuted)}
+                  className="inline-flex items-center gap-2 rounded-full border border-bark/15 px-5 py-3 font-medium transition hover:border-bark/40"
+                >
+                  {conversation.isMuted ? <MicOff size={18} /> : <Mic size={18} />}
+                  {conversation.isMuted ? "Unmute" : "Mute"}
+                </button>
+              </>
             ) : (
               <button
                 onClick={start}
@@ -148,5 +170,13 @@ export function RenSession({ userName }: { userName: string }) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+export function RenSession({ userName }: { userName: string }) {
+  return (
+    <ConversationProvider>
+      <RenSessionInner userName={userName} />
+    </ConversationProvider>
   );
 }
