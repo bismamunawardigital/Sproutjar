@@ -25,12 +25,13 @@ export const snapshot = query({
     const user = await demoUser(ctx);
     const mine = user._id;
 
-    const [debts, jars, commitments, beliefs, sessions] = await Promise.all([
+    const [debts, jars, commitments, beliefs, sessions, balanceEntries] = await Promise.all([
       ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("jars").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("commitments").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("beliefs").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
+      ctx.db.query("balanceEntries").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
     ]);
 
     return {
@@ -42,6 +43,7 @@ export const snapshot = query({
       commitments: commitments.sort((a, b) => b.createdAt - a.createdAt),
       beliefs: beliefs.filter((b) => b.status === "active"),
       sessions: sessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
+      balanceEntries: balanceEntries.sort((a, b) => a.loggedAt - b.loggedAt),
     };
   },
 });

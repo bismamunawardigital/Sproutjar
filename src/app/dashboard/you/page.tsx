@@ -1,5 +1,4 @@
 import { Collapse } from "@/components/Collapse";
-import { Plant } from "@/components/Plant";
 import { ProfileForm } from "@/components/ProfileForm";
 import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
@@ -16,7 +15,9 @@ export default async function YouPage() {
     <>
       <section className="overflow-hidden rounded-card border border-rule bg-card">
         <div className="flex items-center gap-4 bg-ink-800 px-5 py-5 text-cream">
-          <Plant state={snap.growth} className="w-14 shrink-0" />
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-leaf-300 text-[20px] font-bold text-ink-900">
+            {snap.user.name.trim().charAt(0).toUpperCase()}
+          </span>
           <div className="min-w-0">
             <p className="text-[20px] font-bold leading-tight">{snap.user.name}</p>
             <p className="mt-0.5 text-[13px] text-leaf-300">

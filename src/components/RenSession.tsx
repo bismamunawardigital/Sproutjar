@@ -29,6 +29,8 @@ const CONTRACTS = [
 
 type Contract = (typeof CONTRACTS)[number]["key"];
 
+const WAVE_BARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
 function RenSessionInner({
   userName,
   agenda,
@@ -231,36 +233,43 @@ function RenSessionInner({
 
   return (
     <section className="overflow-hidden rounded-card bg-ink-800 text-cream shadow-sh-3">
-      <div className="flex flex-col gap-6 p-5 sm:p-7">
-        <div className="flex items-start gap-5">
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
-            <span className="ren-orb absolute inset-0 rounded-full" />
-            <span className="relative text-[15px] font-bold text-white">
-              Ren
-            </span>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-leaf-300">
-              {minutes} min · {agenda?.technique ?? "Up to you"}
-            </p>
-            <h2 className="mt-1.5 text-[22px] font-bold leading-snug">
-              {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
-            </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-cream/70">
-              {agenda
-                ? agenda.reason
-                : "Start now and tell Ren what's on your mind, or pick something from below."}
-            </p>
-          </div>
+      <div className="flex min-h-[440px] flex-col items-center justify-center gap-6 px-5 py-10 text-center sm:px-7">
+        <div className="relative flex h-36 w-36 items-center justify-center">
+          <span className="orb-halo absolute inset-0 rounded-full" aria-hidden />
+          <span className="orb-halo orb-halo-2 absolute inset-0 rounded-full" aria-hidden />
+          <span className="ren-orb orb-listening absolute inset-6 rounded-full" aria-hidden />
+          <span className="relative text-[17px] font-bold text-white">Ren</span>
         </div>
 
-        <div>
-          <p className="text-[14px] text-cream/70">
-            What would help most today — getting clearer on something, making a
-            decision, sorting out a plan, or just talking it through?
+        <div className="flex h-7 items-end gap-[3px]" aria-hidden>
+          {WAVE_BARS.map((bar) => (
+            <span
+              key={bar}
+              className="wave-bar w-[3px] rounded-full bg-leaf-300"
+              style={{ animationDelay: `${bar * 110}ms` }}
+            />
+          ))}
+        </div>
+
+        <div className="max-w-md">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
+            {minutes} min · {agenda?.technique ?? "As long as you need"}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <h2 className="mt-2 text-[26px] font-bold leading-tight">
+            {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
+          </h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-cream/70">
+            {agenda
+              ? agenda.reason
+              : "Tell Ren what's on your mind. Your cards, your balances and what you said last time are already on the call."}
+          </p>
+        </div>
+
+        <div className="w-full max-w-md">
+          <p className="text-[13px] text-cream/60">
+            What would help most today?
+          </p>
+          <div className="mt-2.5 flex flex-wrap justify-center gap-2">
             {CONTRACTS.map((option) => (
               <button
                 key={option.key}
@@ -278,10 +287,10 @@ function RenSessionInner({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-full max-w-md flex-col items-center gap-3">
           <button
             onClick={start}
-            className="rounded-full bg-leaf-300 px-6 py-3 text-[15px] font-bold text-ink-900 transition hover:bg-leaf-400"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-leaf-300 px-6 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
           >
             {lines.length > 0 ? "Call Ren again" : "Call Ren"}
           </button>

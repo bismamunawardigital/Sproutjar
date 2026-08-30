@@ -7,6 +7,32 @@ import { plantState, principalCleared } from "@/lib/plant";
 
 export const DEMO_EMAIL = "demo@sproutjar.app";
 
+export type HistoryPoint = { at: Date; total: number };
+
+/**
+ * Balance entries land per card, so the total owed on any given day is the sum
+ * of the newest reading for every card up to that day, starting from what each
+ * one opened at.
+ */
+function totalOwedOverTime(
+  debts: { _id: string; openingBalance: number; balance: number }[],
+  entries: { debtId: string; balance: number; loggedAt: number }[],
+): HistoryPoint[] {
+  const latest = new Map<string, number>(
+    debts.map((debt) => [debt._id, debt.openingBalance || debt.balance]),
+  );
+  const byDay = new Map<string, HistoryPoint>();
+
+  for (const entry of entries) {
+    latest.set(entry.debtId, entry.balance);
+    const at = new Date(entry.loggedAt);
+    const total = [...latest.values()].reduce((sum, balance) => sum + balance, 0);
+    byDay.set(at.toISOString().slice(0, 10), { at, total });
+  }
+
+  return [...byDay.values()];
+}
+
 export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
 
 /**
@@ -54,6 +80,7 @@ export async function buildSnapshot() {
   const minimumsOnly = minimumsOnlyOutlook(debts);
 
   const openingPrincipal = debtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);
+  const history = totalOwedOverTime(debtRows, live.balanceEntries);
   const currentPrincipal = debtRows.reduce((s, d) => s + d.balance, 0);
   const commitmentsKept = recentCommitments.filter((c) => c.status === "kept").length;
   const growth = plantState({
@@ -78,6 +105,8 @@ export async function buildSnapshot() {
     })),
     recentCommitments: recentCommitments.map((c) => ({ ...c, id: c._id, createdAt: new Date(c.createdAt) })),
     growth,
+    /** Total owed, week by week, for the line on Ren's screen. */
+    history,
     /** What the plant is drawn at now, so a mutation can bank it. */
     stemPct: growth.stemPct,
     openingPrincipal,
