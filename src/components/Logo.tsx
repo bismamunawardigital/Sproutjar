@@ -1,15 +1,26 @@
-export function Logo({ className = "" }: { className?: string }) {
+/**
+ * The mark from the brand guide: a sprout cut from a solid field. `dark` is the
+ * version that sits on ink backgrounds.
+ */
+export function Logo({ className = "", tone = "light" }: { className?: string; tone?: "light" | "dark" }) {
+  const field = tone === "dark" ? "#5FA877" : "#22302A";
+  const lowerLeaf = tone === "dark" ? "#22302A" : "#5FA877";
+
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <rect x="7" y="12" width="18" height="17" rx="5" fill="#FDFCF8" stroke="#C8DACB" strokeWidth="1.6" />
-        <path d="M7.4 22H24.6V25.5A3.5 3.5 0 0 1 21.1 29H10.9A3.5 3.5 0 0 1 7.4 25.5Z" fill="#B98F63" />
-        <rect x="6" y="8.5" width="20" height="3.4" rx="1.7" fill="#C8DACB" />
-        <path d="M16 22V14" stroke="#5FA877" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M17 16.6c0-2 1.6-3.4 3.8-3.6.2 2.2-1.6 3.8-3.8 3.6Z" fill="#6FBF88" />
-        <path d="M15 18.4c0-2-1.6-3.4-3.8-3.6-.2 2.2 1.6 3.8 3.8 3.6Z" fill="#92D3A3" />
+      <svg width="28" height="28" viewBox="0 0 100 100" aria-hidden="true">
+        <rect x="4" y="4" width="92" height="92" rx="26" fill={field} />
+        <path d="M50 82 L50 26" stroke="#F2EDE4" strokeWidth="10" strokeLinecap="round" />
+        <path d="M53 50 C 53 39 62 31 76 30 C 77 43 65 51 53 50 Z" fill="#F2EDE4" />
+        <path d="M47 62 C 47 51 38 43 24 42 C 23 55 35 63 47 62 Z" fill={lowerLeaf} />
       </svg>
-      <span className="font-logo text-[19px] font-bold tracking-[-0.02em] text-ink-900">Sproutjar</span>
+      <span
+        className={`font-logo text-[19px] font-bold tracking-[-0.03em] ${
+          tone === "dark" ? "text-cream" : "text-ink-900"
+        }`}
+      >
+        sproutjar
+      </span>
     </span>
   );
 }
