@@ -221,3 +221,27 @@ input[type="number"] {
   0%, 100% { height: 5px; opacity: 0.45; }
   50% { height: 20px; opacity: 1; }
 }
+
+/* Ren's own screen: a dial that rotates while the line sits open. */
+.dial-ring {
+  border: 1px dashed rgba(95, 168, 119, 0.45);
+  animation: dial 26s linear infinite;
+}
+
+.dial-ring-2 {
+  border-style: solid;
+  border-color: rgba(95, 168, 119, 0.22);
+  animation-direction: reverse;
+  animation-duration: 34s;
+}
+
+@keyframes dial {
+  to { transform: rotate(360deg); }
+}
+
+.live-dot { animation: live 2200ms ease-in-out infinite; }
+
+@keyframes live {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
