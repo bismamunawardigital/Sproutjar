@@ -22,9 +22,7 @@ export function AgendaBlock({
 
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <h2 className="text-[19px] font-bold leading-snug text-ink-900">
-        Pick somewhere to start. You can change your mind once you&rsquo;re in.
-      </h2>
+      <h2 className="text-[17px] font-bold leading-snug text-ink-900">Pick somewhere to start.</h2>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {LENGTHS.map((value) => (
@@ -41,7 +39,6 @@ export function AgendaBlock({
             <span className="n">{value}</span> min
           </button>
         ))}
-        <p className="ml-1 text-[13px] text-ink-400">Ten&rsquo;s fine. Sixty is a proper sit-down.</p>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -52,7 +49,9 @@ export function AgendaBlock({
             className="rounded-card border border-rule bg-cream p-4 text-left transition hover:border-stem hover:shadow-sh-2"
           >
             <p className="text-[15px] font-bold leading-snug text-ink-900">{agenda.title}</p>
-            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-400">{agenda.reason}</p>
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-400">
+              {agenda.reason}
+            </p>
             <p className="mt-3 flex items-center gap-2">
               <span className="chip c-neutral">
                 <span className="n">{agenda.minutes}</span> min

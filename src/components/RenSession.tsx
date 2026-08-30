@@ -70,16 +70,14 @@ function RenSessionInner({
   }, [lines]);
 
   useEffect(() => {
-    if (status !== "live") {
-      setElapsed(0);
-      return;
-    }
+    if (status !== "live") return;
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(timer);
   }, [status]);
 
   const start = useCallback(async () => {
     setError(null);
+    setElapsed(0);
     setStatus("connecting");
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
