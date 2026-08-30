@@ -59,10 +59,18 @@ export function StrategyPicker({
                 {option.title}
                 {active ? <span className="chip c-grow">Chosen</span> : null}
               </p>
-              <p className="n mt-3 text-[22px] text-ink-900">{option.months} months</p>
-              <p className="mt-1 text-[13px] text-root">
-                <span className="n">{formatMoney(option.interest, currency)}</span> in interest
-              </p>
+              {option.months > 0 ? (
+                <>
+                  <p className="n mt-3 text-[22px] text-ink-900">{option.months} months</p>
+                  <p className="mt-1 text-[13px] text-root">
+                    <span className="n">{formatMoney(option.interest, currency)}</span> in interest
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-[15px] text-ink-400">
+                  No timeline yet — the surplus doesn&rsquo;t cover the minimums.
+                </p>
+              )}
               <p className="mt-3 text-[13px] leading-relaxed text-ink-400">{option.blurb}</p>
             </button>
           );

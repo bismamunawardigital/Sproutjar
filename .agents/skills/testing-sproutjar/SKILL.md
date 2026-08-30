@@ -59,5 +59,18 @@ toggles, and "End session" returns to idle.
 - Add-debt validation is server side only (`zod`: balance/minimum non-negative, monthlyRate 0..1). The form
   ignores the response, so an invalid submit silently leaves the board unchanged rather than showing an error.
 
+## UI landmarks worth knowing when writing assertions
+- The `Plant` SVG carries an `aria-label` of the form `A sprout in a jar. Stem at N percent, N leaf pairs, N roots.`
+  That label is the cheapest way to assert plant growth — read it from the DOM alongside a screenshot.
+- Plant growth is recomputed from `openingPrincipal` vs `currentPrincipal` in `src/lib/plant.ts`, so *adding* a debt
+  lowers the stem percentage. If the PRD says the plant must never shrink, expect this to fail until the opening
+  principal is grown alongside new debts (a huge added balance drives it to 0% / 0 leaf pairs).
+- Jars show `saved / target` plus "full in N months at this rate"; when `monthsToFull` is null the copy collapses to
+  a bare "· full" even for a partly-filled jar (`JarBoard.tsx`). Percent-full and stage are NOT rendered in the UI —
+  verify them via `GET /api/tools/debt-snapshot` with the `x-api-key` header instead.
+- Commitments disappear from "On the go" once marked and reappear as a neutral badge in "What you've worked on"
+  after a reload; that is the persistence check (there is no colour change and no red styling).
+- Jar deposit buttons disable while a request is in flight, so a rapid double-click registers only one deposit.
+
 ## Devin secrets needed
 - `ELEVENLABS_API_KEY` (and `ELEVENLABS_AGENT_ID`, `SPROUTJAR_TOOL_API_KEY` in `.env`) for the Ren voice session.

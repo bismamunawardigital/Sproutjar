@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/user";
+import { api } from "../../../../convex/_generated/api";
+import { convex } from "@/lib/convex";
+import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,8 @@ const jarSchema = z.object({
 });
 
 export async function GET() {
-  const user = await currentUser();
-  return NextResponse.json(
-    await prisma.jar.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
-  );
+  const snap = await buildSnapshot();
+  return NextResponse.json(snap.jars);
 }
 
 export async function POST(request: Request) {
@@ -24,9 +23,6 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid jar", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  return NextResponse.json(
-    await prisma.jar.create({ data: { ...parsed.data, userId: user.id } }),
-    { status: 201 },
-  );
+  const jar = await convex.mutation(api.sproutjar.addJar, parsed.data);
+  return NextResponse.json(jar, { status: 201 });
 }

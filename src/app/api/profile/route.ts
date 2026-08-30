@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { api } from "../../../../convex/_generated/api";
+import { convex } from "@/lib/convex";
 import { currentUser } from "@/lib/user";
 import { COUNTRIES } from "@/lib/money";
 
@@ -23,6 +24,5 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid profile", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  return NextResponse.json(await prisma.user.update({ where: { id: user.id }, data: parsed.data }));
+  return NextResponse.json(await convex.mutation(api.sproutjar.updateProfile, parsed.data));
 }

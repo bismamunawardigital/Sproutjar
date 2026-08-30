@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { assertToolKey } from "@/lib/tool-auth";
 import { COUNTRIES, countryProfile, type CountryCode } from "@/lib/money";
+import { FACTS } from "@/lib/reference";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   }
 
   const profile = countryProfile(code);
-  const fact = await prisma.creditFact.findUnique({ where: { country: code } });
+  const fact = FACTS.find((f) => f.country === code);
 
   return NextResponse.json({
     country: profile.name,

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/user";
+import { api } from "../../../../../../convex/_generated/api";
+import type { Id } from "../../../../../../convex/_generated/dataModel";
+import { convex } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +19,11 @@ export async function POST(request: Request, { params }: Params) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid deposit", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  const jar = await prisma.jar.findFirst({ where: { id, userId: user.id } });
-  if (!jar) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  const updated = await prisma.jar.update({
-    where: { id },
-    data: {
-      saved: Math.max(0, jar.saved + parsed.data.amount),
-      deposits: { create: { amount: parsed.data.amount, note: parsed.data.note } },
-    },
+  const jar = await convex.mutation(api.sproutjar.depositToJar, {
+    jarId: id as Id<"jars">,
+    amount: parsed.data.amount,
+    note: parsed.data.note,
   });
-  return NextResponse.json(updated);
+  if (!jar) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(jar);
 }

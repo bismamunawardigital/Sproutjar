@@ -6,6 +6,8 @@ export type GrowthInput = {
   sessionsHeld: number;
   commitmentsKept: number;
   weeksActive: number;
+  /** Growth already banked. The stem is never drawn below it. */
+  stemPeak: number;
 };
 
 const LEAF_MILESTONES = [0.1, 0.25, 0.5, 0.75, 1];
@@ -17,7 +19,10 @@ const LEAF_MILESTONES = [0.1, 0.25, 0.5, 0.75, 1];
  */
 export function plantState(input: GrowthInput): PlantState {
   const cleared = Math.max(0, input.openingPrincipal - input.currentPrincipal);
-  const stemPct = input.openingPrincipal > 0 ? Math.min(1, cleared / input.openingPrincipal) : 0;
+  const earned = input.openingPrincipal > 0 ? Math.min(1, cleared / input.openingPrincipal) : 0;
+  // Owning up to a card you had been hiding is progress, not a setback, so the
+  // stem holds at its high-water mark and grows again from there.
+  const stemPct = Math.max(earned, Math.min(1, input.stemPeak));
   const leafPairs = LEAF_MILESTONES.filter((milestone) => stemPct >= milestone).length;
   const work = input.sessionsHeld + input.commitmentsKept + Math.floor(input.weeksActive / 4);
 
@@ -25,7 +30,7 @@ export function plantState(input: GrowthInput): PlantState {
     stemPct,
     leafPairs,
     rootDepth: Math.max(1, Math.min(5, 1 + Math.floor(work / 2))),
-    sparks: stemPct >= 1,
+    sparks: earned >= 1,
     cleared: input.currentPrincipal <= 0 && input.openingPrincipal > 0,
   };
 }

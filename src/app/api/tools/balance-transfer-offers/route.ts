@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { assertToolKey } from "@/lib/tool-auth";
 import { countryProfile } from "@/lib/money";
+import { OFFERS } from "@/lib/reference";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Pass a bank name, e.g. ?bank=ADCB" }, { status: 400 });
   }
 
-  const all = await prisma.bankOffer.findMany();
   const needle = bank.toLowerCase();
-  const matches = all.filter(
+  const matches = OFFERS.filter(
     (o) => o.bank.toLowerCase().includes(needle) || needle.includes(o.bank.toLowerCase()),
   );
 
@@ -29,7 +28,7 @@ export async function GET(request: Request) {
       found: false,
       bank,
       message: `Sproutjar has no current balance transfer offer on file for ${bank}.`,
-      alternatives: all.slice(0, 3).map((o) => `${o.bank} — ${o.product}`),
+      alternatives: OFFERS.slice(0, 3).map((o) => `${o.bank} — ${o.product}`),
     });
   }
 

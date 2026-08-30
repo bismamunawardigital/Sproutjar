@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/db";
+import { api } from "../../convex/_generated/api";
+import { convex } from "@/lib/convex";
 import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, type DebtInput, type Strategy } from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { countryProfile } from "@/lib/money";
@@ -6,49 +7,33 @@ import { plantState, principalCleared } from "@/lib/plant";
 
 export const DEMO_EMAIL = "demo@sproutjar.app";
 
-/**
- * The hackathon build runs single-tenant: every request resolves to the demo profile.
- * Swapping this for a session lookup is the only change auth requires.
- */
-export async function currentUser() {
-  const user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
-  if (user) return user;
-  return prisma.user.create({
-    data: { name: "Friend", email: DEMO_EMAIL, country: "AE" },
-  });
-}
-
 export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
 
+/**
+ * The hackathon build runs single-tenant: every request resolves to the demo
+ * profile. Swapping this for a session lookup is the only change auth requires.
+ */
+export async function currentUser() {
+  const live = await convex.query(api.sproutjar.snapshot, {});
+  return live.user;
+}
+
+/**
+ * One live Convex read behind the whole product. The dashboard, the API routes
+ * and Ren's tools all derive from this, so they can never disagree about what
+ * someone owes.
+ */
 export async function buildSnapshot() {
-  const user = await currentUser();
-  const [debtRows, jarRows, commitments, recentCommitments, beliefs, sessions] = await Promise.all([
-    prisma.debt.findMany({ where: { userId: user.id }, orderBy: { balance: "asc" } }),
-    prisma.jar.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
-    prisma.commitment.findMany({
-      where: { userId: user.id, status: "open" },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
-    prisma.commitment.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 12,
-    }),
-    prisma.belief.findMany({
-      where: { userId: user.id, status: "active" },
-      orderBy: { namedOn: "desc" },
-    }),
-    prisma.coachSession.findMany({
-      where: { userId: user.id },
-      orderBy: { startedAt: "desc" },
-      take: 8,
-      include: { commitments: true },
-    }),
-  ]);
+  const live = await convex.query(api.sproutjar.snapshot, {});
+  const user = live.user;
+
+  const debtRows = live.debts;
+  const jarRows = live.jars;
+  const recentCommitments = live.commitments.slice(0, 12);
+  const commitments = live.commitments.filter((c) => c.status === "open").slice(0, 5);
 
   const debts: DebtInput[] = debtRows.map((d) => ({
-    id: d.id,
+    id: d._id,
     name: d.name,
     issuer: d.issuer,
     balance: d.balance,
@@ -74,28 +59,40 @@ export async function buildSnapshot() {
   const growth = plantState({
     openingPrincipal,
     currentPrincipal,
-    sessionsHeld: sessions.length,
+    sessionsHeld: live.sessions.length,
     commitmentsKept,
     weeksActive: user.weeksActive,
+    stemPeak: user.stemPeak,
   });
 
   return {
-    user,
+    user: { ...user, id: user._id },
     country,
-    debts: debtRows,
-    beliefs,
-    sessions,
-    recentCommitments,
+    debts: debtRows.map((d) => ({ ...d, id: d._id })),
+    beliefs: live.beliefs.map((b) => ({ ...b, id: b._id, namedOn: new Date(b.namedOn) })),
+    sessions: live.sessions.map((s) => ({
+      ...s,
+      id: s._id,
+      startedAt: new Date(s.startedAt),
+      commitments: live.commitments.filter((c) => c.sessionId === s._id),
+    })),
+    recentCommitments: recentCommitments.map((c) => ({ ...c, id: c._id, createdAt: new Date(c.createdAt) })),
     growth,
+    /** What the plant is drawn at now, so a mutation can bank it. */
+    stemPct: growth.stemPct,
     openingPrincipal,
     cleared: principalCleared(openingPrincipal, currentPrincipal),
     jars: jarRows.map((j) =>
       jarProgress(
-        { id: j.id, name: j.name, purpose: j.purpose, target: j.target, saved: j.saved },
+        { id: j._id, name: j.name, purpose: j.purpose, target: j.target, saved: j.saved },
         j.purpose === "emergency" ? split.toJar : 0,
       ),
     ),
-    commitments,
+    commitments: commitments.map((c) => ({
+      ...c,
+      id: c._id,
+      dueAt: c.dueAt === undefined ? null : new Date(c.dueAt),
+    })),
     surplus,
     strategy,
     starterTarget,

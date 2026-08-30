@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/user";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
+import { convex } from "@/lib/convex";
+import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +24,8 @@ const updateSchema = z.object({
 });
 
 export async function GET() {
-  const user = await currentUser();
-  return NextResponse.json(
-    await prisma.commitment.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" } }),
-  );
+  const snap = await buildSnapshot();
+  return NextResponse.json(snap.recentCommitments);
 }
 
 export async function POST(request: Request) {
@@ -33,14 +33,8 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid commitment", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  const { days, ...rest } = parsed.data;
-  const dueAt = new Date();
-  dueAt.setDate(dueAt.getDate() + days);
-  return NextResponse.json(
-    await prisma.commitment.create({ data: { ...rest, dueAt, userId: user.id } }),
-    { status: 201 },
-  );
+  const id = await convex.mutation(api.sproutjar.addCommitment, parsed.data);
+  return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -48,15 +42,11 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  const commitment = await prisma.commitment.findFirst({
-    where: { id: parsed.data.id, userId: user.id },
+  const id = await convex.mutation(api.sproutjar.setCommitmentStatus, {
+    id: parsed.data.id as Id<"commitments">,
+    status: parsed.data.status,
+    reflection: parsed.data.reflection,
   });
-  if (!commitment) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(
-    await prisma.commitment.update({
-      where: { id: parsed.data.id },
-      data: { status: parsed.data.status, reflection: parsed.data.reflection },
-    }),
-  );
+  if (!id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ id, status: parsed.data.status });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
+import { api } from "../../../../../convex/_generated/api";
+import { convex } from "@/lib/convex";
 import { assertToolKey } from "@/lib/tool-auth";
 import { currentUser } from "@/lib/user";
 
@@ -11,8 +12,9 @@ const bodySchema = z.object({
   outcome: z.string().default(""),
   obstacle: z.string().default(""),
   if_then_plan: z.string().default(""),
+  trigger: z.string().default(""),
+  ownership_confirmed: z.boolean().default(false),
   days: z.coerce.number().int().min(1).max(365).default(30),
-  conversation_id: z.string().optional(),
 });
 
 /**
@@ -32,25 +34,19 @@ export async function POST(request: Request) {
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + parsed.data.days);
 
-  const session = parsed.data.conversation_id
-    ? await prisma.coachSession.findUnique({ where: { conversationId: parsed.data.conversation_id } })
-    : null;
-
-  const commitment = await prisma.commitment.create({
-    data: {
-      userId: user.id,
-      sessionId: session?.id ?? null,
-      wish: parsed.data.wish,
-      outcome: parsed.data.outcome,
-      obstacle: parsed.data.obstacle,
-      ifThenPlan: parsed.data.if_then_plan,
-      dueAt,
-    },
+  const id = await convex.mutation(api.sproutjar.addCommitment, {
+    wish: parsed.data.wish,
+    outcome: parsed.data.outcome,
+    obstacle: parsed.data.obstacle,
+    ifThenPlan: parsed.data.if_then_plan,
+    trigger: parsed.data.trigger,
+    ownershipConfirmed: parsed.data.ownership_confirmed,
+    days: parsed.data.days,
   });
 
   return NextResponse.json({
     saved: true,
-    id: commitment.id,
+    id,
     due: dueAt.toISOString().slice(0, 10),
     confirmation: `Saved. It is on ${user.name}'s dashboard until ${dueAt.toDateString()}.`,
   });

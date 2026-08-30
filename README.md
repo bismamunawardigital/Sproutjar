@@ -47,8 +47,8 @@ appears on the dashboard behind the conversation while the user is still talking
 ```bash
 npm install
 cp .env.example .env      # fill in ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID
-npm run db:push
-npm run db:seed
+npx convex dev --once   # provisions the deployment, writes CONVEX_DEPLOYMENT + NEXT_PUBLIC_CONVEX_URL
+npm run db:seed         # Layla's eleven weeks, straight into Convex
 npm run dev
 ```
 
@@ -58,7 +58,8 @@ Open http://localhost:3000 for the landing page and http://localhost:3000/dashbo
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | SQLite file, e.g. `file:./dev.db` |
+| `CONVEX_DEPLOYMENT` | Written by `npx convex dev` |
+| `NEXT_PUBLIC_CONVEX_URL` | Live Convex deployment every read and write goes through |
 | `ELEVENLABS_API_KEY` | Server-side only. Mints conversation tokens |
 | `ELEVENLABS_AGENT_ID` | The Ren agent |
 | `SPROUTJAR_TOOL_API_KEY` | Shared secret Ren sends as `X-API-Key` when calling the tool routes |

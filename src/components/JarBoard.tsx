@@ -46,10 +46,13 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
               <p className="n text-[17px] text-ink-900">{formatMoney(jar.saved, currency)}</p>
             </div>
             <p className="mt-0.5 text-[13px] text-ink-400">
-              of <span className="n">{formatMoney(jar.target, currency)}</span>
-              {jar.monthsToFull !== null && jar.remaining > 0
-                ? ` · full in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} at this rate`
-                : " · full"}
+              of <span className="n">{formatMoney(jar.target, currency)}</span> ·{" "}
+              <span className="n">{jar.pct}%</span>
+              {jar.remaining <= 0
+                ? " · full"
+                : jar.monthsToFull !== null
+                  ? ` · full in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} at this rate`
+                  : ` · ${formatMoney(jar.remaining, currency)} to go`}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {[100, 250, 500].map((amount) => (

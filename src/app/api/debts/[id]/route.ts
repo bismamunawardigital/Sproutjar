@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/user";
+import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { convex } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -22,17 +23,17 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  const debt = await prisma.debt.findFirst({ where: { id, userId: user.id } });
+  const debt = await convex.mutation(api.sproutjar.updateDebt, {
+    id: id as Id<"debts">,
+    ...parsed.data,
+  });
   if (!debt) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(await prisma.debt.update({ where: { id }, data: parsed.data }));
+  return NextResponse.json(debt);
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
   const { id } = await params;
-  const user = await currentUser();
-  const debt = await prisma.debt.findFirst({ where: { id, userId: user.id } });
-  if (!debt) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.debt.delete({ where: { id } });
+  const removed = await convex.mutation(api.sproutjar.removeDebt, { id: id as Id<"debts"> });
+  if (!removed) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ deleted: true });
 }

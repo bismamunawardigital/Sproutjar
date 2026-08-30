@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { currentUser } from "@/lib/user";
+import { api } from "../../../../convex/_generated/api";
+import { convex } from "@/lib/convex";
+import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,8 @@ const debtSchema = z.object({
 });
 
 export async function GET() {
-  const user = await currentUser();
-  return NextResponse.json(
-    await prisma.debt.findMany({ where: { userId: user.id }, orderBy: { balance: "asc" } }),
-  );
+  const snap = await buildSnapshot();
+  return NextResponse.json(snap.debts);
 }
 
 export async function POST(request: Request) {
@@ -27,12 +26,12 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid debt", issues: parsed.error.issues }, { status: 400 });
   }
-  const user = await currentUser();
-  return NextResponse.json(
-    await prisma.debt.create({
-      // What it stands at today is also what the plant starts growing against.
-      data: { ...parsed.data, openingBalance: parsed.data.balance, userId: user.id },
-    }),
-    { status: 201 },
-  );
+
+  // Bank the growth already earned before the new balance enters the maths,
+  // so admitting to another card never costs someone stem.
+  const before = await buildSnapshot();
+  await convex.mutation(api.sproutjar.recordStemPeak, { stemPct: before.stemPct });
+
+  const id = await convex.mutation(api.sproutjar.addDebt, parsed.data);
+  return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }
