@@ -1,70 +1,177 @@
 @import "tailwindcss";
 
-:root {
-  --cream: #fbf7ef;
-  --cream-deep: #f3ecdf;
-  --bark: #1f2a24;
-  --moss: #2f6b4f;
-  --moss-light: #4f9a72;
-  --sprout: #8fce9f;
-  --clay: #c96f4a;
-  --sand: #e5d9c3;
-  --ink-soft: #55635a;
-}
+/* Every value derives from the growth animation. See brand-guidelines.md. */
+@theme {
+  --color-cream: #f2ede4;
+  --color-cream-2: #e8e1d4;
+  --color-card: #fdfcf8;
+  --color-rule: #ded6c8;
 
-@theme inline {
-  --color-cream: var(--cream);
-  --color-cream-deep: var(--cream-deep);
-  --color-bark: var(--bark);
-  --color-moss: var(--moss);
-  --color-moss-light: var(--moss-light);
-  --color-sprout: var(--sprout);
-  --color-clay: var(--clay);
-  --color-sand: var(--sand);
-  --color-ink-soft: var(--ink-soft);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-fraunces);
-}
+  --color-ink-900: #141d19;
+  --color-ink-800: #22302a;
+  --color-ink-700: #2f433a;
+  --color-ink-500: #4a5c52;
+  --color-ink-400: #5c6b62;
+  --color-ink-300: #8c9990;
 
-html {
-  scroll-behavior: smooth;
+  --color-stem: #5fa877;
+  --color-stem-700: #2f6243;
+  --color-stem-600: #3d7a55;
+  --color-stem-500: #4e9a6b;
+
+  --color-leaf-400: #6fbf88;
+  --color-leaf-300: #92d3a3;
+  --color-leaf-100: #deeadf;
+  --color-leaf-50: #eff6f0;
+
+  --color-soil: #b98f63;
+  --color-soil-light: #d4b48f;
+  --color-root: #7a6248;
+  --color-root-50: #f1e9df;
+
+  --color-amber: #e8a94b;
+  --color-amber-50: #faeeda;
+  --color-amber-900: #7a5410;
+
+  --color-lid: #c8dacb;
+  --color-danger: #b4453a;
+  --color-danger-50: #f7e4e2;
+
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-logo: var(--font-space-grotesk), ui-sans-serif, sans-serif;
+
+  --radius-card: 16px;
+  --radius-sm: 10px;
+
+  --shadow-sh-1: 0 1px 2px rgba(34, 48, 42, 0.05);
+  --shadow-sh-2: 0 4px 14px rgba(34, 48, 42, 0.09);
+  --shadow-sh-3: 0 12px 32px rgba(34, 48, 42, 0.13);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.28, 1.6, 0.5, 1);
+  --ease-settle: cubic-bezier(0.25, 0.6, 0.35, 1);
 }
 
 body {
-  background: var(--cream);
-  color: var(--bark);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink-800);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-.grain {
-  background-image: radial-gradient(rgba(47, 107, 79, 0.06) 1px, transparent 1px);
-  background-size: 22px 22px;
+/* Every figure is tabular and weight 800. */
+.n,
+td.num,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
 }
 
-@keyframes breathe {
-  0%, 100% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.06); opacity: 1; }
+.label {
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-400);
 }
 
-.breathe {
-  animation: breathe 3.6s ease-in-out infinite;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.c-grow { background: var(--color-leaf-100); color: var(--color-stem-700); }
+.c-cost { background: var(--color-root-50); color: var(--color-root); }
+.c-amber { background: var(--color-amber-50); color: var(--color-amber-900); }
+.c-neutral { background: var(--color-cream-2); color: var(--color-ink-500); }
+
+*:focus-visible {
+  outline: 2.5px solid var(--color-stem);
+  outline-offset: 2px;
 }
 
-@keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.7; }
-  100% { transform: scale(1.7); opacity: 0; }
+/* The plant. Progress animates, cost does not. Nothing ever shrinks. */
+.plant-stem {
+  transition: stroke-dashoffset 1400ms var(--ease-spring);
+}
+.plant-root {
+  transition: stroke-dashoffset 1400ms var(--ease-out);
 }
 
-.pulse-ring {
-  animation: pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+@keyframes leaf-pop {
+  0% { opacity: 0; transform: scale(0.05) rotate(-14deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes leaf-flutter {
+  0% { transform: scale(1) rotate(0deg); }
+  20% { transform: scale(1.07) rotate(9deg); }
+  48% { transform: scale(1) rotate(-6deg); }
+  72% { transform: scale(1) rotate(3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.leaf {
+  transform-box: fill-box;
+  animation: leaf-pop 340ms var(--ease-spring) both, leaf-flutter 1000ms ease-in-out 340ms both;
+}
+.leaf-r { transform-origin: 0% 100%; }
+.leaf-l { transform-origin: 100% 100%; }
+
+@keyframes spark {
+  0% { opacity: 0; transform: scale(0); }
+  45% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(0.5); }
+}
+.spark {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: spark 750ms var(--ease-spring) both;
+}
+
+@keyframes lid-tip {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  22% { transform: translate(-6px, -30px) rotate(-7deg); opacity: 1; }
+  100% { transform: translate(-104px, -168px) rotate(-46deg); opacity: 0; }
+}
+.lid-tip {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lid-tip 550ms cubic-bezier(0.3, 0.7, 0.4, 1) both;
 }
 
 @keyframes rise {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.rise { animation: rise 420ms var(--ease-settle) both; }
 
-.rise {
-  animation: rise 0.6s ease-out both;
+/* Ren's orb is the only gradient permitted in the system. */
+.ren-orb {
+  background: radial-gradient(circle at 32% 28%, #92d3a3, #3d7a55 70%);
+}
+@keyframes orb-speak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.orb-speaking { animation: orb-speak 900ms var(--ease-settle) infinite; }
+@keyframes orb-listen {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+.orb-listening { animation: orb-listen 2400ms ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

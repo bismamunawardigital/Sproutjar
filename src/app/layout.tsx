@@ -1,28 +1,29 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Nunito, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
+  weight: ["300", "400", "600", "700", "800"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-  axes: ["SOFT", "WONK"],
+  weight: ["700"],
 });
 
 export const metadata: Metadata = {
-  title: "Sproutjar — financial wellness coaching, out loud",
+  title: "Sproutjar — debt recovery coaching with Ren",
   description:
-    "Sproutjar pairs Ren, a voice-first financial wellness coach, with a real debt payoff engine and savings jars for people clearing credit card debt in the Gulf.",
+    "Sproutjar is a debt recovery coaching product for salaried professionals in the Gulf. Ren is the coach inside it: every session arrives with a length, an agenda, and a reason for that agenda.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${fraunces.variable} antialiased`}>{children}</body>
+      <body className={`${nunito.variable} ${spaceGrotesk.variable} antialiased`}>{children}</body>
     </html>
   );
 }

@@ -10,12 +10,15 @@ const createSchema = z.object({
   outcome: z.string().default(""),
   obstacle: z.string().default(""),
   ifThenPlan: z.string().default(""),
+  trigger: z.string().default(""),
+  ownershipConfirmed: z.boolean().default(false),
   days: z.coerce.number().int().min(1).max(365).default(30),
 });
 
 const updateSchema = z.object({
   id: z.string().min(1),
-  status: z.enum(["open", "kept", "missed"]),
+  status: z.enum(["open", "kept", "partial", "missed"]),
+  reflection: z.string().default(""),
 });
 
 export async function GET() {
@@ -51,6 +54,9 @@ export async function PATCH(request: Request) {
   });
   if (!commitment) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(
-    await prisma.commitment.update({ where: { id: parsed.data.id }, data: { status: parsed.data.status } }),
+    await prisma.commitment.update({
+      where: { id: parsed.data.id },
+      data: { status: parsed.data.status, reflection: parsed.data.reflection },
+    }),
   );
 }

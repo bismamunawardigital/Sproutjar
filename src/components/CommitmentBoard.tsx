@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, X } from "lucide-react";
 
 export type CommitmentRow = {
   id: string;
   wish: string;
+  trigger: string;
   outcome: string;
   obstacle: string;
   ifThenPlan: string;
@@ -13,10 +13,15 @@ export type CommitmentRow = {
   status: string;
 };
 
+/**
+ * The weekly ask is one tap. A missed commitment gets no red, no warning icon
+ * and no sad copy — the plant holds exactly where it was and Ren asks what
+ * happened between deciding and the moment it didn't.
+ */
 export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] }) {
   const router = useRouter();
 
-  async function mark(id: string, status: "kept" | "missed") {
+  async function mark(id: string, status: "kept" | "partial" | "missed") {
     await fetch("/api/commitments", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -26,54 +31,61 @@ export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] 
   }
 
   return (
-    <div className="rounded-2xl border border-sand bg-cream p-6">
-      <h3 className="font-display text-xl font-semibold">This month&rsquo;s commitment</h3>
-      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-        Ren writes these here at the end of a call. One at a time, in your words.
-      </p>
+    <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
+      <p className="label">On the go</p>
 
-      <div className="mt-5 space-y-3">
-        {commitments.length === 0 ? (
-          <p className="rounded-xl bg-white/60 p-6 text-sm text-ink-soft">
-            Nothing open. Your next session with Ren will close with one.
-          </p>
-        ) : null}
+      {commitments.length === 0 ? (
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
+          Nothing on the go yet. One&rsquo;ll come out of your next session.
+        </p>
+      ) : null}
+
+      <div className="mt-3 space-y-4">
         {commitments.map((commitment) => (
-          <div key={commitment.id} className="rounded-xl border border-sand bg-white/60 p-5">
-            <p className="font-medium">{commitment.wish}</p>
-            {commitment.obstacle ? (
-              <p className="mt-1.5 text-sm text-ink-soft">
-                <span className="font-medium text-bark">The real obstacle:</span>{" "}
-                {commitment.obstacle}
-              </p>
+          <div key={commitment.id}>
+            <p className="text-[17px] font-bold leading-snug text-ink-900">{commitment.wish}</p>
+            {commitment.trigger ? (
+              <p className="mt-1 text-[13px] text-ink-400">{commitment.trigger}</p>
             ) : null}
             {commitment.ifThenPlan ? (
-              <p className="mt-2 rounded-lg bg-moss/10 px-3.5 py-2.5 text-sm text-moss">
+              <p className="mt-2 rounded-sm bg-leaf-50 px-3.5 py-2.5 text-[13px] text-stem-700">
                 {commitment.ifThenPlan}
               </p>
             ) : null}
-            <div className="mt-4 flex items-center gap-2">
+
+            <p className="label mt-4">Did it happen?</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => mark(commitment.id, "kept")}
-                className="inline-flex items-center gap-1.5 rounded-full bg-moss px-4 py-1.5 text-sm font-medium text-white transition hover:bg-bark"
+                className="rounded-full bg-stem-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-stem-700"
               >
-                <Check size={15} /> Kept it
+                Done
+              </button>
+              <button
+                onClick={() => mark(commitment.id, "partial")}
+                className="rounded-full border border-rule px-4 py-2 text-sm font-bold text-ink-700 transition hover:border-ink-300"
+              >
+                Partly
               </button>
               <button
                 onClick={() => mark(commitment.id, "missed")}
-                className="inline-flex items-center gap-1.5 rounded-full border border-bark/15 px-4 py-1.5 text-sm transition hover:border-clay hover:text-clay"
+                className="rounded-full border border-rule px-4 py-2 text-sm font-bold text-ink-700 transition hover:border-ink-300"
               >
-                <X size={15} /> Not this time
+                Not this time
               </button>
               {commitment.dueAt ? (
-                <span className="ml-auto text-xs text-ink-soft">
-                  Due {new Date(commitment.dueAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                <span className="ml-auto text-[12px] text-ink-300">
+                  Due{" "}
+                  {new Date(commitment.dueAt).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                  })}
                 </span>
               ) : null}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

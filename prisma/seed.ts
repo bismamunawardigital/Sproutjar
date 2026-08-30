@@ -46,7 +46,7 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: "demo@sproutjar.app" },
-    update: {},
+    update: { weeksActive: 11 },
     create: {
       name: "Layla",
       email: "demo@sproutjar.app",
@@ -54,18 +54,43 @@ async function main() {
       monthlyIncome: 18000,
       monthlyEssentials: 11500,
       strategy: "snowball",
+      weeksActive: 11,
+      upbringing:
+        "Nobody talked about it. My father handled everything and my mother found out what we could afford by being told no.",
+      moneyPurpose: "Not having to ask anyone for anything. That's it, really.",
+      goodDecision:
+        "I paid off my sister's tuition instalment before mine. Nobody asked me to and I'd do it again.",
     },
   });
 
   const existingDebts = await prisma.debt.count({ where: { userId: user.id } });
   if (existingDebts === 0) {
-    await prisma.debt.createMany({
-      data: [
-        { userId: user.id, name: "Emirates NBD Platinum", issuer: "Emirates NBD", balance: 12400, monthlyRate: 0.0329, minimumPayment: 620 },
-        { userId: user.id, name: "ADCB Traveller", issuer: "ADCB", balance: 4800, monthlyRate: 0.0325, minimumPayment: 240 },
-        { userId: user.id, name: "RAKBANK Titanium", issuer: "RAKBANK", balance: 21900, monthlyRate: 0.0349, minimumPayment: 1095 },
-      ],
-    });
+    // Eleven weeks of history. Opening balances are what the plant grows against.
+    const seededDebts = [
+      { name: "Emirates NBD Platinum", issuer: "Emirates NBD", openingBalance: 29500, balance: 12400, monthlyRate: 0.0329, minimumPayment: 620 },
+      { name: "ADCB Traveller", issuer: "ADCB", openingBalance: 11000, balance: 4800, monthlyRate: 0.0325, minimumPayment: 240 },
+      { name: "RAKBANK Titanium", issuer: "RAKBANK", openingBalance: 52000, balance: 21900, monthlyRate: 0.0349, minimumPayment: 1095 },
+    ];
+
+    for (const seeded of seededDebts) {
+      const debt = await prisma.debt.create({ data: { ...seeded, userId: user.id } });
+      const step = (seeded.openingBalance - seeded.balance) / 11;
+      for (let week = 1; week <= 11; week += 1) {
+        const balance = Math.round(seeded.openingBalance - step * week);
+        const interest = Math.round(balance * seeded.monthlyRate * 0.25);
+        await prisma.balanceEntry.create({
+          data: {
+            userId: user.id,
+            debtId: debt.id,
+            balance,
+            amountPaid: Math.round(step + interest),
+            principalCleared: Math.round(step),
+            interestCharged: interest,
+            loggedAt: new Date(Date.now() - (11 - week) * 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    }
   }
 
   const existingJars = await prisma.jar.count({ where: { userId: user.id } });
@@ -76,6 +101,66 @@ async function main() {
         { userId: user.id, name: "Eid gifts, on purpose", purpose: "planned", target: 2000, saved: 750 },
       ],
     });
+  }
+
+  const existingBeliefs = await prisma.belief.count({ where: { userId: user.id } });
+  if (existingBeliefs === 0) {
+    await prisma.belief.createMany({
+      data: [
+        {
+          userId: user.id,
+          text: "If I can't do it properly there's no point starting.",
+          namedOn: new Date(Date.now() - 52 * 24 * 60 * 60 * 1000),
+        },
+        {
+          userId: user.id,
+          text: "Saying no to my family costs more than the money does.",
+          namedOn: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000),
+        },
+      ],
+    });
+  }
+
+  const existingSessions = await prisma.coachSession.count({ where: { userId: user.id } });
+  if (existingSessions === 0) {
+    const history = [
+      { agenda: "Where this actually stands", technique: "Reality before resources", plannedMinutes: 20, contractChoice: "clarity", daysAgo: 74, commitment: "Write down all three balances on Sunday morning", trigger: "Sunday, before anyone else is up", status: "kept" },
+      { agenda: "The last plan that didn't stick", technique: "Past-success and exception questions", plannedMinutes: 20, contractChoice: "clarity", daysAgo: 60, commitment: "Move the RAKBANK card out of my wallet", trigger: "Tonight, when I get home", status: "kept" },
+      { agenda: "What you'd be uncomfortable for", technique: "Values clarification", plannedMinutes: 40, contractChoice: "space", daysAgo: 45, commitment: "", trigger: "", status: "" },
+      { agenda: "The months this didn't happen", technique: "Solution-focused exceptions", plannedMinutes: 10, contractChoice: "decision", daysAgo: 31, commitment: "Pay ADCB the day salary lands, before anything else", trigger: "The 25th, from the bank app", status: "kept" },
+      { agenda: "Payday to week three", technique: "Behaviour chain analysis", plannedMinutes: 15, contractChoice: "plan", daysAgo: 17, commitment: "Leave the grocery run to Thursday, not the day after payday", trigger: "Thursday evening", status: "missed" },
+      { agenda: "Who else could carry some of this", technique: "Resource activation", plannedMinutes: 20, contractChoice: "plan", daysAgo: 6, commitment: "Ask Emirates NBD in writing what a reduced plan would look like", trigger: "Tuesday lunch break", status: "open" },
+    ];
+
+    for (const item of history) {
+      const startedAt = new Date(Date.now() - item.daysAgo * 24 * 60 * 60 * 1000);
+      const session = await prisma.coachSession.create({
+        data: {
+          userId: user.id,
+          agenda: item.agenda,
+          agendaReason: "",
+          technique: item.technique,
+          plannedMinutes: item.plannedMinutes,
+          contractChoice: item.contractChoice,
+          startedAt,
+          endedAt: new Date(startedAt.getTime() + item.plannedMinutes * 60 * 1000),
+        },
+      });
+      if (item.commitment) {
+        await prisma.commitment.create({
+          data: {
+            userId: user.id,
+            sessionId: session.id,
+            wish: item.commitment,
+            trigger: item.trigger,
+            ownershipConfirmed: true,
+            status: item.status,
+            createdAt: startedAt,
+            dueAt: new Date(startedAt.getTime() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    }
   }
 }
 

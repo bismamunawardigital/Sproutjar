@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sprout } from "lucide-react";
+import { formatMoney } from "@/lib/money";
 
 export type JarRow = {
   id: string;
@@ -16,19 +16,9 @@ export type JarRow = {
   stage: "seed" | "sprout" | "sapling" | "grown";
 };
 
-const STAGE_COPY: Record<JarRow["stage"], string> = {
-  seed: "Seed",
-  sprout: "Sprouting",
-  sapling: "Sapling",
-  grown: "Grown",
-};
-
 export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string }) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
-
-  const money = (value: number) =>
-    `${currency} ${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 
   async function deposit(jarId: string, amount: number) {
     setPending(jarId);
@@ -42,55 +32,40 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
   }
 
   return (
-    <div className="rounded-2xl border border-sand bg-cream p-6">
-      <h3 className="font-display text-xl font-semibold">Jars</h3>
-      <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-        One month of essentials fills first. Everything after that goes at the cards.
+    <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
+      <p className="label">Set aside</p>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
+        A month of essentials sits here first. Without it the next surprise goes back on a card.
       </p>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-4 divide-y divide-rule">
         {jars.map((jar) => (
-          <div key={jar.id} className="rounded-xl border border-sand bg-white/60 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="flex items-center gap-2 font-medium">
-                  <Sprout size={16} className="text-moss" />
-                  {jar.name}
-                </p>
-                <p className="mt-0.5 text-sm text-ink-soft">
-                  {money(jar.saved)} of {money(jar.target)} · {STAGE_COPY[jar.stage]}
-                </p>
-              </div>
-              <span className="font-display text-2xl font-semibold text-moss">{jar.pct}%</span>
+          <div key={jar.id} className="py-4 first:pt-0">
+            <div className="flex items-baseline justify-between gap-4">
+              <p className="text-[15px] font-bold text-ink-900">{jar.name}</p>
+              <p className="n text-[17px] text-ink-900">{formatMoney(jar.saved, currency)}</p>
             </div>
-
-            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-sand">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-sprout to-moss transition-all duration-700"
-                style={{ width: `${jar.pct}%` }}
-              />
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <p className="mt-0.5 text-[13px] text-ink-400">
+              of <span className="n">{formatMoney(jar.target, currency)}</span>
+              {jar.monthsToFull !== null && jar.remaining > 0
+                ? ` · full in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} at this rate`
+                : " · full"}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
               {[100, 250, 500].map((amount) => (
                 <button
                   key={amount}
                   disabled={pending === jar.id}
                   onClick={() => deposit(jar.id, amount)}
-                  className="rounded-full border border-bark/15 px-3.5 py-1.5 text-sm transition hover:border-moss hover:text-moss disabled:opacity-50"
+                  className="rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-stem disabled:opacity-50"
                 >
-                  +{money(amount)}
+                  Put in <span className="n">{amount}</span>
                 </button>
               ))}
-              {jar.monthsToFull !== null && jar.remaining > 0 ? (
-                <span className="ml-auto text-xs text-ink-soft">
-                  Full in {jar.monthsToFull} month{jar.monthsToFull === 1 ? "" : "s"} at this rate
-                </span>
-              ) : null}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

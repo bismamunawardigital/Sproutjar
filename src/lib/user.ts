@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, type DebtInput, type Strategy } from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { countryProfile } from "@/lib/money";
+import { plantState, principalCleared } from "@/lib/plant";
 
 export const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -21,13 +22,28 @@ export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
 
 export async function buildSnapshot() {
   const user = await currentUser();
-  const [debtRows, jarRows, commitments] = await Promise.all([
+  const [debtRows, jarRows, commitments, recentCommitments, beliefs, sessions] = await Promise.all([
     prisma.debt.findMany({ where: { userId: user.id }, orderBy: { balance: "asc" } }),
     prisma.jar.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
     prisma.commitment.findMany({
       where: { userId: user.id, status: "open" },
       orderBy: { createdAt: "desc" },
       take: 5,
+    }),
+    prisma.commitment.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 12,
+    }),
+    prisma.belief.findMany({
+      where: { userId: user.id, status: "active" },
+      orderBy: { namedOn: "desc" },
+    }),
+    prisma.coachSession.findMany({
+      where: { userId: user.id },
+      orderBy: { startedAt: "desc" },
+      take: 8,
+      include: { commitments: true },
     }),
   ]);
 
@@ -52,10 +68,27 @@ export async function buildSnapshot() {
   const comparison = compareStrategies(debts, surplus);
   const minimumsOnly = minimumsOnlyOutlook(debts);
 
+  const openingPrincipal = debtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);
+  const currentPrincipal = debtRows.reduce((s, d) => s + d.balance, 0);
+  const commitmentsKept = recentCommitments.filter((c) => c.status === "kept").length;
+  const growth = plantState({
+    openingPrincipal,
+    currentPrincipal,
+    sessionsHeld: sessions.length,
+    commitmentsKept,
+    weeksActive: user.weeksActive,
+  });
+
   return {
     user,
     country,
     debts: debtRows,
+    beliefs,
+    sessions,
+    recentCommitments,
+    growth,
+    openingPrincipal,
+    cleared: principalCleared(openingPrincipal, currentPrincipal),
     jars: jarRows.map((j) =>
       jarProgress(
         { id: j.id, name: j.name, purpose: j.purpose, target: j.target, saved: j.saved },

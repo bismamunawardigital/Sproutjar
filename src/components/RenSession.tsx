@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { Loader2, Mic, MicOff, PhoneOff } from "lucide-react";
+import type { Agenda } from "@/lib/agendas";
 
 type SessionConfig =
   | {
@@ -16,11 +16,30 @@ type SessionConfig =
 
 type Line = { role: "ren" | "you"; text: string };
 
-function RenSessionInner({ userName }: { userName: string }) {
+const CONTRACTS = [
+  { key: "clarity", label: "Clarity" },
+  { key: "decision", label: "A decision" },
+  { key: "plan", label: "A plan" },
+  { key: "space", label: "Space to think" },
+] as const;
+
+type Contract = (typeof CONTRACTS)[number]["key"];
+
+function RenSessionInner({
+  userName,
+  agenda,
+  minutes,
+}: {
+  userName: string;
+  agenda: Agenda | null;
+  minutes: number;
+}) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "connecting" | "live" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
+  const [contract, setContract] = useState<Contract | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const conversation = useConversation({
@@ -50,6 +69,15 @@ function RenSessionInner({ userName }: { userName: string }) {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
   }, [lines]);
 
+  useEffect(() => {
+    if (status !== "live") {
+      setElapsed(0);
+      return;
+    }
+    const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
+    return () => clearInterval(timer);
+  }, [status]);
+
   const start = useCallback(async () => {
     setError(null);
     setStatus("connecting");
@@ -66,13 +94,20 @@ function RenSessionInner({ userName }: { userName: string }) {
       conversation.startSession({
         conversationToken: config.conversationToken,
         connectionType: "webrtc",
-        dynamicVariables: config.dynamicVariables,
+        dynamicVariables: {
+          ...config.dynamicVariables,
+          agenda_title: agenda?.title ?? "Open",
+          agenda_reason: agenda?.reason ?? "They haven't picked an agenda. Ask where to start.",
+          agenda_technique: agenda?.technique ?? "Open",
+          planned_minutes: String(minutes),
+          contract_choice: contract ?? "unstated",
+        },
       });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not start the session.");
       setStatus("error");
     }
-  }, [conversation]);
+  }, [agenda, contract, conversation, minutes]);
 
   const stop = useCallback(() => {
     conversation.endSession();
@@ -80,91 +115,116 @@ function RenSessionInner({ userName }: { userName: string }) {
   }, [conversation]);
 
   const speaking = conversation.isSpeaking;
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-moss/25 bg-gradient-to-br from-moss/10 via-cream to-cream">
-      <div className="flex flex-col gap-8 p-8 lg:flex-row lg:items-center">
-        <div className="flex shrink-0 items-center justify-center lg:w-56">
-          <div className="relative flex h-36 w-36 items-center justify-center">
-            {status === "live" ? (
-              <span className="pulse-ring absolute inset-0 rounded-full bg-sprout/40" />
-            ) : null}
+    <section className="overflow-hidden rounded-card bg-ink-800 text-cream shadow-sh-3">
+      <div className="flex flex-col gap-6 p-5 sm:p-7">
+        <div className="flex items-start gap-5">
+          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
             <span
-              className={`absolute inset-3 rounded-full bg-gradient-to-br from-sprout to-moss ${
-                status === "live" && speaking ? "breathe" : ""
+              className={`ren-orb absolute inset-0 rounded-full ${
+                status === "live" ? (speaking ? "orb-speaking" : "orb-listening") : ""
               }`}
             />
-            <span className="relative font-display text-2xl font-semibold text-white">Ren</span>
+            <span className="relative text-[15px] font-bold text-white">Ren</span>
           </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-leaf-300">
+              {status === "live"
+                ? speaking
+                  ? "Ren is speaking"
+                  : "Ren is listening"
+                : status === "connecting"
+                  ? "Connecting"
+                  : `${minutes} min · ${agenda?.technique ?? "Open"}`}
+            </p>
+            <h2 className="mt-1.5 text-[22px] font-bold leading-snug">
+              {agenda ? agenda.title : `Ready when you are, ${userName}.`}
+            </h2>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-cream/70">
+              {agenda
+                ? agenda.reason
+                : "Pick an agenda below, or start here and tell Ren where you want to begin."}
+            </p>
+          </div>
+
+          {status === "live" ? (
+            <span className="n shrink-0 rounded-full bg-white/10 px-3 py-1 text-[13px]">
+              {mm}:{ss}
+            </span>
+          ) : null}
         </div>
 
-        <div className="flex-1">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-moss">
-            {status === "live"
-              ? speaking
-                ? "Ren is speaking"
-                : "Ren is listening"
-              : status === "connecting"
-                ? "Connecting"
-                : "Voice session"}
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">
-            {status === "live" ? `You're with Ren, ${userName}.` : `Ready when you are, ${userName}.`}
-          </h2>
-          <p className="mt-2 max-w-xl leading-relaxed text-ink-soft">
-            Ren opens the call already knowing your balances, your surplus and your debt-free date.
-            No re-explaining. Speak normally — interrupting is fine.
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            {status === "live" ? (
-              <>
+        {status !== "live" ? (
+          <div>
+            <p className="text-[14px] text-cream/70">
+              Before we get into it — do you want to come out of this clearer, with a decision, with
+              a plan, or do you just want somewhere to think out loud?
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {CONTRACTS.map((option) => (
                 <button
-                  onClick={stop}
-                  className="inline-flex items-center gap-2 rounded-full bg-clay px-6 py-3 font-medium text-white transition hover:bg-bark"
+                  key={option.key}
+                  onClick={() => setContract(option.key)}
+                  aria-pressed={contract === option.key}
+                  className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
+                    contract === option.key
+                      ? "bg-leaf-300 text-ink-900"
+                      : "border border-white/20 text-cream/85 hover:border-white/50"
+                  }`}
                 >
-                  <PhoneOff size={18} /> End session
+                  {option.label}
                 </button>
-                <button
-                  onClick={() => conversation.setMuted(!conversation.isMuted)}
-                  className="inline-flex items-center gap-2 rounded-full border border-bark/15 px-5 py-3 font-medium transition hover:border-bark/40"
-                >
-                  {conversation.isMuted ? <MicOff size={18} /> : <Mic size={18} />}
-                  {conversation.isMuted ? "Unmute" : "Mute"}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={start}
-                disabled={status === "connecting"}
-                className="inline-flex items-center gap-2 rounded-full bg-moss px-6 py-3 font-medium text-white transition hover:bg-bark disabled:opacity-60"
-              >
-                {status === "connecting" ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <Mic size={18} />
-                )}
-                {status === "connecting" ? "Connecting…" : "Start voice session"}
-              </button>
-            )}
-            {error ? <p className="text-sm text-clay">{error}</p> : null}
+              ))}
+            </div>
           </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {status === "live" ? (
+            <>
+              <button
+                onClick={stop}
+                className="rounded-full bg-white/12 px-5 py-2.5 text-sm font-bold text-cream transition hover:bg-white/20"
+              >
+                End the session
+              </button>
+              <button
+                onClick={() => conversation.setMuted(!conversation.isMuted)}
+                className="rounded-full border border-white/20 px-5 py-2.5 text-sm font-bold text-cream transition hover:border-white/50"
+              >
+                {conversation.isMuted ? "Unmute" : "Mute"}
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={start}
+              disabled={status === "connecting"}
+              className="rounded-full bg-leaf-300 px-6 py-3 text-[15px] font-bold text-ink-900 transition hover:bg-leaf-400 disabled:opacity-60"
+            >
+              {status === "connecting" ? "Connecting" : "Talk to Ren"}
+            </button>
+          )}
+          {error ? <p className="text-[13px] text-amber">{error}</p> : null}
         </div>
       </div>
 
       {lines.length > 0 ? (
         <div
           ref={transcriptRef}
-          className="max-h-64 space-y-3 overflow-y-auto border-t border-moss/15 bg-white/50 px-8 py-6"
+          className="max-h-64 space-y-3 overflow-y-auto border-t border-white/10 bg-black/15 px-5 py-5 sm:px-7"
         >
           {lines.map((line, index) => (
-            <p key={index} className="text-sm leading-relaxed">
+            <p key={index} className="text-[14px] leading-relaxed">
               <span
-                className={`mr-2 font-medium ${line.role === "ren" ? "text-moss" : "text-clay"}`}
+                className={`mr-2 font-bold ${line.role === "ren" ? "text-leaf-300" : "text-cream/60"}`}
               >
                 {line.role === "ren" ? "Ren" : "You"}
               </span>
-              <span className="text-bark">{line.text}</span>
+              <span className="text-cream/90">{line.text}</span>
             </p>
           ))}
         </div>
@@ -173,10 +233,18 @@ function RenSessionInner({ userName }: { userName: string }) {
   );
 }
 
-export function RenSession({ userName }: { userName: string }) {
+export function RenSession({
+  userName,
+  agenda = null,
+  minutes = 20,
+}: {
+  userName: string;
+  agenda?: Agenda | null;
+  minutes?: number;
+}) {
   return (
     <ConversationProvider>
-      <RenSessionInner userName={userName} />
+      <RenSessionInner userName={userName} agenda={agenda} minutes={minutes} />
     </ConversationProvider>
   );
 }

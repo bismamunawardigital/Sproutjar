@@ -29,7 +29,10 @@ export async function POST(request: Request) {
   }
   const user = await currentUser();
   return NextResponse.json(
-    await prisma.debt.create({ data: { ...parsed.data, userId: user.id } }),
+    await prisma.debt.create({
+      // What it stands at today is also what the plant starts growing against.
+      data: { ...parsed.data, openingBalance: parsed.data.balance, userId: user.id },
+    }),
     { status: 201 },
   );
 }

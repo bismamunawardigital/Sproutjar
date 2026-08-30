@@ -75,12 +75,28 @@ export function countryProfile(code: string): CountryProfile {
 /** Currencies worth far more per unit are quoted with three decimals locally. */
 const THREE_DECIMAL = new Set(["KWD", "BHD", "OMR"]);
 
+/** Exact figures always carry their decimals: AED 14,900.00. */
 export function formatMoney(amount: number, currency: string): string {
-  const digits = THREE_DECIMAL.has(currency) ? 3 : 0;
+  const digits = THREE_DECIMAL.has(currency) ? 3 : 2;
   return `${currency} ${amount.toLocaleString("en-US", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })}`;
+}
+
+/** For headline figures where the decimals are noise. */
+export function formatMoneyShort(amount: number, currency: string): string {
+  return `${currency} ${Math.round(amount).toLocaleString("en-US")}`;
+}
+
+/**
+ * A monthly rate never appears without its annual equivalent. Quoting the
+ * monthly figure alone is the comprehension failure the product exists to fix.
+ */
+export function formatRate(monthlyRate: number): string {
+  const monthly = (monthlyRate * 100).toFixed(2);
+  const annual = ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2);
+  return `${monthly}% monthly · ${annual}% a year`;
 }
 
 /** Rounds the way a coach speaks a number out loud. */
