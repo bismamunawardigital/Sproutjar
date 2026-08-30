@@ -195,3 +195,29 @@ input[type="number"] {
     transition: none;
   }
 }
+
+/* Ren waiting on Home: halo rings breathing out, voice bars idling. */
+.orb-halo {
+  border: 1px solid rgba(146, 211, 163, 0.35);
+  animation: halo 3600ms var(--ease-settle) infinite;
+}
+
+.orb-halo-2 {
+  animation-delay: 1800ms;
+}
+
+@keyframes halo {
+  0% { transform: scale(0.7); opacity: 0; }
+  35% { opacity: 0.9; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.wave-bar {
+  height: 6px;
+  animation: wave 1600ms ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { height: 5px; opacity: 0.45; }
+  50% { height: 20px; opacity: 1; }
+}

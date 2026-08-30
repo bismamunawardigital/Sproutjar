@@ -1,5 +1,4 @@
 import { SessionDeck } from "@/components/SessionDeck";
-import { OPEN_AGENDA } from "@/lib/agendas";
 import { agendasFor } from "@/lib/session-agendas";
 import { buildSnapshot } from "@/lib/user";
 
@@ -17,8 +16,6 @@ export default async function RenPage({
   return (
     <SessionDeck
       userName={snap.user.name}
-      agendas={agendas}
-      openAgenda={OPEN_AGENDA}
       initialAgenda={picked}
       commitment={
         snap.commitments[0]

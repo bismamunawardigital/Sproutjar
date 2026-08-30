@@ -48,8 +48,7 @@ export function ProfileForm({
   }
 
   return (
-    <form onSubmit={save} className="rounded-card border border-rule bg-card p-5">
-      <p className="label">Your details</p>
+    <form onSubmit={save}>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="text-[12px] font-bold text-ink-500">
           Name

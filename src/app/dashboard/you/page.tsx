@@ -1,3 +1,5 @@
+import { Collapse } from "@/components/Collapse";
+import { Plant } from "@/components/Plant";
 import { ProfileForm } from "@/components/ProfileForm";
 import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
@@ -8,47 +10,81 @@ export default async function YouPage() {
   const snap = await buildSnapshot();
   const currency = snap.country.currency;
   const kept = snap.recentCommitments.filter((c) => c.status === "kept").length;
+  const weeks = snap.user.weeksActive;
 
   return (
     <>
-      <section className="rounded-card border border-rule bg-card p-5">
-        <p className="label">What you&rsquo;ve done so far</p>
-        <dl className="mt-3 grid grid-cols-3 gap-3">
-          <div>
-            <dt className="text-[12px] text-ink-400">Paid off</dt>
-            <dd className="n mt-1 text-[18px] text-stem-700">
+      <section className="overflow-hidden rounded-card border border-rule bg-card">
+        <div className="flex items-center gap-4 bg-ink-800 px-5 py-5 text-cream">
+          <Plant state={snap.growth} className="w-14 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[20px] font-bold leading-tight">{snap.user.name}</p>
+            <p className="mt-0.5 text-[13px] text-leaf-300">
+              <span className="n">{weeks}</span> weeks in · {snap.country.name}
+            </p>
+          </div>
+        </div>
+
+        <dl className="grid grid-cols-3 divide-x divide-rule">
+          <div className="px-4 py-4">
+            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Paid off</dt>
+            <dd className="n mt-1 text-[17px] text-stem-700">
               {formatMoneyShort(snap.cleared, currency)}
             </dd>
           </div>
-          <div>
-            <dt className="text-[12px] text-ink-400">Talks with Ren</dt>
-            <dd className="n mt-1 text-[18px] text-ink-900">{snap.sessions.length}</dd>
+          <div className="px-4 py-4">
+            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Talks</dt>
+            <dd className="n mt-1 text-[17px] text-ink-900">{snap.sessions.length}</dd>
           </div>
-          <div>
-            <dt className="text-[12px] text-ink-400">Things you followed through on</dt>
-            <dd className="n mt-1 text-[18px] text-ink-900">{kept}</dd>
+          <div className="px-4 py-4">
+            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Followed through</dt>
+            <dd className="n mt-1 text-[17px] text-ink-900">{kept}</dd>
           </div>
         </dl>
       </section>
 
-      <ProfileForm
-        name={snap.user.name}
-        country={snap.user.country}
-        monthlyIncome={snap.user.monthlyIncome}
-        monthlyEssentials={snap.user.monthlyEssentials}
-        currency={currency}
-      />
+      {snap.user.moneyPurpose ? (
+        <section className="rounded-card border border-leaf-300 bg-leaf-50 p-5">
+          <p className="label">What the money is for</p>
+          <p className="mt-2 text-[18px] font-bold leading-snug text-ink-900">
+            {snap.user.moneyPurpose}
+          </p>
+          <p className="mt-2 text-[13px] text-ink-400">
+            Ren comes back to this when a month goes sideways.
+          </p>
+        </section>
+      ) : null}
+
+      {snap.user.goodDecision ? (
+        <section className="rounded-card border border-rule bg-card p-5">
+          <p className="label">Something you already did that worked</p>
+          <p className="mt-2 text-[16px] leading-relaxed text-ink-800">{snap.user.goodDecision}</p>
+        </section>
+      ) : null}
+
+      {snap.user.upbringing ? (
+        <section className="rounded-card border border-rule bg-card p-5">
+          <p className="label">Where your money story starts</p>
+          <p className="mt-2 text-[16px] italic leading-relaxed text-ink-700">
+            &ldquo;{snap.user.upbringing}&rdquo;
+          </p>
+        </section>
+      ) : null}
+
       {snap.beliefs.length > 0 ? (
         <section className="rounded-card border border-rule bg-card p-5">
-          <p className="label">Things you&rsquo;ve said</p>
-          <ul className="mt-3 space-y-3">
+          <p className="label">Things you&rsquo;ve said out loud</p>
+          <p className="mt-1.5 text-[13px] text-ink-400">
+            Naming one is most of the work. They&rsquo;re here so you can see whether they still
+            hold.
+          </p>
+          <ul className="mt-4 space-y-4">
             {snap.beliefs.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="border-l-2 border-leaf-300 pl-3.5">
                 <p className="text-[16px] italic leading-snug text-ink-900">
                   &ldquo;{item.text}&rdquo;
                 </p>
                 <p className="mt-1 text-[12px] text-ink-300">
-                  You said this on{" "}
                   {item.namedOn.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
                 </p>
               </li>
@@ -94,6 +130,16 @@ export default async function YouPage() {
           </ul>
         </section>
       ) : null}
+
+      <Collapse title="Your details" hint="Income, essentials, where you are">
+        <ProfileForm
+          name={snap.user.name}
+          country={snap.user.country}
+          monthlyIncome={snap.user.monthlyIncome}
+          monthlyEssentials={snap.user.monthlyEssentials}
+          currency={currency}
+        />
+      </Collapse>
 
       <p className="px-1 text-[12px] leading-relaxed text-ink-300">
         Sproutjar is coaching, not financial, legal or religious advice. For anything that needs a
