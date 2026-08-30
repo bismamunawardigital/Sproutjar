@@ -38,9 +38,10 @@ export function StrategyPicker({
 
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <p className="label">The order you clear them in</p>
+      <p className="label">Which card to pay off first</p>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-        Same money either way. One gets a card gone sooner, the other costs less. Neither is wrong.
+        It&rsquo;s the same money either way. One clears a card sooner, the other saves you more.
+        Pick whichever you&rsquo;ll actually stick to.
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {options.map((option) => {
@@ -57,18 +58,19 @@ export function StrategyPicker({
             >
               <p className="flex items-center justify-between gap-2 text-[15px] font-bold text-ink-900">
                 {option.title}
-                {active ? <span className="chip c-grow">Chosen</span> : null}
+                {active ? <span className="chip c-grow">Your pick</span> : null}
               </p>
               {option.months > 0 ? (
                 <>
                   <p className="n mt-3 text-[22px] text-ink-900">{option.months} months</p>
                   <p className="mt-1 text-[13px] text-root">
-                    <span className="n">{formatMoney(option.interest, currency)}</span> in interest
+                    and <span className="n">{formatMoney(option.interest, currency)}</span> of
+                    interest along the way
                   </p>
                 </>
               ) : (
                 <p className="mt-3 text-[15px] text-ink-400">
-                  No timeline yet — the surplus doesn&rsquo;t cover the minimums.
+                  No timeline yet — there isn&rsquo;t enough spare to cover the minimums.
                 </p>
               )}
               <p className="mt-3 text-[13px] leading-relaxed text-ink-400">{option.blurb}</p>

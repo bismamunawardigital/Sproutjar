@@ -22,7 +22,9 @@ export function AgendaBlock({
 
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <h2 className="text-[17px] font-bold leading-snug text-ink-900">Pick somewhere to start.</h2>
+      <h2 className="text-[17px] font-bold leading-snug text-ink-900">
+        What do you want to talk about?
+      </h2>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {LENGTHS.map((value) => (

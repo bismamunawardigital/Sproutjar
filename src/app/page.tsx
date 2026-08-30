@@ -4,39 +4,39 @@ import { Plant } from "@/components/Plant";
 
 const PILLARS = [
   {
-    title: "Every session has a reason",
-    body: "A length, an agenda, and why that agenda. Ren remembers what it proposed last month and whether it worked, which is the thing a general assistant structurally cannot do.",
+    title: "Ren remembers",
+    body: "Every call has a length and a subject, and Ren knows what you tried last month and whether it worked. You never start from scratch.",
   },
   {
-    title: "The stem grows on money, the roots on the work",
-    body: "Principal cleared grows the plant upward. Sessions held and commitments kept grow it downward. A hard month still moves something.",
+    title: "One plant, growing two ways",
+    body: "Money you pay off grows the stem. Turning up and doing what you said grows the roots. Even a hard month moves something.",
   },
   {
-    title: "A date that moves when you tell the truth",
-    body: "Every balance, every monthly rate with its annual equivalent, simulated month by month. Smallest-first against highest-rate, with the interest each one actually costs.",
+    title: "A real date, not a guess",
+    body: "Every balance and rate, worked out month by month. See what paying the smallest card first costs you against paying the priciest first.",
   },
   {
-    title: "A missed week costs you nothing here",
-    body: "No red, no streaks, no guilt copy. The plant holds where it was and Ren asks what happened between deciding and the moment it didn't.",
+    title: "A bad week costs you nothing here",
+    body: "No streaks, no red, no telling you off. The plant stays where it is and Ren just asks what got in the way.",
   },
 ];
 
 const SESSION_FLOW = [
   {
-    title: "Contracting",
-    body: "\u201cClearer, a decision, a plan, or somewhere to think out loud?\u201d Asked first, every time, so Ren doesn't solve a problem you didn't bring.",
+    title: "Ren asks what you need",
+    body: "Clearer on something, a decision, a plan, or just somewhere to think out loud? Asked first, every time, so Ren doesn't fix a problem you didn't bring.",
   },
   {
-    title: "Explore before intervening",
-    body: "Reality first. Strengths, values and resources come after it's understood — never as a way around it.",
+    title: "You talk, Ren listens",
+    body: "No advice until Ren actually understands the situation. Nothing gets glossed over to get to the encouraging bit.",
   },
   {
-    title: "Options generated with you",
-    body: "\u201cWhat could you do?\u201d Then silence. Then \u201cwhat else?\u201d Ren offers its own only once yours are out, and asks first.",
+    title: "Your ideas first",
+    body: "\u201cWhat could you do?\u201d Then quiet. Then \u201cwhat else?\u201d Ren only adds its own once yours are out, and asks before it does.",
   },
   {
-    title: "One commitment you actually own",
-    body: "With a trigger, and an honest check: do you intend to do that, or does it just sound right while we're talking? If you hedge, it shrinks.",
+    title: "One thing you'll actually do",
+    body: "Small, tied to a moment in your week, and checked honestly: do you mean it, or does it just sound good right now? If you're unsure, it gets smaller.",
   },
 ];
 
@@ -63,10 +63,10 @@ export default function Home() {
               You already know what you should do. This is about why it doesn&rsquo;t happen.
             </h1>
             <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
-              Sproutjar is debt recovery coaching for people carrying{" "}
-              <span className="n">20,000</span> to <span className="n">150,000</span> across cards
-              and BNPL. Ren is the coach inside it — a voice you talk to weekly, who holds the plan
-              so you don&rsquo;t have to keep it all in your head.
+              Sproutjar helps people carrying <span className="n">20,000</span> to{" "}
+              <span className="n">150,000</span> across credit cards get out from under it. Ren is
+              the coach — someone you talk to each week, who keeps track of the plan so you
+              don&rsquo;t have to hold it all in your head.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
@@ -76,7 +76,7 @@ export default function Home() {
                 Meet Ren
               </Link>
               <p className="text-[13px] text-ink-400">
-                Demo account: three cards, eleven weeks, six sessions.
+                Have a look around: three cards, eleven weeks, six calls with Ren.
               </p>
             </div>
           </div>
@@ -101,8 +101,8 @@ export default function Home() {
                 didn&rsquo;t happen.&rdquo;
               </p>
               <p className="mt-3 text-[14px] leading-relaxed text-cream/70">
-                Ren opens knowing your balances, what the interest costs you this month and what you
-                said you&rsquo;d do last time. It never opens by asking for data.
+                Ren already knows your balances, what the interest is costing you this month, and
+                what you said you&rsquo;d try last time. You never have to explain it again.
               </p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export default function Home() {
         </section>
 
         <section className="mt-10">
-          <p className="label">How a session runs</p>
+          <p className="label">How a call with Ren goes</p>
           <ol className="mt-4 space-y-4 border-l border-rule pl-5">
             {SESSION_FLOW.map((step, index) => (
               <li key={step.title} className="relative">
@@ -134,18 +134,18 @@ export default function Home() {
         </section>
 
         <section className="mt-10 rounded-card border border-rule bg-card p-5 sm:p-6">
-          <p className="label">What Ren will not do</p>
+          <p className="label">What Ren won&rsquo;t do</p>
           <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            No regulated financial advice, no product recommendations, no legal characterisation of
-            your situation and no religious rulings. Ren describes exactly how a contract works and
-            routes you to your bank, the Central Bank, or a professional for anything that turns on
-            a ruling. Jurisdiction-specific facts are checked against your country first.
+            Ren won&rsquo;t sell you a product, tell you where your case stands legally, or give you
+            a religious ruling. It will explain exactly how a contract works, and send you to your
+            bank, the Central Bank or a professional for anything that needs an actual ruling.
+            Anything country-specific is checked against where you live first.
           </p>
           <Link
             href="/dashboard"
             className="mt-5 inline-block rounded-full bg-ink-800 px-5 py-2.5 text-[14px] font-bold text-cream transition hover:bg-ink-700"
           >
-            Open the demo
+            Have a look
           </Link>
         </section>
       </main>

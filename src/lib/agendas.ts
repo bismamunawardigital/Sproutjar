@@ -13,53 +13,53 @@ export type Agenda = {
 export const STARTER_AGENDAS: Agenda[] = [
   {
     id: "where-this-stands",
-    title: "Where this actually stands",
-    reason: "What you owe, what it's costing you, and roughly when it ends.",
-    technique: "Reality before resources",
+    title: "Where things actually stand",
+    reason: "What you owe, what it's costing you, and roughly when it's over.",
+    technique: "Getting clear",
     minutes: 20,
   },
   {
     id: "ordinary-tuesday",
-    title: "An ordinary Tuesday, eighteen months out",
-    reason: "Not a slogan. What your actual week looks like once this is gone.",
-    technique: "Best possible self",
+    title: "An ordinary Tuesday, once this is over",
+    reason: "What a normal week actually looks like when the cards are gone.",
+    technique: "Looking ahead",
     minutes: 20,
   },
   {
     id: "last-plan",
     title: "The last plan that didn't stick",
-    reason: "What happened, and what was different the times it did work.",
-    technique: "Past-success and exception questions",
+    reason: "What got in the way, and what was different the times it did work.",
+    technique: "Looking back",
     minutes: 20,
   },
   {
     id: "months-it-didnt",
-    title: "The months this didn't happen",
-    reason: "You weren't like this every month. What was different then?",
-    technique: "Solution-focused exceptions",
+    title: "The months that went fine",
+    reason: "It hasn't been like this every month. What was different back then?",
+    technique: "What works",
     minutes: 10,
   },
   {
     id: "uncomfortable-for",
-    title: "What you'd be uncomfortable for",
-    reason: "The stuff that isn't up for negotiation, and building around it.",
-    technique: "Values clarification",
+    title: "What you'd put up with, and what you wouldn't",
+    reason: "The things you're not willing to give up, and building the plan around them.",
+    technique: "What matters to you",
     minutes: 40,
   },
   {
     id: "who-else",
-    title: "Who else could carry some of this",
-    reason: "Help you haven't asked for, and systems that could do it instead of willpower.",
-    technique: "Resource activation",
+    title: "Who else could take some of this",
+    reason: "Help you haven't asked for, and set-ups that work without willpower.",
+    technique: "Finding support",
     minutes: 20,
   },
 ];
 
 export const OPEN_AGENDA: Agenda = {
   id: "open",
-  title: "Something else entirely",
-  reason: "Tell me where to start.",
-  technique: "Open",
+  title: "Something else",
+  reason: "Tell Ren where you want to start.",
+  technique: "Up to you",
   minutes: 20,
 };
 
@@ -87,35 +87,35 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
   if (context.missedCommitment) {
     generated.push({
       id: "gap",
-      title: "The gap between deciding and doing",
+      title: "Deciding to do it, then not doing it",
       reason: context.belief
         ? `"${context.missedCommitment.wish}" didn't happen. In ${monthName(
             context.belief.namedOn,
-          )} you said the thing behind it might be that ${lowerFirst(
+          )} you said it might be because ${lowerFirst(
             context.belief.text,
-          )} I'd like to poke at that, because if it's right it explains more than this month.`
-        : `"${context.missedCommitment.wish}" didn't happen. Not why — what happened between deciding and the moment it didn't.`,
-      technique: "Behaviour chain analysis",
+          )} Worth looking at, because it would explain more than just this month.`
+        : `"${context.missedCommitment.wish}" didn't happen. Not why — just what got in the way.`,
+      technique: "Working out what happened",
       minutes: 15,
     });
   }
 
   generated.push({
     id: "the-bleed",
-    title: "What the interest is actually costing",
-    reason: `${context.currency} ${Math.round(
-      context.monthlyBleed,
-    ).toLocaleString("en-US")} of rent on the debt this month, before a dirham of it comes down. Worth understanding where that goes.`,
-    technique: "Reality before resources",
+    title: "What the interest is really costing you",
+    reason: `${context.currency} ${Math.round(context.monthlyBleed).toLocaleString(
+      "en-US",
+    )} goes on interest this month before anything comes off what you owe. Worth seeing where it goes.`,
+    technique: "Getting clear",
     minutes: 20,
   });
 
   if (context.sessionsHeld > 0) {
     generated.push({
       id: "what-worked",
-      title: "The weeks it did work",
-      reason: "Three of the last eleven weeks went the way you wanted. Those are worth taking apart.",
-      technique: "Solution-focused exceptions",
+      title: "The weeks that did go well",
+      reason: "Three of the last eleven weeks went the way you wanted. Worth knowing why.",
+      technique: "What works",
       minutes: 10,
     });
   }

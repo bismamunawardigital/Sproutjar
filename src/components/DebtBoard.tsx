@@ -53,7 +53,12 @@ export function DebtBoard({
   }
 
   async function removeDebt(id: string, name: string) {
-    if (!window.confirm(`Removing ${name} deletes its history. Closing it at zero keeps the record.`)) return;
+    if (
+      !window.confirm(
+        `Remove ${name}? You'll lose its history too. If you've paid it off, set it to zero instead so you keep the record.`,
+      )
+    )
+      return;
     await fetch(`/api/debts/${id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -61,12 +66,12 @@ export function DebtBoard({
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <p className="label">What you owe</p>
+        <p className="label">Your cards</p>
         <button
           onClick={() => setOpen((v) => !v)}
           className="rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
         >
-          {open ? "Never mind" : "Add a debt"}
+          {open ? "Never mind" : "Add a card"}
         </button>
       </div>
 
@@ -74,11 +79,11 @@ export function DebtBoard({
         <form onSubmit={addDebt} className="mt-4 grid gap-3 rounded-sm bg-cream p-4 sm:grid-cols-2">
           {(
             [
-              ["name", "What is it", "text"],
-              ["issuer", "Bank", "text"],
-              ["balance", `Balance (${currency})`, "number"],
-              ["monthlyRatePct", "Monthly rate %", "number"],
-              ["minimumPayment", `Minimum (${currency})`, "number"],
+              ["name", "What do you call it", "text"],
+              ["issuer", "Which bank", "text"],
+              ["balance", `What you owe on it (${currency})`, "number"],
+              ["monthlyRatePct", "Monthly interest %", "number"],
+              ["minimumPayment", `Minimum payment (${currency})`, "number"],
             ] as const
           ).map(([key, label, type]) => (
             <label key={key} className="text-[12px] font-bold text-ink-500">
@@ -105,8 +110,8 @@ export function DebtBoard({
 
       {debts.length === 0 ? (
         <p className="mt-4 text-[15px] leading-relaxed text-ink-400">
-          Nothing here yet. The number is already true whether you look or not — looking just makes
-          it yours.
+          Nothing here yet. Add your first card — the number is what it is, and seeing it is how
+          this starts.
         </p>
       ) : null}
 
@@ -120,7 +125,7 @@ export function DebtBoard({
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-ink-900">
                   {debt.name}
-                  {isFocus ? <span className="chip c-grow">Focus</span> : null}
+                  {isFocus ? <span className="chip c-grow">Start here</span> : null}
                   {debt.isEstimated ? <span className="chip c-neutral">Estimated</span> : null}
                 </p>
                 <p className="mt-1 text-[13px] text-ink-400">
@@ -128,11 +133,13 @@ export function DebtBoard({
                   {debt.isIslamic ? " profit rate" : ""}
                 </p>
                 <p className="mt-1.5 text-[13px] text-root">
-                  Rent on the debt <span className="n">{formatMoney(bleed, currency)}</span> this month
+                  Costs you <span className="n">{formatMoney(bleed, currency)}</span> in interest
+                  this month
                 </p>
                 {cleared > 0 ? (
                   <p className="text-[13px] text-stem-700">
-                    Principal cleared <span className="n">{formatMoney(cleared, currency)}</span>
+                    You&rsquo;ve paid off <span className="n">{formatMoney(cleared, currency)}</span>{" "}
+                    of it
                   </p>
                 ) : null}
               </div>
@@ -142,7 +149,7 @@ export function DebtBoard({
                   onClick={() => removeDebt(debt.id, debt.name)}
                   className="mt-1 text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
                 >
-                  Remove
+                  Take it off
                 </button>
               </div>
             </div>

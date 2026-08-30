@@ -9,7 +9,7 @@ export default async function YouPage() {
     <>
       {snap.beliefs.length > 0 ? (
         <section className="rounded-card border border-rule bg-card p-5">
-          <p className="label">In your words</p>
+          <p className="label">Things you&rsquo;ve said</p>
           <ul className="mt-3 space-y-3">
             {snap.beliefs.map((item) => (
               <li key={item.id}>
@@ -17,7 +17,7 @@ export default async function YouPage() {
                   &ldquo;{item.text}&rdquo;
                 </p>
                 <p className="mt-1 text-[12px] text-ink-300">
-                  Named{" "}
+                  You said this on{" "}
                   {item.namedOn.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
                 </p>
               </li>
@@ -28,7 +28,7 @@ export default async function YouPage() {
 
       {snap.sessions.length > 0 ? (
         <section className="rounded-card border border-rule bg-card p-5">
-          <p className="label">What you&rsquo;ve worked on</p>
+          <p className="label">Your talks with Ren</p>
           <ul className="mt-3 divide-y divide-rule">
             {snap.sessions.map((session) => {
               const produced = session.commitments[0];
@@ -54,7 +54,7 @@ export default async function YouPage() {
                     </p>
                   ) : (
                     <p className="mt-1 text-[13px] text-ink-300">
-                      You asked for space. No commitment came out of it.
+                      You just wanted to think out loud. Nothing to do after it, and that was fine.
                     </p>
                   )}
                 </li>
@@ -65,8 +65,8 @@ export default async function YouPage() {
       ) : null}
 
       <p className="px-1 text-[12px] leading-relaxed text-ink-300">
-        Sproutjar is coaching, not regulated financial, legal or religious advice. Ren routes you to
-        your bank, the {snap.country.regulator} or a professional for anything that needs a ruling.
+        Sproutjar is coaching, not financial, legal or religious advice. For anything that needs a
+        ruling, Ren will point you to your bank, the {snap.country.regulator}, or someone qualified.
       </p>
     </>
   );

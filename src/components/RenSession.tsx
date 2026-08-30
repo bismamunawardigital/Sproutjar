@@ -140,12 +140,12 @@ function RenSessionInner({
                   : `${minutes} min · ${agenda?.technique ?? "Open"}`}
             </p>
             <h2 className="mt-1.5 text-[22px] font-bold leading-snug">
-              {agenda ? agenda.title : `Ready when you are, ${userName}.`}
+              {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
             </h2>
             <p className="mt-1.5 text-[14px] leading-relaxed text-cream/70">
               {agenda
                 ? agenda.reason
-                : "Pick an agenda below, or start here and tell Ren where you want to begin."}
+                : "Start now and tell Ren what's on your mind, or pick something from below."}
             </p>
           </div>
 
@@ -159,8 +159,8 @@ function RenSessionInner({
         {status !== "live" ? (
           <div>
             <p className="text-[14px] text-cream/70">
-              Before we get into it — do you want to come out of this clearer, with a decision, with
-              a plan, or do you just want somewhere to think out loud?
+              What would help most today — getting clearer on something, making a decision, sorting
+              out a plan, or just talking it through?
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {CONTRACTS.map((option) => (
@@ -188,7 +188,7 @@ function RenSessionInner({
                 onClick={stop}
                 className="rounded-full bg-white/12 px-5 py-2.5 text-sm font-bold text-cream transition hover:bg-white/20"
               >
-                End the session
+                End the call
               </button>
               <button
                 onClick={() => conversation.setMuted(!conversation.isMuted)}

@@ -16,25 +16,28 @@ export default async function Home() {
     <>
       <section className="rounded-card border border-rule bg-card p-5 text-center">
         <Plant state={snap.growth} className="mx-auto w-36" />
-        <p className="label mt-4">Debt-free</p>
+        <p className="label mt-4">You&rsquo;re debt-free in</p>
         <p className="n mt-1 text-[32px] leading-none text-ink-900">
           {plan.feasible && plan.months > 0 ? plan.debtFreeOn : "Not yet"}
         </p>
         <p className="mt-2 text-[13px] text-ink-400">
           {plan.feasible && plan.months > 0
-            ? `${plan.months} months at ${formatMoneyShort(snap.surplus, currency)} a month`
-            : "Your surplus doesn't cover the minimums yet"}
+            ? `${plan.months} months, if you keep putting ${formatMoneyShort(
+                snap.surplus,
+                currency,
+              )} towards it`
+            : "There isn't enough left over to cover the minimums yet. Worth talking through with Ren."}
         </p>
 
         <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-rule pt-4 text-left">
           <div>
-            <dt className="label">Owed</dt>
+            <dt className="label">Left to pay</dt>
             <dd className="n mt-1 text-[16px] text-ink-900">
               {formatMoneyShort(snap.totals.debt, currency)}
             </dd>
           </div>
           <div>
-            <dt className="label">Cleared</dt>
+            <dt className="label">Paid off</dt>
             <dd className="n mt-1 text-[16px] text-stem-700">
               {formatMoneyShort(snap.cleared, currency)}
             </dd>
@@ -45,7 +48,7 @@ export default async function Home() {
               {formatMoneyShort(plan.monthlyBleed, currency)}
             </dd>
             <dd className="mt-0.5 text-[11px] leading-snug text-ink-300">
-              interest, every month
+              the interest, every month
             </dd>
           </div>
         </dl>
@@ -58,7 +61,9 @@ export default async function Home() {
         <span>
           <span className="block text-[15px] font-bold">Talk to Ren</span>
           <span className="block text-[13px] text-leaf-300">
-            {snap.sessions.length > 0 ? "Pick up where you left off" : "Start your first session"}
+            {snap.sessions.length > 0
+              ? "Carry on from last time"
+              : "Have your first conversation"}
           </span>
         </span>
         <span className="h-9 w-9 rounded-full bg-stem" aria-hidden />
@@ -79,11 +84,9 @@ export default async function Home() {
 
       {next ? (
         <section className="rounded-card border border-rule bg-card p-5">
-          <p className="label">Next thing gone</p>
+          <p className="label">The next card you finish with</p>
           <p className="mt-1 text-[15px] font-bold text-ink-900">{next.name}</p>
-          <p className="text-[13px] text-ink-400">
-            {next.clearedOn} · month <span className="n">{next.monthCleared}</span>
-          </p>
+          <p className="text-[13px] text-ink-400">Paid off by {next.clearedOn}</p>
         </section>
       ) : null}
     </>

@@ -33,9 +33,10 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
 
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <p className="label">Set aside</p>
+      <p className="label">Money you&rsquo;re putting aside</p>
       <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-        A month of essentials sits here first. Without it the next surprise goes back on a card.
+        One month of the basics comes first. Without it, the next surprise goes straight back on a
+        card.
       </p>
 
       <div className="mt-4 divide-y divide-rule">
@@ -49,10 +50,10 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
               of <span className="n">{formatMoney(jar.target, currency)}</span> ·{" "}
               <span className="n">{jar.pct}%</span>
               {jar.remaining <= 0
-                ? " · full"
+                ? " · that one’s done"
                 : jar.monthsToFull !== null
-                  ? ` · full in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} at this rate`
-                  : ` · ${formatMoney(jar.remaining, currency)} to go`}
+                  ? ` · done in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} if you keep this up`
+                  : ` · ${formatMoney(jar.remaining, currency)} still to go`}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {[100, 250, 500].map((amount) => (
@@ -62,7 +63,7 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
                   onClick={() => deposit(jar.id, amount)}
                   className="rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-stem disabled:opacity-50"
                 >
-                  Put in <span className="n">{amount}</span>
+                  Add <span className="n">{amount}</span>
                 </button>
               ))}
             </div>
