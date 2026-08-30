@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, Home, Mic, Sprout, User } from "lucide-react";
+import { Home, Mic, Sprout, User } from "lucide-react";
 
 const TABS = [
   { href: "/dashboard", label: "Home", Icon: Home },
   { href: "/dashboard/ren", label: "Ren", Icon: Mic },
-  { href: "/dashboard/debts", label: "Debts", Icon: CreditCard },
-  { href: "/dashboard/jars", label: "Jars", Icon: Sprout },
+  { href: "/dashboard/growth", label: "Growth", Icon: Sprout },
   { href: "/dashboard/you", label: "You", Icon: User },
 ];
 

@@ -1,12 +1,43 @@
+import { ProfileForm } from "@/components/ProfileForm";
+import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
 export default async function YouPage() {
   const snap = await buildSnapshot();
+  const currency = snap.country.currency;
+  const kept = snap.recentCommitments.filter((c) => c.status === "kept").length;
 
   return (
     <>
+      <section className="rounded-card border border-rule bg-card p-5">
+        <p className="label">What you&rsquo;ve done so far</p>
+        <dl className="mt-3 grid grid-cols-3 gap-3">
+          <div>
+            <dt className="text-[12px] text-ink-400">Paid off</dt>
+            <dd className="n mt-1 text-[18px] text-stem-700">
+              {formatMoneyShort(snap.cleared, currency)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[12px] text-ink-400">Talks with Ren</dt>
+            <dd className="n mt-1 text-[18px] text-ink-900">{snap.sessions.length}</dd>
+          </div>
+          <div>
+            <dt className="text-[12px] text-ink-400">Things you followed through on</dt>
+            <dd className="n mt-1 text-[18px] text-ink-900">{kept}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <ProfileForm
+        name={snap.user.name}
+        country={snap.user.country}
+        monthlyIncome={snap.user.monthlyIncome}
+        monthlyEssentials={snap.user.monthlyEssentials}
+        currency={currency}
+      />
       {snap.beliefs.length > 0 ? (
         <section className="rounded-card border border-rule bg-card p-5">
           <p className="label">Things you&rsquo;ve said</p>
@@ -49,7 +80,7 @@ export default async function YouPage() {
                       {produced.status === "kept" ? (
                         <span className="chip c-grow ml-2">Done</span>
                       ) : produced.status === "missed" ? (
-                        <span className="chip c-neutral ml-2">Not this time</span>
+                        <span className="chip c-neutral ml-2">Another time</span>
                       ) : null}
                     </p>
                   ) : (

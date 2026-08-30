@@ -1,17 +1,19 @@
 import { DebtBoard } from "@/components/DebtBoard";
+import { GrowthTabs } from "@/components/GrowthTabs";
+import { JarBoard } from "@/components/JarBoard";
 import { StrategyPicker } from "@/components/StrategyPicker";
 import { formatMoney, formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
-export default async function DebtsPage() {
+export default async function GrowthPage() {
   const snap = await buildSnapshot();
   const currency = snap.country.currency;
   const plan = snap.plan;
 
-  return (
-    <>
+  const clearing = (
+    <div className="space-y-4">
       <DebtBoard
         debts={snap.debts.map((d) => ({
           id: d.id,
@@ -37,17 +39,18 @@ export default async function DebtsPage() {
             title: "Smallest one first",
             months: snap.comparison.snowball.months,
             interest: snap.comparison.snowball.totalInterest,
-            blurb: "A card goes away sooner, which feels like something. Costs a bit more.",
+            blurb:
+              "A card goes away sooner, which is a good feeling. Costs a bit more.",
           },
           {
             key: "avalanche",
             title: "Most expensive first",
             months: snap.comparison.avalanche.months,
             interest: snap.comparison.avalanche.totalInterest,
-            blurb: `Saves you about ${formatMoneyShort(
+            blurb: `Keeps about ${formatMoneyShort(
               Math.max(0, snap.comparison.interestSavedByAvalanche),
               currency,
-            )}. Slower to feel like progress.`,
+            )} in your pocket. Takes longer to see.`,
           },
         ]}
       />
@@ -63,22 +66,25 @@ export default async function DebtsPage() {
                   {milestone.name} is paid off
                 </p>
                 <p className="text-[13px] text-ink-400">
-                  {milestone.clearedOn} · costs you{" "}
-                  <span className="n">{formatMoney(milestone.interestPaid, currency)}</span> in
-                  interest getting there
+                  {milestone.clearedOn} ·{" "}
+                  <span className="n">
+                    {formatMoney(milestone.interestPaid, currency)}
+                  </span>{" "}
+                  of interest along the way
                 </p>
               </li>
             ))}
             <li className="relative">
               <span className="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full bg-amber" />
               <p className="text-[15px] font-bold text-ink-900">
-                You&rsquo;re done — {plan.debtFreeOn}
+                All clear — {plan.debtFreeOn}
               </p>
               <p className="text-[13px] text-ink-400">
                 Paying only the minimums would take{" "}
                 {snap.minimumsOnly.feasible ? (
                   <>
-                    <span className="n">{snap.minimumsOnly.months}</span> months and cost{" "}
+                    <span className="n">{snap.minimumsOnly.months}</span> months
+                    and cost{" "}
                     <span className="n">
                       {formatMoney(snap.minimumsOnly.totalInterest, currency)}
                     </span>
@@ -92,6 +98,13 @@ export default async function DebtsPage() {
           </ol>
         </section>
       ) : null}
-    </>
+    </div>
+  );
+
+  return (
+    <GrowthTabs
+      clearing={clearing}
+      building={<JarBoard jars={snap.jars} currency={currency} />}
+    />
   );
 }

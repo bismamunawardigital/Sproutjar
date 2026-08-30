@@ -35,8 +35,8 @@ const SESSION_FLOW = [
     body: "\u201cWhat could you do?\u201d Then quiet. Then \u201cwhat else?\u201d Ren only adds its own once yours are out, and asks before it does.",
   },
   {
-    title: "One thing you'll actually do",
-    body: "Small, tied to a moment in your week, and checked honestly: do you mean it, or does it just sound good right now? If you're unsure, it gets smaller.",
+    title: "One small thing, your choice",
+    body: "Small enough to fit your week, tied to something you already do. If you're not sure about it, it gets smaller — never bigger.",
   },
 ];
 
@@ -70,14 +70,14 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                href="/dashboard"
+                href="/onboarding"
                 className="rounded-full bg-stem-600 px-6 py-3 text-[15px] font-bold text-white transition hover:bg-stem-700"
               >
-                Meet Ren
+                Set it up with your numbers
               </Link>
-              <p className="text-[13px] text-ink-400">
-                Have a look around: three cards, eleven weeks, six calls with Ren.
-              </p>
+              <Link href="/dashboard" className="text-[13px] font-bold text-ink-400 underline">
+                Or look around the demo first
+              </Link>
             </div>
           </div>
           <div className="flex justify-center">
@@ -102,7 +102,7 @@ export default function Home() {
               </p>
               <p className="mt-3 text-[14px] leading-relaxed text-cream/70">
                 Ren already knows your balances, what the interest is costing you this month, and
-                what you said you&rsquo;d try last time. You never have to explain it again.
+                what you were trying last time. You never have to explain it again.
               </p>
             </div>
           </div>

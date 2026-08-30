@@ -22,11 +22,8 @@ export default async function Home() {
         </p>
         <p className="mt-2 text-[13px] text-ink-400">
           {plan.feasible && plan.months > 0
-            ? `${plan.months} months, if you keep putting ${formatMoneyShort(
-                snap.surplus,
-                currency,
-              )} towards it`
-            : "There isn't enough left over to cover the minimums yet. Worth talking through with Ren."}
+            ? `${plan.months} months at ${formatMoneyShort(snap.surplus, currency)} a month`
+            : "The minimums need more than there is right now. Ren can help you work the other side of it."}
         </p>
 
         <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-rule pt-4 text-left">

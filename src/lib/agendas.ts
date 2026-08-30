@@ -27,8 +27,8 @@ export const STARTER_AGENDAS: Agenda[] = [
   },
   {
     id: "last-plan",
-    title: "The last plan that didn't stick",
-    reason: "What got in the way, and what was different the times it did work.",
+    title: "The times a plan did work",
+    reason: "What was going on then, and what of that you could get back.",
     technique: "Looking back",
     minutes: 20,
   },
@@ -87,7 +87,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
   if (context.missedCommitment) {
     generated.push({
       id: "gap",
-      title: "Deciding to do it, then not doing it",
+      title: "The gap between deciding and doing",
       reason: context.belief
         ? `"${context.missedCommitment.wish}" didn't happen. In ${monthName(
             context.belief.namedOn,
@@ -105,7 +105,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
     title: "What the interest is really costing you",
     reason: `${context.currency} ${Math.round(context.monthlyBleed).toLocaleString(
       "en-US",
-    )} goes on interest this month before anything comes off what you owe. Worth seeing where it goes.`,
+    )} goes on interest this month. There are ways to bring that number down — worth a look.`,
     technique: "Getting clear",
     minutes: 20,
   });

@@ -32,11 +32,11 @@ export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] 
 
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <p className="label">What you said you&rsquo;d try</p>
+      <p className="label">What you&rsquo;re trying this week</p>
 
       {commitments.length === 0 ? (
         <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
-          Nothing yet. You and Ren will pick something small the next time you talk.
+          Nothing here yet. Next time you talk, you and Ren will find one small thing worth trying.
         </p>
       ) : null}
 
@@ -53,7 +53,7 @@ export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] 
               </p>
             ) : null}
 
-            <p className="label mt-4">How did it go?</p>
+            <p className="label mt-4">How did it go? No wrong answer.</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => mark(commitment.id, "kept")}
@@ -71,11 +71,11 @@ export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] 
                 onClick={() => mark(commitment.id, "missed")}
                 className="rounded-full border border-rule px-4 py-2 text-sm font-bold text-ink-700 transition hover:border-ink-300"
               >
-                Didn&rsquo;t get to it
+                Not this week
               </button>
               {commitment.dueAt ? (
                 <span className="ml-auto text-[12px] text-ink-300">
-                  Due{" "}
+                  Around{" "}
                   {new Date(commitment.dueAt).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "short",
