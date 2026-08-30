@@ -29,34 +29,7 @@ const CONTRACTS = [
 
 type Contract = (typeof CONTRACTS)[number]["key"];
 
-function CheckGlyph() {
-  return (
-    <svg viewBox="0 0 16 16" className="mt-[3px] h-3.5 w-3.5 shrink-0 text-stem" aria-hidden>
-      <path
-        d="M3 8.5 6.2 11.5 13 4.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CallGlyph() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-[18px] w-[18px]" aria-hidden>
-      <path
-        d="M10 2.5a2.5 2.5 0 0 0-2.5 2.5v4a2.5 2.5 0 0 0 5 0V5A2.5 2.5 0 0 0 10 2.5ZM5 9a5 5 0 0 0 10 0M10 14v3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+const WAVE_BARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 function RenSessionInner({
   userName,
@@ -259,58 +232,53 @@ function RenSessionInner({
   }
 
   return (
-    <section className="overflow-hidden rounded-card border border-rule bg-card">
-      <div className="flex items-center gap-2.5 border-b border-rule px-5 py-3.5">
-        <span className="live-dot h-2 w-2 rounded-full bg-stem" aria-hidden />
-        <p className="text-[13px] font-bold text-ink-900">Ren is free right now</p>
-        <p className="ml-auto text-[12px] text-ink-300">Line closed</p>
-      </div>
-
-      <div className="flex flex-col items-center px-5 py-8 text-center sm:px-7">
-        <div className="relative flex h-40 w-40 items-center justify-center">
-          <span className="dial-ring absolute inset-0 rounded-full" aria-hidden />
-          <span className="dial-ring dial-ring-2 absolute inset-4 rounded-full" aria-hidden />
-          <span className="ren-orb absolute inset-10 rounded-full" aria-hidden />
-          <span className="relative text-[15px] font-bold text-white">Ren</span>
+    <section className="overflow-hidden rounded-card bg-ink-800 text-cream shadow-sh-3">
+      <div className="flex min-h-[440px] flex-col items-center justify-center gap-6 px-5 py-10 text-center sm:px-7">
+        <div className="relative flex h-36 w-36 items-center justify-center">
+          <span className="orb-halo absolute inset-0 rounded-full" aria-hidden />
+          <span className="orb-halo orb-halo-2 absolute inset-0 rounded-full" aria-hidden />
+          <span className="ren-orb orb-listening absolute inset-6 rounded-full" aria-hidden />
+          <span className="relative text-[17px] font-bold text-white">Ren</span>
         </div>
 
-        <h2 className="mt-6 max-w-md text-[24px] font-bold leading-tight text-ink-900">
-          {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
-        </h2>
-        <p className="mt-2 max-w-md text-[15px] leading-relaxed text-ink-400">
-          {agenda
-            ? agenda.reason
-            : "Speak the way you would to a friend who happens to know the numbers. Ren listens first."}
-        </p>
-
-        <ul className="mt-6 w-full max-w-md space-y-2 text-left">
-          {[
-            "Your cards and balances are already on the call",
-            "What you said last time comes with you",
-            `Ends when you do · about ${minutes} min`,
-          ].map((item) => (
-            <li
-              key={item}
-              className="flex items-start gap-2.5 rounded-card bg-leaf-50 px-3.5 py-2.5 text-[13px] text-ink-600"
-            >
-              <CheckGlyph />
-              <span>{item}</span>
-            </li>
+        <div className="flex h-7 items-end gap-[3px]" aria-hidden>
+          {WAVE_BARS.map((bar) => (
+            <span
+              key={bar}
+              className="wave-bar w-[3px] rounded-full bg-leaf-300"
+              style={{ animationDelay: `${bar * 110}ms` }}
+            />
           ))}
-        </ul>
+        </div>
 
-        <div className="mt-7 w-full max-w-md">
-          <p className="label">Before you dial</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="max-w-md">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
+            {minutes} min · {agenda?.technique ?? "As long as you need"}
+          </p>
+          <h2 className="mt-2 text-[26px] font-bold leading-tight">
+            {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
+          </h2>
+          <p className="mt-2 text-[15px] leading-relaxed text-cream/70">
+            {agenda
+              ? agenda.reason
+              : "Tell Ren what's on your mind. Your cards, your balances and what you said last time are already on the call."}
+          </p>
+        </div>
+
+        <div className="w-full max-w-md">
+          <p className="text-[13px] text-cream/60">
+            What would help most today?
+          </p>
+          <div className="mt-2.5 flex flex-wrap justify-center gap-2">
             {CONTRACTS.map((option) => (
               <button
                 key={option.key}
                 onClick={() => setContract(option.key)}
                 aria-pressed={contract === option.key}
-                className={`rounded-card border px-3 py-2.5 text-[13px] font-bold transition ${
+                className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
                   contract === option.key
-                    ? "border-stem bg-leaf-100 text-stem-700"
-                    : "border-rule text-ink-400 hover:border-ink-300"
+                    ? "bg-leaf-300 text-ink-900"
+                    : "border border-white/20 text-cream/85 hover:border-white/50"
                 }`}
               >
                 {option.label}
@@ -319,27 +287,30 @@ function RenSessionInner({
           </div>
         </div>
 
-        <button
-          onClick={start}
-          className="mt-6 flex w-full max-w-md items-center justify-center gap-2 rounded-full bg-stem px-6 py-4 text-[17px] font-bold text-white transition hover:opacity-90"
-        >
-          <CallGlyph />
-          {lines.length > 0 ? "Call Ren again" : "Call Ren"}
-        </button>
-        {error ? <p className="mt-3 text-[13px] text-danger">{error}</p> : null}
+        <div className="flex w-full max-w-md flex-col items-center gap-3">
+          <button
+            onClick={start}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-leaf-300 px-6 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
+          >
+            {lines.length > 0 ? "Call Ren again" : "Call Ren"}
+          </button>
+          {error ? <p className="text-[13px] text-amber">{error}</p> : null}
+        </div>
       </div>
 
       {lines.length > 0 ? (
-        <div className="max-h-64 space-y-3 overflow-y-auto border-t border-rule bg-leaf-50 px-5 py-5 sm:px-7">
-          <p className="label">What you talked about</p>
+        <div className="max-h-64 space-y-3 overflow-y-auto border-t border-white/10 bg-black/15 px-5 py-5 sm:px-7">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-leaf-300">
+            What you talked about
+          </p>
           {lines.map((line, index) => (
             <p key={index} className="text-[14px] leading-relaxed">
               <span
-                className={`mr-2 font-bold ${line.role === "ren" ? "text-stem-700" : "text-ink-300"}`}
+                className={`mr-2 font-bold ${line.role === "ren" ? "text-leaf-300" : "text-cream/60"}`}
               >
                 {line.role === "ren" ? "Ren" : "You"}
               </span>
-              <span className="text-ink-600">{line.text}</span>
+              <span className="text-cream/90">{line.text}</span>
             </p>
           ))}
         </div>
