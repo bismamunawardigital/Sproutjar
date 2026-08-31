@@ -87,6 +87,7 @@ function RenSessionInner({
   const [elapsed, setElapsed] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
   const [glance, setGlance] = useState<GlanceCard | null>(null);
+  const [quiet, setQuiet] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const saidByYou = useRef<string[]>([]);
 
@@ -142,6 +143,26 @@ function RenSessionInner({
     return () => clearInterval(timer);
   }, [status]);
 
+  // Quiet mode: Ren's voice goes silent and its words come up as text instead.
+  useEffect(() => {
+    if (status !== "live") return;
+    void conversation.setVolume({ volume: quiet ? 0 : 1 });
+  }, [quiet, status, conversation]);
+
+  const toggleQuiet = useCallback(() => {
+    setQuiet((value) => {
+      const next = !value;
+      if (status === "live") {
+        conversation.sendContextualUpdate(
+          next
+            ? "They just switched on quiet mode: they are somewhere public, reading your words on screen instead of hearing them, and answering in a whisper. Keep each turn to a couple of short sentences and don't ask them to read numbers out loud."
+            : "They switched quiet mode off. They can hear you again.",
+        );
+      }
+      return next;
+    });
+  }, [conversation, status]);
+
   const start = useCallback(async () => {
     setError(null);
     setElapsed(0);
@@ -170,6 +191,7 @@ function RenSessionInner({
           agenda_technique: agenda?.technique ?? "Open",
           planned_minutes: String(minutes),
           contract_choice: contract ?? "unstated",
+          quiet_mode: quiet ? "true" : "false",
         },
       });
     } catch (caught) {
@@ -180,7 +202,7 @@ function RenSessionInner({
       );
       setStatus("error");
     }
-  }, [agenda, contract, conversation, minutes]);
+  }, [agenda, contract, conversation, minutes, quiet]);
 
   const stop = useCallback(() => {
     conversation.endSession();
@@ -223,11 +245,15 @@ function RenSessionInner({
           <p className="text-[17px] font-bold">
             {status === "connecting"
               ? "Connecting…"
-              : speaking
-                ? "Ren is speaking"
-                : conversation.isMuted
-                  ? "Your mic is off"
-                  : "Ren is listening"}
+              : conversation.isMuted
+                ? "Your mic is off"
+                : quiet
+                  ? speaking
+                    ? "Ren is answering below"
+                    : "Ren is listening. Whisper if you need to."
+                  : speaking
+                    ? "Ren is speaking"
+                    : "Ren is listening"}
           </p>
 
           {glance ? (
@@ -282,10 +308,12 @@ function RenSessionInner({
             </div>
           ) : null}
 
-          {showTranscript && lines.length > 0 ? (
+          {(showTranscript || quiet) && lines.length > 0 ? (
             <div
               ref={transcriptRef}
-              className="max-h-56 w-full max-w-md space-y-3 overflow-y-auto rounded-card bg-black/20 p-4 text-left"
+              className={`w-full max-w-md space-y-3 overflow-y-auto rounded-card bg-black/20 p-4 text-left ${
+                quiet ? "max-h-80" : "max-h-56"
+              }`}
             >
               {lines.map((line, index) => (
                 <p key={index} className="text-[14px] leading-relaxed">
@@ -321,9 +349,22 @@ function RenSessionInner({
           <button
             onClick={() => setShowTranscript((value) => !value)}
             aria-pressed={showTranscript}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50"
+            disabled={quiet}
+            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50 disabled:opacity-40"
           >
             {showTranscript ? "Hide" : "Words"}
+          </button>
+          <button
+            onClick={toggleQuiet}
+            aria-pressed={quiet}
+            title="Quiet mode: Ren answers in text instead of out loud"
+            className={`flex h-14 w-14 items-center justify-center rounded-full border text-[12px] font-bold transition ${
+              quiet
+                ? "border-leaf-300 bg-leaf-300 text-ink-900"
+                : "border-white/20 text-cream hover:border-white/50"
+            }`}
+          >
+            Quiet
           </button>
         </div>
       </div>
@@ -386,6 +427,21 @@ function RenSessionInner({
           {contract
             ? "Ren will open there, and hold to it."
             : "Optional. Ren will ask if you skip it."}
+        </p>
+
+        <button
+          onClick={toggleQuiet}
+          aria-pressed={quiet}
+          className={`mt-4 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
+            quiet
+              ? "bg-leaf-300 text-ink-900"
+              : "border border-white/20 text-cream/70 hover:border-white/50"
+          }`}
+        >
+          {quiet ? "Quiet mode on" : "Somewhere public? Quiet mode"}
+        </button>
+        <p className="mt-2 h-4 text-[12px] text-cream/45">
+          {quiet ? "You whisper. Ren writes back instead of speaking." : ""}
         </p>
 
         <button
