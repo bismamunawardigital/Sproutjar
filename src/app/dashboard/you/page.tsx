@@ -92,6 +92,9 @@ export default async function YouPage() {
       {snap.sessions.length > 0 ? (
         <section className="rounded-card border border-rule bg-card p-5">
           <p className="label">Your talks with Ren</p>
+          <p className="mt-1 text-[13px] text-root">
+            One root in the jar for each of these. They only go down.
+          </p>
           <ul className="mt-3 divide-y divide-rule">
             {snap.sessions.map((session) => {
               const produced = session.commitments[0];

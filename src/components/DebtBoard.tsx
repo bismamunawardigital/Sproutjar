@@ -31,6 +31,7 @@ export function DebtBoard({
   const [form, setForm] = useState(EMPTY);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState<string | null>(null);
   const openCards = debts.filter((debt) => debt.balance > 0);
   const settled = debts.filter((debt) => debt.balance <= 0);
 
@@ -54,9 +55,8 @@ export function DebtBoard({
     router.refresh();
   }
 
-  async function settleDebt(id: string, name: string) {
-    if (!window.confirm(`Set ${name} to zero? It moves to your cleared cards, history kept.`))
-      return;
+  async function settleDebt(id: string) {
+    setAsking(null);
     await fetch(`/api/debts/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -65,8 +65,8 @@ export function DebtBoard({
     router.refresh();
   }
 
-  async function removeDebt(id: string, name: string) {
-    if (!window.confirm(`Remove ${name} from Sproutjar? Its history goes with it.`)) return;
+  async function removeDebt(id: string) {
+    setAsking(null);
     await fetch(`/api/debts/${id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -154,12 +154,30 @@ export function DebtBoard({
               </div>
               <div className="shrink-0 text-right">
                 <p className="n text-[19px] text-ink-900">{formatMoney(debt.balance, currency)}</p>
-                <button
-                  onClick={() => settleDebt(debt.id, debt.name)}
-                  className="mt-1 text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
-                >
-                  Mark settled
-                </button>
+                {asking === debt.id ? (
+                  <div className="mt-1.5 flex items-center justify-end gap-2">
+                    <span className="text-[12px] text-ink-400">Cleared it?</span>
+                    <button
+                      onClick={() => settleDebt(debt.id)}
+                      className="rounded-full bg-stem-600 px-3 py-1 text-[12px] font-bold text-white transition hover:bg-stem-700"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => setAsking(null)}
+                      className="text-[12px] font-bold text-ink-300 transition hover:text-ink-500"
+                    >
+                      Not yet
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setAsking(debt.id)}
+                    className="mt-1.5 rounded-full border border-rule px-3 py-1 text-[12px] font-bold text-ink-500 transition hover:border-stem hover:text-stem-700"
+                  >
+                    Mark settled
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -168,7 +186,7 @@ export function DebtBoard({
 
       {settled.length > 0 ? (
         <div className="mt-5 rounded-sm bg-cream px-4 py-4">
-          <p className="label">Cleared</p>
+          <p className="label">Cleared · the stem keeps this</p>
           <ul className="mt-2.5 space-y-2">
             {settled.map((debt) => (
               <li key={debt.id} className="flex items-center justify-between gap-3 text-[14px]">
@@ -178,12 +196,29 @@ export function DebtBoard({
                     <span className="n">{formatMoney(debt.openingBalance, currency)}</span> paid off
                   </span>
                 </span>
-                <button
-                  onClick={() => removeDebt(debt.id, debt.name)}
-                  className="shrink-0 text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
-                >
-                  Remove
-                </button>
+                {asking === debt.id ? (
+                  <span className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => removeDebt(debt.id)}
+                      className="text-[12px] font-bold text-root transition hover:opacity-80"
+                    >
+                      Remove it
+                    </button>
+                    <button
+                      onClick={() => setAsking(null)}
+                      className="text-[12px] font-bold text-ink-300 transition hover:text-ink-500"
+                    >
+                      Keep
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setAsking(debt.id)}
+                    className="shrink-0 text-[12px] text-ink-300 transition hover:text-ink-500"
+                  >
+                    Remove
+                  </button>
+                )}
               </li>
             ))}
           </ul>

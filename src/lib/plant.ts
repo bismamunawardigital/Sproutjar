@@ -13,9 +13,9 @@ export type GrowthInput = {
 const LEAF_MILESTONES = [0.1, 0.25, 0.5, 0.75, 1];
 
 /**
- * Stem grows on principal cleared. Roots grow on the work: sessions held,
- * commitments kept, weeks turned up. The two are deliberately separate so a
- * hard month still moves something.
+ * Stem grows on principal cleared. Roots grow on the talks: one root per
+ * conversation held. The two are deliberately separate so a hard month still
+ * moves something.
  */
 export function plantState(input: GrowthInput): PlantState {
   const cleared = Math.max(0, input.openingPrincipal - input.currentPrincipal);
@@ -24,12 +24,14 @@ export function plantState(input: GrowthInput): PlantState {
   // stem holds at its high-water mark and grows again from there.
   const stemPct = Math.max(earned, Math.min(1, input.stemPeak));
   const leafPairs = LEAF_MILESTONES.filter((milestone) => stemPct >= milestone).length;
-  const work = input.sessionsHeld + input.commitmentsKept + Math.floor(input.weeksActive / 4);
+  // One root per talk, plus one for turning up at all. Nothing else moves them,
+  // so the roots read as exactly what they are: conversations held.
+  const rootDepth = Math.max(1, Math.min(12, input.sessionsHeld + 1));
 
   return {
     stemPct,
     leafPairs,
-    rootDepth: Math.max(1, Math.min(5, 1 + Math.floor(work / 2))),
+    rootDepth,
     sparks: earned >= 1,
     cleared: input.currentPrincipal <= 0 && input.openingPrincipal > 0,
   };

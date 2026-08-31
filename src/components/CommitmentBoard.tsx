@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export type CommitmentRow = {
@@ -35,9 +36,17 @@ export function CommitmentBoard({ commitments }: { commitments: CommitmentRow[] 
       <p className="label">What you&rsquo;re trying this week</p>
 
       {commitments.length === 0 ? (
-        <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
-          Nothing here yet. Next time you talk, you and Ren will find one small thing worth trying.
-        </p>
+        <>
+          <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
+            Nothing open right now. One thing, chosen on a call, is how the next few weeks move.
+          </p>
+          <Link
+            href="/dashboard/ren"
+            className="mt-3 inline-block text-[14px] font-bold text-stem-700 underline underline-offset-4 transition hover:text-stem"
+          >
+            Find one with Ren
+          </Link>
+        </>
       ) : null}
 
       <div className="mt-3 space-y-4">

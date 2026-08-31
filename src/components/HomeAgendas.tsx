@@ -1,71 +1,74 @@
 import Link from "next/link";
 import type { Agenda } from "@/lib/agendas";
 
-const BARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-
 /**
- * The invitation to talk lives on Home, and it looks like what it is: a call
- * waiting to be placed. Picking a line carries that agenda into Ren's screen.
+ * Home is the doorway, not the room. It shows the one line Ren would open with
+ * today and a way in — the call itself, the orb and the transcript live on
+ * Ren's own screen.
  */
-export function HomeAgendas({ agendas, hasHistory }: { agendas: Agenda[]; hasHistory: boolean }) {
+export function HomeAgendas({
+  agendas,
+  hasHistory,
+}: {
+  agendas: Agenda[];
+  hasHistory: boolean;
+}) {
+  const opener = agendas[0] ?? null;
+  const rest = agendas.slice(1, 4);
+
   return (
     <section className="overflow-hidden rounded-card bg-ink-800 text-cream">
-      <div className="flex flex-col items-center px-5 pb-5 pt-7 text-center">
-        <div className="relative flex h-28 w-28 items-center justify-center">
+      <div className="flex items-start gap-4 px-5 pt-5">
+        <span className="relative mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center">
           <span className="orb-halo absolute inset-0 rounded-full" aria-hidden />
-          <span className="orb-halo orb-halo-2 absolute inset-0 rounded-full" aria-hidden />
-          <span className="ren-orb orb-listening absolute inset-5 rounded-full" aria-hidden />
-          <span className="relative text-[15px] font-bold tracking-wide text-white">Ren</span>
+          <span className="ren-orb orb-listening absolute inset-1 rounded-full" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
+            Ren would open here today
+          </p>
+          <p className="mt-1.5 text-[17px] font-bold leading-snug">
+            {opener
+              ? `“${opener.title}”`
+              : hasHistory
+                ? "“Where things stand this week.”"
+                : "“Start anywhere. I have your numbers.”"}
+          </p>
+          {opener ? (
+            <p className="mt-1 text-[13px] leading-relaxed text-cream/60">{opener.reason}</p>
+          ) : null}
         </div>
+      </div>
 
-        <div className="mt-4 flex h-6 items-end gap-[3px]" aria-hidden>
-          {BARS.map((bar) => (
-            <span
-              key={bar}
-              className="wave-bar w-[3px] rounded-full bg-leaf-300"
-              style={{ animationDelay: `${bar * 110}ms` }}
-            />
-          ))}
-        </div>
-
-        <p className="mt-3 text-[13px] font-bold uppercase tracking-[0.14em] text-leaf-300">
-          Your voice coach · ready
-        </p>
-        <h2 className="mt-2 text-[21px] font-bold leading-snug">
-          What do you want to talk about?
-        </h2>
-        <p className="mt-1 text-[13px] text-cream/60">
-          {hasHistory
-            ? "Ren has your numbers and remembers where you left it."
-            : "Say it out loud. Ren already has your numbers."}
-        </p>
-
+      <div className="px-5 pb-4 pt-4">
         <Link
-          href="/dashboard/ren"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-stem px-5 py-3.5 text-[16px] font-bold text-white transition hover:opacity-90"
+          href={opener ? `/dashboard/ren?agenda=${opener.id}` : "/dashboard/ren"}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-leaf-300 px-5 py-3.5 text-[16px] font-bold text-ink-900 transition hover:bg-leaf-400"
         >
           <MicGlyph />
           Call Ren
+          {opener ? (
+            <span className="n text-[13px] font-bold text-ink-900/60">
+              {opener.minutes} min
+            </span>
+          ) : null}
         </Link>
       </div>
 
-      <div className="border-t border-white/10 px-5 py-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-cream/40">
-          Or start from one of these
-        </p>
-        <div className="mt-2.5 space-y-1.5">
-          {agendas.slice(0, 4).map((agenda) => (
+      {rest.length > 0 ? (
+        <div className="flex gap-2 overflow-x-auto border-t border-white/10 px-5 py-3">
+          <span className="shrink-0 self-center text-[12px] text-cream/40">or</span>
+          {rest.map((agenda) => (
             <Link
               key={agenda.id}
               href={`/dashboard/ren?agenda=${agenda.id}`}
-              className="flex items-center justify-between gap-3 rounded-card px-3 py-2.5 transition hover:bg-white/10"
+              className="shrink-0 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] font-bold text-cream/80 transition hover:border-white/50"
             >
-              <span className="text-[14px] font-bold leading-snug">{agenda.title}</span>
-              <span className="n shrink-0 text-[12px] text-cream/50">{agenda.minutes} min</span>
+              {agenda.title}
             </Link>
           ))}
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

@@ -17,8 +17,14 @@ export default async function Home() {
   return (
     <>
       <section className="rounded-card border border-rule bg-card p-5 text-center">
-        <Plant state={snap.growth} className="mx-auto w-36" />
-        <p className="label mt-4">You&rsquo;re debt-free in</p>
+        <Plant state={snap.growth} className="mx-auto w-28" />
+        {snap.sessions.length > 0 ? (
+          <p className="mt-2 text-[12px] text-root">
+            <span className="n">{snap.sessions.length}</span>{" "}
+            {snap.sessions.length === 1 ? "talk" : "talks"}, one root each
+          </p>
+        ) : null}
+        <p className="label mt-3">You&rsquo;re debt-free in</p>
         <p className="n mt-1 text-[32px] leading-none text-ink-900">
           {plan.feasible && plan.months > 0 ? plan.debtFreeOn : "Not yet"}
         </p>
@@ -53,8 +59,6 @@ export default async function Home() {
         </dl>
       </section>
 
-      <HomeAgendas agendas={agendas} hasHistory={snap.sessions.length > 0} />
-
       <CommitmentBoard
         commitments={snap.commitments.map((c) => ({
           id: c.id,
@@ -67,6 +71,8 @@ export default async function Home() {
           status: c.status,
         }))}
       />
+
+      <HomeAgendas agendas={agendas} hasHistory={snap.sessions.length > 0} />
 
       {next ? (
         <section className="rounded-card border border-rule bg-card p-5">

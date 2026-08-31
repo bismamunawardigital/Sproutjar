@@ -23,12 +23,21 @@ const LEAF_SLOTS = [
   { y: 62, tilt: -36, scale: 0.72 },
 ];
 
+// One root per talk. They fan outward, so a month where the stem barely moves
+// still puts something into the soil.
 const ROOT_PATHS = [
   "M220 310 L220 404",
   "M220 310 C 204 332 193 356 188 400",
   "M220 310 C 236 332 247 356 252 400",
   "M220 310 C 190 330 172 360 168 396",
   "M220 310 C 250 330 268 360 272 396",
+  "M220 310 C 178 326 152 350 144 388",
+  "M220 310 C 262 326 288 350 296 388",
+  "M220 310 C 212 338 207 366 209 402",
+  "M220 310 C 228 338 233 366 231 402",
+  "M220 310 C 168 322 138 342 126 374",
+  "M220 310 C 272 322 302 342 314 374",
+  "M220 310 C 198 336 180 372 176 406",
 ];
 
 function leafPosition(index: number, pairs: number) {
@@ -63,7 +72,7 @@ export function Plant({ state, className }: { state: PlantState; className?: str
             d={d}
             fill="none"
             stroke="#7A6248"
-            strokeWidth={6}
+            strokeWidth={index < 5 ? 6 : 4.5}
             strokeLinecap="round"
             strokeDasharray={ROOT_LENGTH}
             strokeDashoffset={0}
