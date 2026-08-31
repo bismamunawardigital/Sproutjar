@@ -13,6 +13,7 @@ export default async function Home() {
   const plan = snap.plan;
   const next = plan.milestones[0] ?? null;
   const agendas = agendasFor(snap);
+  const building = snap.horizon === "building";
   // When nothing is open, Home carries forward the last thing said on a call
   // rather than showing an empty card.
   const byRecency = snap.recentCommitments
@@ -48,21 +49,35 @@ export default async function Home() {
             {snap.sessions.length === 1 ? "talk" : "talks"}, one root each
           </p>
         ) : null}
-        <p className="label mt-3">You&rsquo;re debt-free in</p>
-        <p className="n mt-1 text-[32px] leading-none text-ink-900">
-          {plan.feasible && plan.months > 0 ? plan.debtFreeOn : "Not yet"}
-        </p>
-        <p className="mt-2 text-[13px] text-ink-400">
-          {plan.feasible && plan.months > 0
-            ? `${plan.months} months at ${formatMoneyShort(snap.surplus, currency)} a month`
-            : "The minimums need more than there is right now. Ren can help you work the other side of it."}
-        </p>
+        {building ? (
+          <>
+            <p className="label mt-3">Months you could cover</p>
+            <p className="n mt-1 text-[32px] leading-none text-ink-900">
+              {snap.runwayMonths.toFixed(1)}
+            </p>
+            <p className="mt-2 text-[13px] text-ink-400">
+              The cards are gone. This is how long the jars would hold if the income stopped.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="label mt-3">You&rsquo;re debt-free in</p>
+            <p className="n mt-1 text-[32px] leading-none text-ink-900">
+              {plan.feasible && plan.months > 0 ? plan.debtFreeOn : "Not yet"}
+            </p>
+            <p className="mt-2 text-[13px] text-ink-400">
+              {plan.feasible && plan.months > 0
+                ? `${plan.months} months at ${formatMoneyShort(snap.surplus, currency)} a month`
+                : "The minimums need more than there is right now. Ren can help you work the other side of it."}
+            </p>
+          </>
+        )}
 
         <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-rule pt-4 text-left">
           <div>
-            <dt className="label">Left to pay</dt>
+            <dt className="label">{building ? "Set aside" : "Left to pay"}</dt>
             <dd className="n mt-1 text-[16px] text-ink-900">
-              {formatMoneyShort(snap.totals.debt, currency)}
+              {formatMoneyShort(building ? snap.totals.saved : snap.totals.debt, currency)}
             </dd>
           </div>
           <div>
@@ -72,12 +87,12 @@ export default async function Home() {
             </dd>
           </div>
           <div>
-            <dt className="label">Rent on the debt</dt>
-            <dd className="n mt-1 text-[16px] text-root">
-              {formatMoneyShort(plan.monthlyBleed, currency)}
+            <dt className="label">{building ? "Free each month" : "Rent on the debt"}</dt>
+            <dd className={`n mt-1 text-[16px] ${building ? "text-stem-700" : "text-root"}`}>
+              {formatMoneyShort(building ? snap.surplus : plan.monthlyBleed, currency)}
             </dd>
             <dd className="mt-0.5 text-[11px] leading-snug text-ink-300">
-              the interest, every month
+              {building ? "no longer going to a bank" : "the interest, every month"}
             </dd>
           </div>
         </dl>

@@ -47,5 +47,14 @@ export async function GET(request: Request) {
       due: c.dueAt?.toISOString().slice(0, 10) ?? null,
     })),
     has_data: snap.debts.length > 0,
+    /** clearing while cards remain; building once they are gone. */
+    horizon: snap.horizon,
+    months_of_cover: snap.runwayMonths.toFixed(1),
+    pending_transfers: snap.proposals.map((p) => ({
+      from_card: p.fromName,
+      to_bank: p.toIssuer,
+      amount: formatMoney(p.amount, currency),
+      waiting_since: p.createdAt.toISOString().slice(0, 10),
+    })),
   });
 }

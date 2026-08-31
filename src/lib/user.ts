@@ -131,6 +131,19 @@ export async function buildSnapshot() {
       dueAt: c.dueAt === undefined ? null : new Date(c.dueAt),
     })),
     surplus,
+    /**
+     * Clearing the cards is the first goal, not the product. Once they are gone
+     * the same coaching turns to what the money is now for, and the number that
+     * matters becomes months of cover rather than a debt-free date.
+     */
+    horizon: (debtRows.reduce((s, d) => s + d.balance, 0) > 0 ? "clearing" : "building") as
+      | "clearing"
+      | "building",
+    /** Months of essentials the jars would cover if income stopped. */
+    runwayMonths:
+      user.monthlyEssentials > 0
+        ? jarRows.reduce((s, j) => s + j.saved, 0) / user.monthlyEssentials
+        : 0,
     strategy,
     starterTarget,
     split,

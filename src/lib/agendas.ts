@@ -63,6 +63,53 @@ export const OPEN_AGENDA: Agenda = {
   minutes: 20,
 };
 
+/**
+ * What Ren coaches once the cards are gone. Same relationship, different goal:
+ * the money now has to be pointed at something rather than away from a bank.
+ */
+export const BUILDING_AGENDAS: Agenda[] = [
+  {
+    id: "where-it-goes-now",
+    title: "Where the card money goes now",
+    reason:
+      "The payment that was clearing the cards is still leaving your account. Deciding where before it decides for itself.",
+    technique: "Getting clear",
+    minutes: 20,
+  },
+  {
+    id: "a-year-of-cover",
+    title: "How much cover is enough",
+    reason:
+      "Three months, six, a year. Not the textbook answer — the number that would let you sleep.",
+    technique: "What matters to you",
+    minutes: 20,
+  },
+  {
+    id: "first-investment",
+    title: "The first money you don't touch",
+    reason:
+      "What investing would mean for you, what you'd want to understand first, and what would make you pull it back out.",
+    technique: "Working it out",
+    minutes: 20,
+  },
+  {
+    id: "the-asks",
+    title: "The asks, now that there's money there",
+    reason:
+      "Family knows when things ease. What you want to say yes to, and where the line goes.",
+    technique: "What matters to you",
+    minutes: 20,
+  },
+  {
+    id: "not-going-back",
+    title: "What would put you back on the cards",
+    reason:
+      "You know the shape of it now. Naming it while nothing is going wrong is the cheap time to do it.",
+    technique: "Looking ahead",
+    minutes: 15,
+  },
+];
+
 export type AgendaContext = {
   name: string;
   currency: string;

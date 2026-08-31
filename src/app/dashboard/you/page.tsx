@@ -1,5 +1,6 @@
 import { Collapse } from "@/components/Collapse";
 import { ProfileForm } from "@/components/ProfileForm";
+import { SessionLog } from "@/components/SessionLog";
 import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
 
@@ -95,38 +96,30 @@ export default async function YouPage() {
           <p className="mt-1 text-[13px] text-root">
             One root in the jar for each of these. They only go down.
           </p>
-          <ul className="mt-3 divide-y divide-rule">
-            {snap.sessions.map((session) => {
+          <SessionLog
+            sessions={snap.sessions.map((session) => {
               const produced = session.commitments[0];
-              return (
-                <li key={session.id} className="py-3.5 first:pt-0">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-[15px] font-bold text-ink-900">{session.agenda}</p>
-                    <p className="text-[12px] text-ink-300">
-                      {session.startedAt.toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </p>
-                  </div>
-                  {produced ? (
-                    <p className="mt-1 text-[13px] text-ink-400">
-                      {produced.wish}
-                      {produced.status === "kept" ? (
-                        <span className="chip c-grow ml-2">Done</span>
-                      ) : produced.status === "missed" ? (
-                        <span className="chip c-neutral ml-2">Another time</span>
-                      ) : null}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[13px] text-ink-300">
-                      You just wanted to think out loud. Nothing to do after it, and that was fine.
-                    </p>
-                  )}
-                </li>
-              );
+              return {
+                id: session.id,
+                agenda: session.agenda,
+                on: session.startedAt.toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                }),
+                contract: session.contractChoice,
+                minutes: session.plannedMinutes,
+                reflection: session.closingReflection,
+                commitment: produced
+                  ? {
+                      wish: produced.wish,
+                      ifThenPlan: produced.ifThenPlan,
+                      trigger: produced.trigger,
+                      status: produced.status,
+                    }
+                  : null,
+              };
             })}
-          </ul>
+          />
         </section>
       ) : null}
 
