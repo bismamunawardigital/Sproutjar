@@ -40,7 +40,7 @@ function RenSessionInner({
   userName: string;
   agenda: Agenda | null;
   minutes: number;
-  onEnded?: () => void;
+  onEnded?: (saidByYou: string[]) => void;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<
@@ -52,12 +52,13 @@ function RenSessionInner({
   const [elapsed, setElapsed] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const saidByYou = useRef<string[]>([]);
 
   const conversation = useConversation({
     onConnect: () => setStatus("live"),
     onDisconnect: () => {
       setStatus("idle");
-      onEnded?.();
+      onEnded?.(saidByYou.current);
       // Ren may have logged a commitment or a jar deposit mid-call.
       router.refresh();
     },
@@ -70,6 +71,7 @@ function RenSessionInner({
       setStatus("error");
     },
     onMessage: ({ message, source }) => {
+      if (source === "user") saidByYou.current = [...saidByYou.current, message];
       setLines((prev) => [
         ...prev,
         { role: source === "user" ? "you" : "ren", text: message },
@@ -111,6 +113,7 @@ function RenSessionInner({
         return;
       }
       setLines([]);
+      saidByYou.current = [];
       conversation.startSession({
         conversationToken: config.conversationToken,
         connectionType: "webrtc",
@@ -138,7 +141,7 @@ function RenSessionInner({
   const stop = useCallback(() => {
     conversation.endSession();
     setStatus("idle");
-    onEnded?.();
+    onEnded?.(saidByYou.current);
   }, [conversation, onEnded]);
 
   const speaking = conversation.isSpeaking;
@@ -233,70 +236,67 @@ function RenSessionInner({
 
   return (
     <section className="overflow-hidden rounded-card bg-ink-800 text-cream shadow-sh-3">
-      <div className="flex min-h-[440px] flex-col items-center justify-center gap-6 px-5 py-10 text-center sm:px-7">
-        <div className="relative flex h-36 w-36 items-center justify-center">
-          <span className="orb-halo absolute inset-0 rounded-full" aria-hidden />
-          <span className="orb-halo orb-halo-2 absolute inset-0 rounded-full" aria-hidden />
-          <span className="ren-orb orb-listening absolute inset-6 rounded-full" aria-hidden />
+      <div className="flex flex-col items-center px-6 py-9 text-center sm:py-11">
+        <div className="relative flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32">
+          <span
+            className="ren-orb orb-listening absolute inset-0 rounded-full"
+            aria-hidden
+          />
           <span className="relative text-[17px] font-bold text-white">Ren</span>
         </div>
 
-        <div className="flex h-7 items-end gap-[3px]" aria-hidden>
+        <div className="mt-6 flex h-7 items-end gap-[3px]" aria-hidden>
           {WAVE_BARS.map((bar) => (
             <span
               key={bar}
-              className="wave-bar w-[3px] rounded-full bg-leaf-300"
+              className="wave-bar w-[3px] rounded-full bg-leaf-300/70"
               style={{ animationDelay: `${bar * 110}ms` }}
             />
           ))}
         </div>
 
-        <div className="max-w-md">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
-            {minutes} min · {agenda?.technique ?? "As long as you need"}
-          </p>
-          <h2 className="mt-2 text-[26px] font-bold leading-tight">
-            {agenda ? agenda.title : `Hi ${userName}. Whenever you're ready.`}
-          </h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-cream/70">
-            {agenda
-              ? agenda.reason
-              : "Tell Ren what's on your mind. Your cards, your balances and what you said last time are already on the call."}
-          </p>
-        </div>
+        <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
+          {agenda ? `${minutes} min · ${agenda.technique}` : "Ren is free right now"}
+        </p>
+        <h2 className="mt-2 max-w-sm text-[26px] font-bold leading-tight sm:text-[30px]">
+          {agenda ? agenda.title : `Talk it through, ${userName}.`}
+        </h2>
+        <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-cream/70">
+          {agenda
+            ? agenda.reason
+            : "Ren already has your balances, your plan and what you said last time. Nothing to type."}
+        </p>
 
-        <div className="w-full max-w-md">
-          <p className="text-[13px] text-cream/60">
-            What would help most today?
-          </p>
-          <div className="mt-2.5 flex flex-wrap justify-center gap-2">
-            {CONTRACTS.map((option) => (
-              <button
-                key={option.key}
-                onClick={() => setContract(option.key)}
-                aria-pressed={contract === option.key}
-                className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
-                  contract === option.key
-                    ? "bg-leaf-300 text-ink-900"
-                    : "border border-white/20 text-cream/85 hover:border-white/50"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <button
+          onClick={start}
+          className="mt-7 w-full max-w-xs rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
+        >
+          {lines.length > 0 ? "Call Ren again" : "Call Ren"}
+        </button>
 
-        <div className="flex w-full max-w-md flex-col items-center gap-3">
-          <button
-            onClick={start}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-leaf-300 px-6 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
-          >
-            {lines.length > 0 ? "Call Ren again" : "Call Ren"}
-          </button>
-          {error ? <p className="text-[13px] text-amber">{error}</p> : null}
+        <p className="mt-7 text-[12px] text-cream/50">
+          What would make this call worth it?
+        </p>
+        <div className="mt-2.5 flex flex-wrap justify-center gap-2">
+          {CONTRACTS.map((option) => (
+            <button
+              key={option.key}
+              onClick={() => setContract(option.key)}
+              aria-pressed={contract === option.key}
+              className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
+                contract === option.key
+                  ? "bg-leaf-300 text-ink-900"
+                  : "border border-white/20 text-cream/70 hover:border-white/50"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
+      {error ? (
+        <p className="px-6 pb-5 text-center text-[13px] text-amber">{error}</p>
+      ) : null}
 
       {lines.length > 0 ? (
         <div className="max-h-64 space-y-3 overflow-y-auto border-t border-white/10 bg-black/15 px-5 py-5 sm:px-7">
@@ -328,7 +328,7 @@ export function RenSession({
   userName: string;
   agenda?: Agenda | null;
   minutes?: number;
-  onEnded?: () => void;
+  onEnded?: (saidByYou: string[]) => void;
 }) {
   return (
     <ConversationProvider>

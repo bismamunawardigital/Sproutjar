@@ -14,12 +14,15 @@ export function SessionDeck({
   userName,
   initialAgenda = null,
   commitment = null,
+  nextAgenda = null,
 }: {
   userName: string;
   initialAgenda?: Agenda | null;
   commitment?: { wish: string; trigger: string } | null;
+  nextAgenda?: { id: string; title: string } | null;
 }) {
   const [ended, setEnded] = useState(false);
+  const [saidByYou, setSaidByYou] = useState<string[]>([]);
 
   return (
     <div className="space-y-4">
@@ -27,10 +30,19 @@ export function SessionDeck({
         userName={userName}
         agenda={initialAgenda}
         minutes={initialAgenda?.minutes ?? 20}
-        onEnded={() => setEnded(true)}
+        onEnded={(spoken) => {
+          setSaidByYou(spoken);
+          setEnded(true);
+        }}
       />
 
-      {ended ? <SessionClose commitment={commitment} /> : null}
+      {ended ? (
+        <SessionClose
+          commitment={commitment}
+          saidByYou={saidByYou}
+          nextAgenda={nextAgenda}
+        />
+      ) : null}
 
       {ended ? null : (
         <p className="px-1 text-center text-[13px] text-ink-400">

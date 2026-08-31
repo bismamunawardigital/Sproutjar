@@ -13,6 +13,7 @@ export default async function RenPage({
   const [snap, params] = await Promise.all([buildSnapshot(), searchParams]);
   const agendas = agendasFor(snap);
   const picked = agendas.find((agenda) => agenda.id === params.agenda) ?? null;
+  const suggested = agendas.find((agenda) => agenda.id !== picked?.id) ?? null;
 
   const talks = snap.sessions.map((session) => {
     const produced = session.commitments[0];
@@ -35,6 +36,7 @@ export default async function RenPage({
             ? { wish: snap.commitments[0].wish, trigger: snap.commitments[0].trigger }
             : null
         }
+        nextAgenda={suggested ? { id: suggested.id, title: suggested.title } : null}
       />
 
       <SessionImpact

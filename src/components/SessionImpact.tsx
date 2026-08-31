@@ -57,12 +57,12 @@ export function SessionImpact({
   return (
     <section className="overflow-hidden rounded-card border border-rule bg-card">
       <div className="px-5 pt-5">
-        <p className="label">What your talks have moved</p>
+        <p className="label">Cleared while coaching with Ren</p>
         <p className="mt-2 text-[26px] font-bold leading-none text-stem-700">
           <span className="n">{formatMoneyShort(moved, currency)}</span>
         </p>
         <p className="mt-1.5 text-[13px] text-ink-400">
-          off the cards since your first call, over{" "}
+          cleared while coaching with Ren, across{" "}
           <span className="n">{talks.length}</span> conversations.
         </p>
       </div>
@@ -91,12 +91,12 @@ export function SessionImpact({
 
       <div className="flex items-baseline justify-between px-5 text-[12px] text-ink-300">
         <span className="n">{formatMoneyShort(first.total, currency)}</span>
-        <span>each dot is a talk with Ren</span>
+        <span>each dot marks a talk</span>
         <span className="n">{formatMoneyShort(last.total, currency)}</span>
       </div>
 
       <ul className="mt-4 divide-y divide-rule border-t border-rule">
-        {talks.slice(0, 3).map((talk) => (
+        {talks.slice(0, 6).map((talk) => (
           <li key={talk.id} className="flex items-start gap-3 px-5 py-3.5">
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-stem" aria-hidden />
             <div className="min-w-0 flex-1">
