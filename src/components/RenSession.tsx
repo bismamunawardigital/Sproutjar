@@ -20,6 +20,41 @@ type SessionConfig =
 
 type Line = { role: "ren" | "you"; text: string };
 
+type GlanceCard = {
+  title: string;
+  left_label: string;
+  left_value: string;
+  left_note?: string;
+  right_label: string;
+  right_value: string;
+  right_note?: string;
+  takeaway?: string;
+};
+
+function asGlanceCard(input: unknown): GlanceCard | null {
+  if (typeof input !== "object" || input === null) return null;
+  const raw = input as Record<string, unknown>;
+  const text = (key: string) =>
+    typeof raw[key] === "string" ? (raw[key] as string) : undefined;
+  const title = text("title");
+  const leftLabel = text("left_label");
+  const leftValue = text("left_value");
+  const rightLabel = text("right_label");
+  const rightValue = text("right_value");
+  if (!title || !leftLabel || !leftValue || !rightLabel || !rightValue)
+    return null;
+  return {
+    title,
+    left_label: leftLabel,
+    left_value: leftValue,
+    left_note: text("left_note"),
+    right_label: rightLabel,
+    right_value: rightValue,
+    right_note: text("right_note"),
+    takeaway: text("takeaway"),
+  };
+}
+
 const CONTRACTS = [
   { key: "clarity", label: "Clarity" },
   { key: "decision", label: "A decision" },
@@ -51,6 +86,7 @@ function RenSessionInner({
   const [contract, setContract] = useState<Contract | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [glance, setGlance] = useState<GlanceCard | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const saidByYou = useRef<string[]>([]);
 
@@ -83,6 +119,13 @@ function RenSessionInner({
         router.refresh();
         return "Dashboard refreshed.";
       },
+      // Ren pushes a side-by-side card up while it talks through an offer.
+      show_glance_card: (parameters: unknown) => {
+        const card = asGlanceCard(parameters);
+        if (!card) return "Card not shown: missing fields.";
+        setGlance(card);
+        return "Card is on their screen.";
+      },
     },
   });
 
@@ -113,6 +156,7 @@ function RenSessionInner({
         return;
       }
       setLines([]);
+      setGlance(null);
       saidByYou.current = [];
       conversation.startSession({
         conversationToken: config.conversationToken,
@@ -186,6 +230,58 @@ function RenSessionInner({
                   : "Ren is listening"}
           </p>
 
+          {glance ? (
+            <div className="w-full max-w-md rounded-card bg-cream p-4 text-left text-ink-800 shadow-sh-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-ink-400">
+                  {glance.title}
+                </p>
+                <button
+                  onClick={() => setGlance(null)}
+                  className="text-[11px] font-bold text-ink-300 transition hover:text-ink-800"
+                >
+                  Hide
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {[
+                  {
+                    label: glance.left_label,
+                    value: glance.left_value,
+                    note: glance.left_note,
+                  },
+                  {
+                    label: glance.right_label,
+                    value: glance.right_value,
+                    note: glance.right_note,
+                  },
+                ].map((side) => (
+                  <div
+                    key={side.label}
+                    className="rounded-card border border-rule bg-card px-3 py-3"
+                  >
+                    <p className="text-[11px] font-bold text-ink-400">
+                      {side.label}
+                    </p>
+                    <p className="n mt-1 text-[19px] font-bold text-stem-700">
+                      {side.value}
+                    </p>
+                    {side.note ? (
+                      <p className="mt-1 text-[12px] leading-snug text-ink-400">
+                        {side.note}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {glance.takeaway ? (
+                <p className="mt-3 text-[13px] leading-relaxed text-ink-600">
+                  {glance.takeaway}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           {showTranscript && lines.length > 0 ? (
             <div
               ref={transcriptRef}
@@ -256,26 +352,19 @@ function RenSessionInner({
         </div>
 
         <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">
-          {agenda ? `${minutes} min · ${agenda.technique}` : "Ren is free right now"}
+          {agenda ? `${minutes} min · ${agenda.technique}` : `${minutes} minutes · your call`}
         </p>
         <h2 className="mt-2 max-w-sm text-[26px] font-bold leading-tight sm:text-[30px]">
-          {agenda ? agenda.title : `Talk it through, ${userName}.`}
+          {agenda ? agenda.title : `Say it out loud, ${userName}.`}
         </h2>
         <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-cream/70">
           {agenda
             ? agenda.reason
-            : "Ren already has your balances, your plan and what you said last time. Nothing to type."}
+            : "Ren has your three balances, what you paid last month and what you said last time. You don't have to explain yourself twice."}
         </p>
 
-        <button
-          onClick={start}
-          className="mt-7 w-full max-w-xs rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
-        >
-          {lines.length > 0 ? "Call Ren again" : "Call Ren"}
-        </button>
-
         <p className="mt-7 text-[12px] text-cream/50">
-          What would make this call worth it?
+          What would make this twenty minutes worth it?
         </p>
         <div className="mt-2.5 flex flex-wrap justify-center gap-2">
           {CONTRACTS.map((option) => (
@@ -293,6 +382,18 @@ function RenSessionInner({
             </button>
           ))}
         </div>
+        <p className="mt-2.5 h-4 text-[12px] text-cream/45">
+          {contract
+            ? "Ren will open there, and hold to it."
+            : "Optional. Ren will ask if you skip it."}
+        </p>
+
+        <button
+          onClick={start}
+          className="mt-4 w-full max-w-xs rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
+        >
+          {lines.length > 0 ? "Call Ren again" : "Call Ren"}
+        </button>
       </div>
       {error ? (
         <p className="px-6 pb-5 text-center text-[13px] text-amber">{error}</p>
