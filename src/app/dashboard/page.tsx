@@ -13,6 +13,30 @@ export default async function Home() {
   const plan = snap.plan;
   const next = plan.milestones[0] ?? null;
   const agendas = agendasFor(snap);
+  // When nothing is open, Home carries forward the last thing said on a call
+  // rather than showing an empty card.
+  const byRecency = snap.recentCommitments
+    .filter((c) => c.status !== "open")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  // Something left for another time comes back first; a finished one is only
+  // offered again when there is nothing unfinished behind it.
+  const closed = byRecency.find((c) => c.status !== "kept") ?? byRecency[0];
+  const lastSession = closed
+    ? snap.sessions.find((s) => s.id === closed.sessionId) ?? null
+    : null;
+  const last = closed
+    ? {
+        wish: closed.wish,
+        trigger: closed.trigger,
+        ifThenPlan: closed.ifThenPlan,
+        status: closed.status,
+        agenda: lastSession?.agenda ?? null,
+        on: closed.createdAt.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        }),
+      }
+    : null;
 
   return (
     <>
@@ -70,6 +94,7 @@ export default async function Home() {
           dueAt: c.dueAt ? c.dueAt.toISOString() : null,
           status: c.status,
         }))}
+        last={last}
       />
 
       <HomeAgendas agendas={agendas} hasHistory={snap.sessions.length > 0} />
