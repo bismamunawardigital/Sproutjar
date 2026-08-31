@@ -91,6 +91,28 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  /**
+   * A change Ren worked out on a call. It sits here until the person taps
+   * apply, so a mishearing never moves their money.
+   */
+  proposals: defineTable({
+    userId: v.id("users"),
+    /** balance_move is the only kind so far. */
+    kind: v.string(),
+    fromDebtId: v.id("debts"),
+    toIssuer: v.string(),
+    toName: v.string(),
+    amount: v.number(),
+    monthlyRate: v.number(),
+    promoMonths: v.number(),
+    fee: v.number(),
+    revertRate: v.number(),
+    note: v.string(),
+    /** pending | applied | discarded */
+    status: v.string(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   beliefs: defineTable({
     userId: v.id("users"),
     text: v.string(),

@@ -25,13 +25,15 @@ export const snapshot = query({
     const user = await demoUser(ctx);
     const mine = user._id;
 
-    const [debts, jars, commitments, beliefs, sessions, balanceEntries] = await Promise.all([
+    const [debts, jars, commitments, beliefs, sessions, balanceEntries, proposals] =
+      await Promise.all([
       ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("jars").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("commitments").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("beliefs").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("balanceEntries").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
+      ctx.db.query("proposals").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
     ]);
 
     return {
@@ -44,6 +46,9 @@ export const snapshot = query({
       beliefs: beliefs.filter((b) => b.status === "active"),
       sessions: sessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
       balanceEntries: balanceEntries.sort((a, b) => a.loggedAt - b.loggedAt),
+      proposals: proposals
+        .filter((p) => p.status === "pending")
+        .sort((a, b) => b.createdAt - a.createdAt),
     };
   },
 });
@@ -271,6 +276,97 @@ export const setCommitmentStatus = mutation({
   },
 });
 
+/**
+ * Ren works a transfer out loud and files it here. Nothing on the cards moves
+ * until the person applies it on screen.
+ */
+export const proposeBalanceMove = mutation({
+  args: {
+    fromDebtId: v.id("debts"),
+    toIssuer: v.string(),
+    toName: v.string(),
+    amount: v.number(),
+    monthlyRate: v.number(),
+    promoMonths: v.number(),
+    fee: v.number(),
+    revertRate: v.number(),
+    note: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await demoUser(ctx);
+    const debt = await ctx.db.get(args.fromDebtId);
+    if (!debt || debt.userId !== user._id) return null;
+    return ctx.db.insert("proposals", {
+      ...args,
+      userId: user._id,
+      kind: "balance_move",
+      status: "pending",
+      createdAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Applying moves principal between cards. The old card's opening balance drops
+ * by the same amount as its balance, so a transfer never reads as money paid off.
+ */
+export const applyProposal = mutation({
+  args: { id: v.id("proposals") },
+  handler: async (ctx, { id }) => {
+    const user = await demoUser(ctx);
+    const proposal = await ctx.db.get(id);
+    if (!proposal || proposal.userId !== user._id || proposal.status !== "pending") return null;
+    const from = await ctx.db.get(proposal.fromDebtId);
+    if (!from) return null;
+
+    const moved = Math.min(proposal.amount, from.balance);
+    await ctx.db.patch(from._id, {
+      balance: from.balance - moved,
+      openingBalance: Math.max(0, from.openingBalance - moved),
+    });
+    await ctx.db.insert("balanceEntries", {
+      userId: user._id,
+      debtId: from._id,
+      balance: from.balance - moved,
+      amountPaid: 0,
+      principalCleared: 0,
+      interestCharged: 0,
+      source: "balance_transfer",
+      loggedAt: Date.now(),
+    });
+
+    const opened = moved + proposal.fee;
+    const toId = await ctx.db.insert("debts", {
+      userId: user._id,
+      name: proposal.toName,
+      issuer: proposal.toIssuer,
+      kind: "card",
+      openingBalance: opened,
+      balance: opened,
+      monthlyRate: proposal.monthlyRate,
+      minimumPayment: Math.max(100, Math.round(opened * 0.05)),
+      isIslamic: false,
+      isEstimated: true,
+      carryingBalance: true,
+      status: "active",
+    });
+
+    await ctx.db.patch(id, { status: "applied" });
+    return toId;
+  },
+});
+
+export const discardProposal = mutation({
+  args: { id: v.id("proposals") },
+  handler: async (ctx, { id }) => {
+    const user = await demoUser(ctx);
+    const proposal = await ctx.db.get(id);
+    if (!proposal || proposal.userId !== user._id) return null;
+    await ctx.db.patch(id, { status: "discarded" });
+    return id;
+  },
+});
+
 export const nameBelief = mutation({
   args: { text: v.string() },
   handler: async (ctx, { text }) => {
@@ -395,6 +491,7 @@ export const seed = mutation({
         ctx.db.query("beliefs").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
         ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
         ctx.db.query("balanceEntries").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
+        ctx.db.query("proposals").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ]);
       for (const rows of stale) await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
       await ctx.db.delete(mine);

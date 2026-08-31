@@ -96,6 +96,14 @@ export async function buildSnapshot() {
     user: { ...user, id: user._id },
     country,
     debts: debtRows.map((d) => ({ ...d, id: d._id })),
+    /** Transfers Ren worked out on a call, waiting on a tap before they count. */
+    proposals: live.proposals.map((p) => ({
+      ...p,
+      id: p._id,
+      fromName: debtRows.find((d) => d._id === p.fromDebtId)?.name ?? "a card",
+      fromRate: debtRows.find((d) => d._id === p.fromDebtId)?.monthlyRate ?? 0,
+      createdAt: new Date(p.createdAt),
+    })),
     beliefs: live.beliefs.map((b) => ({ ...b, id: b._id, namedOn: new Date(b.namedOn) })),
     sessions: live.sessions.map((s) => ({
       ...s,

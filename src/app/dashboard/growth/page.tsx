@@ -2,6 +2,7 @@ import { Collapse } from "@/components/Collapse";
 import { DebtBoard } from "@/components/DebtBoard";
 import { GrowthTabs } from "@/components/GrowthTabs";
 import { JarBoard } from "@/components/JarBoard";
+import { PendingTransfers } from "@/components/PendingTransfers";
 import { StrategyPicker } from "@/components/StrategyPicker";
 import { formatMoney, formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
@@ -40,6 +41,26 @@ export default async function GrowthPage() {
           </div>
         </dl>
       </section>
+
+      <PendingTransfers
+        currency={currency}
+        transfers={snap.proposals
+          .filter((p) => p.kind === "balance_move")
+          .map((p) => ({
+            id: p.id,
+            fromName: p.fromName,
+            fromRate: p.fromRate,
+            toIssuer: p.toIssuer,
+            toName: p.toName,
+            amount: p.amount,
+            monthlyRate: p.monthlyRate,
+            promoMonths: p.promoMonths,
+            fee: p.fee,
+            revertRate: p.revertRate,
+            note: p.note,
+            on: p.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+          }))}
+      />
 
       <DebtBoard
         debts={snap.debts.map((d) => ({
