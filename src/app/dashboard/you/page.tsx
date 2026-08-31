@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function YouPage() {
   const snap = await buildSnapshot();
   const currency = snap.country.currency;
-  const kept = snap.recentCommitments.filter((c) => c.status === "kept").length;
   const weeks = snap.user.weeksActive;
 
   return (
@@ -26,7 +25,7 @@ export default async function YouPage() {
           </div>
         </div>
 
-        <dl className="grid grid-cols-3 divide-x divide-rule">
+        <dl className="grid grid-cols-2 divide-x divide-rule">
           <div className="px-4 py-4">
             <dt className="text-[11px] uppercase tracking-wide text-ink-300">Paid off</dt>
             <dd className="n mt-1 text-[17px] text-stem-700">
@@ -36,10 +35,6 @@ export default async function YouPage() {
           <div className="px-4 py-4">
             <dt className="text-[11px] uppercase tracking-wide text-ink-300">Talks</dt>
             <dd className="n mt-1 text-[17px] text-ink-900">{snap.sessions.length}</dd>
-          </div>
-          <div className="px-4 py-4">
-            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Followed through</dt>
-            <dd className="n mt-1 text-[17px] text-ink-900">{kept}</dd>
           </div>
         </dl>
       </section>
