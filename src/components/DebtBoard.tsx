@@ -31,6 +31,8 @@ export function DebtBoard({
   const [form, setForm] = useState(EMPTY);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const openCards = debts.filter((debt) => debt.balance > 0);
+  const settled = debts.filter((debt) => debt.balance <= 0);
 
   async function addDebt(event: React.FormEvent) {
     event.preventDefault();
@@ -52,13 +54,19 @@ export function DebtBoard({
     router.refresh();
   }
 
-  async function removeDebt(id: string, name: string) {
-    if (
-      !window.confirm(
-        `Remove ${name}? You'll lose its history too. If you've paid it off, set it to zero instead so you keep the record.`,
-      )
-    )
+  async function settleDebt(id: string, name: string) {
+    if (!window.confirm(`Set ${name} to zero? It moves to your cleared cards, history kept.`))
       return;
+    await fetch(`/api/debts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ balance: 0 }),
+    });
+    router.refresh();
+  }
+
+  async function removeDebt(id: string, name: string) {
+    if (!window.confirm(`Remove ${name} from Sproutjar? Its history goes with it.`)) return;
     await fetch(`/api/debts/${id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -108,7 +116,7 @@ export function DebtBoard({
         </form>
       ) : null}
 
-      {debts.length === 0 ? (
+      {openCards.length === 0 && settled.length === 0 ? (
         <p className="mt-4 text-[15px] leading-relaxed text-ink-400">
           Nothing here yet. Add your first card — the number is what it is, and seeing it is how
           this starts.
@@ -116,7 +124,7 @@ export function DebtBoard({
       ) : null}
 
       <div className="mt-4 divide-y divide-rule">
-        {debts.map((debt) => {
+        {openCards.map((debt) => {
           const bleed = debt.balance * debt.monthlyRate;
           const cleared = Math.max(0, debt.openingBalance - debt.balance);
           const isFocus = debt.name === focusName;
@@ -147,16 +155,40 @@ export function DebtBoard({
               <div className="shrink-0 text-right">
                 <p className="n text-[19px] text-ink-900">{formatMoney(debt.balance, currency)}</p>
                 <button
-                  onClick={() => removeDebt(debt.id, debt.name)}
+                  onClick={() => settleDebt(debt.id, debt.name)}
                   className="mt-1 text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
                 >
-                  Take it off
+                  Mark settled
                 </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {settled.length > 0 ? (
+        <div className="mt-5 rounded-sm bg-cream px-4 py-4">
+          <p className="label">Cleared</p>
+          <ul className="mt-2.5 space-y-2">
+            {settled.map((debt) => (
+              <li key={debt.id} className="flex items-center justify-between gap-3 text-[14px]">
+                <span className="min-w-0 truncate font-bold text-ink-700">
+                  {debt.name}
+                  <span className="ml-2 font-normal text-ink-400">
+                    <span className="n">{formatMoney(debt.openingBalance, currency)}</span> paid off
+                  </span>
+                </span>
+                <button
+                  onClick={() => removeDebt(debt.id, debt.name)}
+                  className="shrink-0 text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }

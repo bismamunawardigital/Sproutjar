@@ -114,7 +114,7 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
                   onClick={() => removeJar(jar.id, jar.name)}
                   className="text-[12px] text-ink-300 underline underline-offset-2 transition hover:text-ink-500"
                 >
-                  Take it off
+                  Remove
                 </button>
               </div>
             </div>

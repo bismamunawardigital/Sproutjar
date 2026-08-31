@@ -355,7 +355,7 @@ function RenSessionInner({
           {agenda ? `${minutes} min · ${agenda.technique}` : `${minutes} minutes · your call`}
         </p>
         <h2 className="mt-2 max-w-sm text-[26px] font-bold leading-tight sm:text-[30px]">
-          {agenda ? agenda.title : `Say it out loud, ${userName}.`}
+          {agenda ? agenda.title : `Nothing to prepare, ${userName}. Just talk.`}
         </h2>
         <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-cream/70">
           {agenda
