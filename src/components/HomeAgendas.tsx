@@ -35,7 +35,9 @@ export function HomeAgendas({
                 : "“Start anywhere. I have your numbers.”"}
           </p>
           {opener ? (
-            <p className="mt-1 text-[13px] leading-relaxed text-cream/60">{opener.reason}</p>
+            <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-cream/60">
+              {opener.reason}
+            </p>
           ) : null}
         </div>
       </div>
