@@ -88,12 +88,15 @@ function RenSessionInner({
   const [showTranscript, setShowTranscript] = useState(false);
   const [glance, setGlance] = useState<GlanceCard | null>(null);
   const [quiet, setQuiet] = useState(false);
+  /** Hung up: keeps a late SDK status or a stale transcript from reopening the call. */
+  const [ended, setEnded] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const saidByYou = useRef<string[]>([]);
 
   const conversation = useConversation({
     onConnect: () => setStatus("live"),
     onDisconnect: () => {
+      setEnded(true);
       setStatus("idle");
       onEnded?.(saidByYou.current);
       // Ren may have logged a commitment or a jar deposit mid-call.
@@ -109,10 +112,20 @@ function RenSessionInner({
     },
     onMessage: ({ message, source }) => {
       if (source === "user") saidByYou.current = [...saidByYou.current, message];
-      setLines((prev) => [
-        ...prev,
-        { role: source === "user" ? "you" : "ren", text: message },
-      ]);
+      const role = source === "user" ? "you" : ("ren" as const);
+      setLines((prev) => {
+        // The SDK re-sends a turn as it grows, so the same sentence arrives
+        // several times, each version a little longer. Replace, don't append.
+        const last = prev[prev.length - 1];
+        if (last && last.role === role) {
+          if (last.text === message) return prev;
+          if (message.startsWith(last.text) || last.text.startsWith(message)) {
+            const longer = message.length > last.text.length ? message : last.text;
+            return [...prev.slice(0, -1), { role, text: longer }];
+          }
+        }
+        return [...prev, { role, text: message }];
+      });
     },
     // Ren calls this after writing a commitment or a deposit so the dashboard updates live.
     clientTools: {
@@ -130,6 +143,13 @@ function RenSessionInner({
     },
   });
 
+  // onConnect occasionally never fires even though the call is running, which
+  // would strand the screen on "Connecting…" while Ren is already talking. The
+  // SDK's own status and the first line of transcript are the same evidence.
+  const live =
+    !ended &&
+    (status === "live" || conversation.status === "connected" || lines.length > 0);
+
   useEffect(() => {
     transcriptRef.current?.scrollTo({
       top: transcriptRef.current.scrollHeight,
@@ -138,21 +158,21 @@ function RenSessionInner({
   }, [lines]);
 
   useEffect(() => {
-    if (status !== "live") return;
+    if (!live) return;
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000);
     return () => clearInterval(timer);
-  }, [status]);
+  }, [live]);
 
   // Quiet mode: Ren's voice goes silent and its words come up as text instead.
   useEffect(() => {
-    if (status !== "live") return;
+    if (!live) return;
     void conversation.setVolume({ volume: quiet ? 0 : 1 });
-  }, [quiet, status, conversation]);
+  }, [quiet, live, conversation]);
 
   const toggleQuiet = useCallback(() => {
     setQuiet((value) => {
       const next = !value;
-      if (status === "live") {
+      if (live) {
         conversation.sendContextualUpdate(
           next
             ? "They just switched on quiet mode: they are somewhere public, reading your words on screen instead of hearing them, and answering in a whisper. Keep each turn to a couple of short sentences and don't ask them to read numbers out loud."
@@ -161,11 +181,12 @@ function RenSessionInner({
       }
       return next;
     });
-  }, [conversation, status]);
+  }, [conversation, live]);
 
   const start = useCallback(async () => {
     setError(null);
     setElapsed(0);
+    setEnded(false);
     setStatus("connecting");
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -206,6 +227,7 @@ function RenSessionInner({
 
   const stop = useCallback(() => {
     conversation.endSession();
+    setEnded(true);
     setStatus("idle");
     onEnded?.(saidByYou.current);
   }, [conversation, onEnded]);
@@ -214,7 +236,7 @@ function RenSessionInner({
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
-  if (status === "live" || status === "connecting") {
+  if (live || status === "connecting") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-ink-800 text-cream">
         <div className="flex items-center justify-between px-5 py-4">
@@ -230,7 +252,7 @@ function RenSessionInner({
           <div className="relative flex h-44 w-44 items-center justify-center">
             <span
               className={`ren-orb absolute inset-0 rounded-full ${
-                status === "live"
+                live
                   ? speaking
                     ? "orb-speaking"
                     : "orb-listening"
@@ -243,7 +265,7 @@ function RenSessionInner({
           </div>
 
           <p className="text-[17px] font-bold">
-            {status === "connecting"
+            {!live
               ? "Connecting…"
               : conversation.isMuted
                 ? "Your mic is off"

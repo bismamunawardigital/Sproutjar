@@ -47,7 +47,9 @@ export function totalMinimums(debts: DebtInput[]): number {
 }
 
 function orderDebts(debts: DebtInput[], strategy: Strategy): DebtInput[] {
-  const copy = [...debts];
+  // A card at zero is finished, whether it was paid off or moved elsewhere. It
+  // must never be what the plan tells someone to start on.
+  const copy = debts.filter((d) => d.balance > 0.005);
   copy.sort((a, b) =>
     strategy === "snowball"
       ? a.balance - b.balance
