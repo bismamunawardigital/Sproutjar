@@ -10,6 +10,7 @@ export type Chapter = {
   quotes?: Quote[];
   aside?: { title: string; lines: string[] };
   shots?: Shot[];
+  pull?: string;
 };
 
 /** Eleven weekly balance readings from the seeded demo profile the product ships with. */
@@ -36,31 +37,78 @@ export const TALK_DATES = [
   "2026-08-29",
 ];
 
+/** The numbers that make the Gulf version of this problem different, each one sourced. */
+export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
+  {
+    figure: "39% to 44%",
+    label: "What a UAE card actually costs a year",
+    note: "Emirates NBD works its own examples at 3.25% and 3.69% a month. Citibank UAE publishes 42% moving to 44.28%. The US baseline in the source material was around 21.5%.",
+  },
+  {
+    figure: "2% to 4%",
+    label: "How the bank quotes it: per month",
+    note: "A monthly rate does not feel like anything. Rule in the product: never leave a rate in monthly form, always show the year and the dirhams charged this month.",
+  },
+  {
+    figure: "+0.5% / month",
+    label: "Penalty for being late twice in six months",
+    note: "Emirates NBD's schedule of charges raises the finance charge on an account past due twice in six months. Roughly six points a year, with a specific trigger.",
+  },
+  {
+    figure: "0 days grace",
+    label: "If you pay most of the balance, not all of it",
+    note: "Interest runs from the transaction date unless 100% is paid by the due date. People paying nearly everything believe they are being responsible and are not. Cash advances never get grace.",
+  },
+  {
+    figure: "50% DBR",
+    label: "Cap on repayments against income",
+    note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Keeping the old card open for your score has a cost here.",
+  },
+  {
+    figure: "3.3% NPL",
+    label: "Why I will not call this a national crisis",
+    note: "Retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. Public data does not expose revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
+  },
+];
+
 export const CHAPTERS: Chapter[] = [
   {
-    id: "assumption",
-    title: "I started with the wrong story",
+    id: "problem",
+    title: "Credit card debt in the Gulf costs about twice what the internet thinks it does",
     lead:
-      "My first version of this product was built on shame. People do not deal with their cards, I thought, because they cannot bear to look at them.",
+      "Every payoff calculator, budgeting book and Reddit thread a person in Dubai reads was written for a market where a card charges around 21% a year. Here it is 39% to 44%, quoted at 3.25% a month so it sounds like nothing.",
     body: [
-      "So I ran the idea past a deliberately skeptical advisor prompt before designing anything: who exactly, what specifically breaks in their week, what they already do instead, and why anything I build would beat that. Every claim I could not source got tagged as an assumption and carried forward untouched.",
-      "Then I sent those assumptions out to be researched properly rather than confirmed. The report came back and took the shame theory apart in a paragraph.",
+      "That gap is the whole reason this product is local rather than generic. At 44% the cost of hesitating for a year is not an inconvenience, it is a holiday, a school term, a chunk of a salary. And the mechanics that decide the outcome are the ones nobody reads: pay 95% of your statement and interest still runs from the transaction date, go late twice in six months and the rate itself goes up, keep a dormant card open and it eats your borrowing capacity under the 50% debt burden cap.",
+      "Retail credit in the UAE grew 16.1% last year and personal loans 8.6%, so more households are carrying more of this. But bad loans fell to 3.3%, and no public source breaks revolving card distress down by age, income or number of cards. So I wrote the honest version into the brief and kept it: the problem is strongly evidenced, the market size is not, and anyone who tells you the size of the UAE card crisis is guessing.",
+    ],
+    pull: "Never leave a rate in monthly form.",
+  },
+  {
+    id: "research",
+    title: "How the research was actually run",
+    lead:
+      "I did not ask for a report that agreed with me. I ran my own idea past a deliberately skeptical advisor prompt first: who exactly, what breaks in their week, what they already do instead, and why anything I built would beat that.",
+    body: [
+      "Every claim I could not source was tagged as an assumption and carried forward untouched, so the research had something specific to attack. Sources were kept in separate buckets and never blended: first person customer voice from UAE threads, institutional material from the CBUAE rulebook and bank key facts statements, vendor and pricing pages for the alternatives, and academic literature for the coaching claims. Anything that survived only in a vendor's marketing copy stayed labelled as such.",
+      "Then the verdicts came back, including on the assumption the first version of the product had been built on. I had believed people avoid their cards out of shame. That got contradicted as a primary explanation, and the product changed shape because of it.",
     ],
     quotes: [
       {
         text:
           "Shame appears, but so do job loss, illness, family expenses, accumulating EMIs, cash-flow mismatch, poor habits and misunderstandings.",
-        who: "Customer & Market Research Report, verdict on my own assumption",
+        who: "Customer and market research report, verdict on my own assumption",
       },
     ],
     aside: {
-      title: "What the research did to each assumption",
+      title: "My assumptions, and what the research did to them",
       lines: [
-        "People are struggling with cards and loans: supported, strongly, at problem level",
-        "Shame is the main reason people stay stuck: contradicted as a primary explanation",
-        "People mainly need education: too narrow",
-        "A calculator or planner is enough: contradicted; they already have those",
-        "There is a UAE card-debt crisis: not yet proven from public data",
+        "People are struggling with cards and loans: supported strongly, at problem level",
+        "Shame is the main reason they stay stuck: contradicted as a primary explanation",
+        "They mainly need financial education: too narrow",
+        "A calculator or planner is enough: contradicted, they already have those",
+        "There is a UAE card debt crisis: not yet proven from public data",
+        "Voice should be the hero feature: not supported, the evidence validates a journey",
+        "Affordable coaching is an opportunity: partially supported, willingness to pay unvalidated",
       ],
     },
   },
@@ -68,9 +116,10 @@ export const CHAPTERS: Chapter[] = [
     id: "voice",
     title: "What people actually said",
     lead:
-      "Twenty-five first-person quotes, mostly UAE threads from the last eighteen months, and the pattern underneath them was not embarrassment. It was arithmetic that does not work, plans that die on contact with a bad month, and progress nobody can feel.",
+      "Twenty five first person quotes, mostly UAE threads from the last eighteen months. The pattern underneath them was not embarrassment. It was arithmetic that does not work, plans that die on contact with a bad month, and progress nobody can feel.",
     body: [
-      "The line I kept coming back to is the last one. Someone had already repaid eleven thousand and still could not experience it as success, because every interface they own shows them what is left. That is a design problem, not a finance problem, and it is the one I could actually solve.",
+      "People were handing complete strangers every card, rate, EMI, salary and expense they had, in the hope that somebody would build them the plan. The stated need was almost always a number. The revealed need was a sequence: what do I pay, in what order, this month, given my actual life.",
+      "The line I keep coming back to is the last one. Someone had already repaid eleven thousand dollars and still could not experience it as success, because every interface they own shows them what is left. That is a design problem rather than a finance problem, and it is the one I could actually solve.",
     ],
     quotes: [
       {
@@ -78,46 +127,117 @@ export const CHAPTERS: Chapter[] = [
         who: "UAE thread, via the research report",
       },
       {
-        text: "The accountability is 90% of the value for me.",
-        who: "A user explaining what he paid a human coach for",
+        text: "Please make this plan easy to read and understand without using complicated credit and finance terminology.",
+        who: "Someone asking strangers for a payoff plan",
       },
       {
-        text: "make a little graph in this spreadsheet showing your total debt every week and watch that line go down.",
-        who: "Advice one person gave another",
+        text: "The accountability is 90% of the value for me.",
+        who: "A user explaining what he paid a human coach for",
       },
       {
         text: "I don’t know how to change this or be ‘happy’ with my progress.",
         who: "Someone eleven thousand dollars into paying it off",
       },
     ],
+    aside: {
+      title: "The unmet needs, ranked by how often they appeared",
+      lines: [
+        "A realistic personalised path from today to debt free",
+        "Knowing what is genuinely affordable this month",
+        "Help sticking to the plan, not just receiving it",
+        "A plan that adapts after a bad month or a shock",
+        "Understanding the mechanics at the moment a decision is being made",
+        "Knowing how to deal with banks and hardship processes",
+        "Being able to see and feel progress",
+        "Support that encourages without removing responsibility",
+      ],
+    },
   },
   {
     id: "alternatives",
-    title: "The competition is good, which was the problem",
+    title: "Nothing on the market is trying to change a habit",
     lead:
-      "Cleo already talks to you about debt for six dollars a month. Debt Payoff Planner and Undebt.it already draw the payoff date. YNAB already changes how people spend. Spreadsheets are free and infinitely flexible.",
+      "The tools people already use are good at exactly one slice each. None of them owns the sentence that matters: this was your plan, this changed, here is the new plan, and here is what we do differently next month.",
     body: [
-      "Reading that landscape honestly killed the pitch I arrived with. “An AI financial coach that gives you a debt plan” is occupied territory, and matching it harder is not a strategy.",
-      "What none of them do is hold the relationship over time: remember what you chose last month, notice when your plan and your behaviour disagree, and adapt after the month where everything went wrong. So the product became a journey with a coach inside it, and the dashboard became instrumentation for that relationship rather than the point of the product.",
+      "Budgeting apps categorise the past. YNAB genuinely changes spending behaviour and costs USD 109 a year to do it, but it is a budgeting system with debt inside it rather than a route out. Cleo will talk to you and produce a paydown plan for USD 5.99 a month, and it is the closest thing to a competitor, which is why an AI that gives you a debt plan is not a strategy. Debt Payoff Planner and Undebt.it draw the date beautifully for two dollars a month or ten dollars a year, and then leave you alone with it. Spreadsheets are free, flexible, and stop being true the first month you go off plan.",
+      "The alternative that actually works is a human coach. One person in the research paid about USD 3,000 for six sessions and said the accountability was ninety percent of the value. That is the shape of the opportunity and the shape of the problem: it works because someone is in the loop with you, and it does not scale.",
+      "So the target is not calculation, and it is not education. It is behaviour: a new spending habit, a saving habit that survives a good month, and a plan that gets adapted instead of abandoned. Everything in the product exists to serve that, and the dashboard is instrumentation for it rather than the point of it.",
     ],
+    pull: "Never use a financial product to solve a behavioural problem, and never use a behavioural lecture to solve an insolvency problem.",
   },
   {
-    id: "synthetic",
-    title: "Five people who do not exist",
+    id: "panel",
+    title: "Five people who do not exist, and the one who told me not to build it",
     lead:
-      "I ran a synthetic interview panel of five personas, at least one of them happy with what she already uses, and then wrote down, in the brief, that none of it counts as evidence.",
+      "I ran a synthetic interview panel of five personas, deliberately including one woman whose current system already works. None of it is evidence. What it is good for is generating objections sharp enough to design against.",
     body: [
-      "Synthetic users can only reflect back the patterns already in the research they were built from. What they are genuinely good for is generating objections and testable claims, so that is all I took from them: five hypotheses, each one written so a real interview could kill it.",
-      "One of those hypotheses went on to change the product more than any research finding did.",
+      "Zayd was the most useful. He knows what avalanche means, has built the spreadsheet twice, and abandons it the month reality diverges from it. His objection is the one the whole business has to answer: why is this not just ChatGPT plus Excel. Omar gave me the sentence I now use to explain the product, that the debt cycle is like dieting, austerity then relief then relapse. Leena showed why the mathematically optimal plan is often the personally unsustainable one. And Maya, who is organised and fine, said the quiet part out loud about my own positioning.",
+      "Nobody on the panel wanted a forty minute scheduled call with an AI about their credit cards. That matched the research verdict on voice, and it is why sessions are ten, twenty or forty minutes at the person's choice, nothing is scheduled, and Ren is a room in the product rather than the product.",
+    ],
+    quotes: [
+      {
+        text: "I know exactly what I'm supposed to do. That's kind of the problem.",
+        who: "Zayd, 28, synthetic persona",
+      },
+      {
+        text: "Once the spreadsheet is wrong, I kind of stop looking at it. Don't tell me I failed. Re-plan.",
+        who: "Zayd, 28, synthetic persona",
+      },
+      {
+        text: "It's like dieting.",
+        who: "Omar, 37, on paying cards off and rebuilding them",
+      },
+      {
+        text: "I don't want an app telling me I can't go see my family because that's financially optimal.",
+        who: "Leena, 30, who sends money home",
+      },
+      {
+        text: "Positive psychology makes it sound less serious, not more serious.",
+        who: "Maya, 34, the persona I should not try to acquire",
+      },
     ],
     aside: {
-      title: "The hypotheses the panel produced",
+      title: "What the panel changed",
       lines: [
-        "People do not know their realistic debt-free date and would value seeing decisions move it",
-        "Plans get abandoned when life makes the original plan inaccurate",
-        "A real segment knows what to do and cannot execute",
-        "Positive psychology is valuable as method; as front-door positioning it is contested",
-        "Voice is situational rather than primary",
+        "Adaptation joined the core loop: understand, plan, act, adapt, continue",
+        "Positive psychology moved out of the copy and into the method",
+        "Voice became situational, never scheduled, never the front door",
+        "Onboarding had to stop teaching APR to people with fifteen years of salary",
+        "Reflection had to be grounded in real financial events, not feelings",
+      ],
+    },
+  },
+  {
+    id: "coaching",
+    title: "The coaching research, and how Ren was built out of it",
+    lead:
+      "I read the literature before writing a word of Ren's prompt, because financial coaching is a field where the marketing is far ahead of the evidence and I did not want to ship a motivational chatbot with a plant on it.",
+    body: [
+      "Three findings did the most work. The working alliance matters: a meta analysis across 27 samples and 3,563 coaching processes found the quality of the relationship moderately associated with outcomes, and with fewer unintended harms. Monitoring closes the loop: across 138 studies and 19,951 participants, interventions that increased progress monitoring improved goal attainment, more so when progress was recorded and reported back. And no branded framework wins: the evidence favours flexible integration of solution focused work, cognitive behavioural coping and strengths, not a proprietary model.",
+      "Positive psychology, read properly, is not compulsory optimism. A coach should be positive about human possibility rather than positive about every human experience, and prematurely reframing someone's fear about a 44% balance into gratitude is bad coaching. The evidence on financial coaching specifically is genuinely mixed: one randomised evaluation found improvements in money management, savings, debt and financial confidence, while a 2026 systematic review of eleven controlled studies found small effects, heavy heterogeneity and methodological weaknesses in ten of them. So the product describes itself as structured support for behaviour change, and never as a cure.",
+      "Those findings became rules in Ren's prompt rather than vibes. Ren asks permission before challenging, teaching or suggesting. Ren decomposes a global self judgment into a behaviour before agreeing with it. Ren reflects using the person's own words and their actual balances. Every session ends with one commitment the person believes they can keep, and every session opens by returning to the last one, kept or not, without a score.",
+    ],
+    pull: "A positive psychology coach should be positive about human possibility, not compulsively positive about every human experience.",
+  },
+  {
+    id: "strategy",
+    title: "The escape route, localised",
+    lead:
+      "The payoff engine is the easy part. The judgment is knowing which layer someone is on, because avalanche versus snowball is irrelevant while the balance is still growing.",
+    body: [
+      "The sequence Ren works through is stop creating new principal, separate a survival problem from a spending problem, protect a small anti relapse reserve, reduce the price of the debt, then choose a payoff order the person will actually execute, then free up cash flow, then defend against relapse. At 39% to 44% the cost of choosing snowball for the feeling over avalanche for the maths is higher here than in any American guide, so the product leans avalanche and clears trivial nuisance balances only where doing so releases a minimum payment or closes a card.",
+      "Reducing the price of the debt is the highest leverage and least used step in this market. Balance transfers exist, and they only work with all four conditions: a real rate reduction net of fees, a schedule that clears before the promotional period expires, no new spending on either card, and controlled access to the emptied one. There are local costs the guides miss, like the 1.05% early settlement fee on a transferred balance, and the bank is required to disclose it with a worked example, so the person can ask for it in writing.",
+      "Two local layers sit above the maths. The rights layer: the counselling obligation here sits on the creditor rather than a free charity, which is a genuinely useful right attached to a genuine conflict of interest, and the person should use it while knowing who the counsellor works for. And the riba layer, which is user triggered by design. It never appears as a setting or a default. The moment someone says avoiding interest matters to them, the plan moves fully into that frame, because the coaching evidence is clear that values work only when the values are the person's own. Ren describes what a contract does and sends rulings to a scholar.",
+    ],
+    aside: {
+      title: "What Ren will not do",
+      lines: [
+        "Issue a religious ruling, or declare a product permissible",
+        "Promise a debt free date it cannot derive from real balances",
+        "Give investment, tax or legal advice",
+        "Claim a travel ban outcome, since it turns on facts nobody can verify remotely",
+        "Describe UAE card interest as compounding on interest, which is prohibited here",
+        "Move money, or record transferred principal as progress",
       ],
     },
   },
@@ -125,11 +245,10 @@ export const CHAPTERS: Chapter[] = [
     id: "against-myself",
     title: "The finding that argued against the thing I wanted to build",
     lead:
-      "I wanted a voice coach. The research verdict on that was one word: unsupported. Every persona rejected long scheduled calls, and the evidence validated a journey, not a modality.",
+      "I wanted a voice coach. The research verdict on that was one word: unsupported. The evidence validates a journey, not a modality, and every persona rejected long scheduled calls.",
     body: [
-      "I kept voice anyway, and the case study is the right place to be honest about why. Saying a number out loud to something that answers is a different act from typing it into a form, and the specific problem I found (people who know what to do and cannot keep doing it) is the problem accountability solves. Nobody has ever been held accountable by a text field.",
-      "But I designed around the finding rather than through it. Sessions are ten, twenty or forty minutes and the person picks; nothing is scheduled. Quiet mode lets someone whisper on a Metro platform and read Ren's answer on screen. Every number Ren says is also on the screen behind it. And the product does not ship a text chatbot, because a chatbot would quietly become the whole product and there are eight million users at Cleo already doing that.",
-      "If a real cohort tells me voice is dead weight, the journey survives without it. That was the point of building it this way round.",
+      "I kept voice anyway, and the case study is the right place to say why. Saying a number out loud to something that answers is a different act from typing it into a form, and the problem I found (people who know what to do and cannot keep doing it) is the problem accountability solves. Nobody has ever been held accountable by a text field.",
+      "But I designed around the finding rather than through it. The person picks the length and the agenda before the call. Quiet mode lets someone whisper on a Metro platform and read Ren's answer on screen. Every number Ren says is also on the screen behind it. If a real cohort tells me voice is dead weight, the journey survives without it. That was the point of building it in this order.",
     ],
     shots: [
       {
@@ -142,12 +261,12 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "brief",
-    title: "A brief before a PRD",
+    title: "A brief, then a PRD written to fail against",
     lead:
-      "Between the research and the build, I wrote a foundation brief: positioning, language rules, the coaching method, the market and legal posture, and a standing instruction not to under-read a source.",
+      "Between the research and the build came a foundation brief: positioning, banned language, the coaching method, the legal posture. Then forty two numbered features with the unhappy paths weighted equally.",
     body: [
-      "Two things in it do more work than anything else. The first is a list of language that is banned rather than discouraged: no guaranteed outcomes, no guaranteed feelings, no “scientifically proven”. UAE advertising rules and the coaching literature's own failure modes point the same direction, so the rule is absolute and the copy in the product obeys it.",
-      "The second is an appendix of corrections: every claim I got wrong during research, and what replaced it. A law I dated to the wrong year. An interest rate that was already out of date. A reassurance about travel bans I had to withdraw entirely, because it turns on facts I cannot verify and being wrong in either direction hurts someone. Ren now makes no claim there at all.",
+      "Two things in the brief do more work than anything else. The first is language that is banned rather than discouraged: no guaranteed outcomes, no guaranteed feelings, no scientifically proven. UAE advertising rules and the coaching literature's own failure modes point the same way, so the rule is absolute and the product copy obeys it. The second is an appendix of corrections, every claim I got wrong during research and what replaced it, including a reassurance about travel bans I withdrew entirely because being wrong in either direction hurts someone.",
+      "The PRD's success criteria are the part I would defend in a review, because they are behavioural rather than aspirational. The first exchange of onboarding may not ask for a number. A missed commitment must produce no red, no shrinking plant and no guilt copy. Read ten of Ren's lines aloud and none of them should sound like an assistant. The out of scope list is as long as the feature list and holds everything that would be easiest to add and worst to have: streaks, badges, points, a community feed, dark mode.",
     ],
     aside: {
       title: "Corrections carried into the build",
@@ -155,29 +274,20 @@ export const CHAPTERS: Chapter[] = [
         "Compound interest ban treated as upcoming, already live under UAE law",
         "Cheque law dated to January 2022, in force January 2023, different instrument",
         "Card rate cited at 44.28%, currently 42%",
-        "Travel-ban reassurance, withdrawn; Ren makes no claim here",
-        "“Withhold validation to avoid premature interpretation”, wrong; affirmation is core to the method",
+        "Travel ban reassurance, withdrawn, Ren makes no claim here",
+        "“Withhold validation to avoid premature interpretation”, wrong, affirmation is core to the method",
       ],
     },
   },
   {
-    id: "prd",
-    title: "A PRD written for a builder, not a reader",
-    lead:
-      "Forty-two numbered features, the unhappy paths given equal weight to the happy one, and success criteria specific enough to fail against.",
-    body: [
-      "The criteria are the part I would defend in a review. They are behavioural, not aspirational: the first exchange of onboarding may not ask for a number. A missed commitment must produce no red, no shrinking plant, no guilt copy. Read ten of Ren's lines aloud and none of them should sound like an assistant.",
-      "The out-of-scope list is as long as the feature list, and it holds the things that would be easiest to add and worst to have: streaks, badges, points, a community feed, a human escalation, dark mode, any market beyond the two I actually researched.",
-    ],
-  },
-  {
     id: "build",
-    title: "Built for a hackathon deadline, in hours",
+    title: "Built to a hackathon deadline, in hours",
     lead:
-      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call. Seven tools wired to real API routes, so Ren reads live balances mid-sentence instead of improvising them.",
+      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call, seven server tools wired to this app's own API routes.",
     body: [
-      "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty-eight dirhams this month, that number came out of the same database the screen is reading, and the payoff engine that produced it runs month-by-month amortisation over every card at its own rate.",
-      "Ren can write a commitment, log a belief, propose a balance transfer. Ren cannot move money, change a balance, or delete a card. The proposal lands on screen and waits for the person to confirm it after their bank has actually done it, because a coach that acts on a mishearing is worse than no coach.",
+      "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty eight dirhams this month, the number came out of the same database the screen is reading, and the payoff engine behind it runs month by month amortisation over every card at its own rate.",
+      "The demo I judge it on is the balance transfer. Mid call I asked Ren what to do about the Emirates NBD card. It read the live balance and the 3.69% monthly rate out of Convex through its debt snapshot tool, worked the transfer against the fee and the promotional window, said the annual figure out loud rather than the monthly one, and proposed it. The offer appeared as a card in the call and filed itself on the Growth screen, unapplied, because Ren cannot move money and will not record transferred principal as progress. The person confirms it after their bank has actually done it. A coach that acts on a mishearing is worse than no coach.",
+      "One honest note on that flow: the rate and offer table Ren reasons over is a dated reference table inside the app, not live retrieval. Context.dev is specified as the source that would attach a rate, a source and a retrieval date to every offer, and it is not wired yet. Today Ren cannot invent a rate, and it also cannot promise you the offer is still live this morning.",
     ],
     shots: [
       {
@@ -199,6 +309,260 @@ export const CHAPTERS: Chapter[] = [
           "You. Their reason, their own past success, and the beliefs they have said out loud, in their words, dated, still editable.",
       },
     ],
+  },
+];
+
+/** Rendered as a table inside the alternatives chapter. */
+export const ALTERNATIVES: {
+  name: string;
+  price: string;
+  serves: string;
+  leaves: string;
+}[] = [
+  {
+    name: "YNAB",
+    price: "USD 109 / year",
+    serves: "A whole budgeting method, and it genuinely changes spending",
+    leaves: "Debt is a category inside a budget, not a route out of one",
+  },
+  {
+    name: "Cleo, Debt Reset",
+    price: "USD 5.99 / month",
+    serves: "Conversational AI, spending data, a paydown plan",
+    leaves: "No memory of your plan across months, no adaptation when the month breaks",
+  },
+  {
+    name: "Debt Payoff Planner",
+    price: "About USD 2 / month",
+    serves: "Snowball, avalanche, a payoff schedule and a date",
+    leaves: "Draws the date, then leaves you alone with it",
+  },
+  {
+    name: "Undebt.it",
+    price: "Free, or USD 12 / year",
+    serves: "A capable manual payoff planner with several methods",
+    leaves: "You maintain it, and nothing happens when you stop",
+  },
+  {
+    name: "A spreadsheet",
+    price: "Free",
+    serves: "Anything you can model, exactly how you want it",
+    leaves: "Stops being true the first month you go off plan",
+  },
+  {
+    name: "A human coach",
+    price: "About USD 3,000 for six sessions, in one researched case",
+    serves: "Context, accountability, and real behaviour change",
+    leaves: "Priced out of reach of the person who needs it, and it does not scale",
+  },
+];
+
+/** The panel, as a table rather than five paragraphs of prose. */
+export const PERSONAS: {
+  who: string;
+  situation: string;
+  behaviour: string;
+  doubt: string;
+}[] = [
+  {
+    who: "Aisha, 25",
+    situation: "Two years into her first serious salary, first cards and BNPL",
+    behaviour: "Pays what is due, occasionally panics and pays extra",
+    doubt: "Low. Wants the debt free date, does not want to be talked to like a child",
+  },
+  {
+    who: "Zayd, 28",
+    situation: "Tech professional, two to three cards and a personal loan",
+    behaviour: "Built the tracker twice, abandoned it after a disrupted month",
+    doubt: "Medium. Why is this not just ChatGPT plus Excel",
+  },
+  {
+    who: "Leena, 30",
+    situation: "Expat, sends money home, debt accumulated gradually",
+    behaviour: "Follows finance creators, drowning in conflicting advice",
+    doubt: "Medium. Will it tell her not to fly home",
+  },
+  {
+    who: "Omar, 37",
+    situation: "Family, good salary, cards plus a car loan",
+    behaviour: "Has cleared the cards before and rebuilt the balance",
+    doubt: "Medium to high. Do not teach him what a credit card is",
+  },
+  {
+    who: "Maya, 34",
+    situation: "Organised, automated, has a working system already",
+    behaviour: "Tracks it, automates it, runs her own scenarios",
+    doubt: "High. She is the one who told me not to build it",
+  },
+];
+
+/** The loop the panel argued the product was missing a step of. */
+export const LOOP: { step: string; note: string }[] = [
+  { step: "Understand", note: "Every balance, rate and minimum in one place" },
+  { step: "Plan", note: "A payoff order and a date derived from real numbers" },
+  { step: "Act", note: "One commitment for the month, chosen by the person" },
+  { step: "Adapt", note: "The month broke, so the plan changes, not the person" },
+  { step: "Continue", note: "Next session opens on the last commitment, kept or not" },
+  { step: "Debt free", note: "The date arrives, and the habit outlasts it" },
+];
+
+/** The order of operations Ren works through, before any payoff method matters. */
+export const LADDER: string[] = [
+  "Stop creating new principal",
+  "Separate a survival problem from a spending problem",
+  "Protect a small anti relapse reserve",
+  "Reduce the price of the debt",
+  "Choose a payoff order the person will actually execute",
+  "Free up cash flow",
+  "Defend against relapse",
+  "Rebuild reserves, then rebuild wealth",
+];
+
+/** Plain language impact, stated as design contribution rather than outcome. */
+export const IMPACT: { value: string; label: string; note: string }[] = [
+  {
+    value: "1 number",
+    label: "A date instead of a balance",
+    note: "The seeded profile's payoff date is June 2027. Every card, rate and payment in the app resolves into that one number, and every decision moves it.",
+  },
+  {
+    value: "AED 48,545",
+    label: "Cleared in the demo story",
+    note: "Eleven weeks of the seeded profile, from AED 87,645 to AED 39,100. Seeded demo data, not a user outcome, and the app did not pay it down.",
+  },
+  {
+    value: "0 red",
+    label: "Screens that shame you",
+    note: "Red never describes the person's own money. Interest is root brown, cleared principal is stem green, and nothing on screen shrinks when a month goes badly.",
+  },
+  {
+    value: "44.28%",
+    label: "The rate said out loud, annually",
+    note: "Banks quote 3.69% a month. The product always converts it and shows the dirhams charged this month, because the monthly quote is the comprehension failure.",
+  },
+];
+
+export const DESIGN_TOKENS: { hex: string; name: string; use: string }[] = [
+  { hex: "#F2EDE4", name: "Cream", use: "Canvas" },
+  { hex: "#FDFCF8", name: "Card", use: "Surfaces" },
+  { hex: "#141D19", name: "Ink 900", use: "Text, call view" },
+  { hex: "#2F6243", name: "Stem 700", use: "Principal cleared" },
+  { hex: "#5FA877", name: "Stem", use: "Growth, the plant" },
+  { hex: "#92D3A3", name: "Leaf 300", use: "Leaves, mood" },
+  { hex: "#B98F63", name: "Soil", use: "The jar" },
+  { hex: "#7A6248", name: "Root", use: "The cost of debt" },
+  { hex: "#E8A94B", name: "Amber", use: "Breakthroughs only" },
+  { hex: "#B4453A", name: "Danger", use: "Destructive actions, never money" },
+];
+
+export const DESIGN_RULES: string[] = [
+  "Red never describes the user's money. Interest is root brown, cleared principal is stem green.",
+  "Amber is for breakthroughs, not for warnings and not for decoration.",
+  "The orb is the only gradient in the product.",
+  "Every money figure uses tabular numerals so columns do not dance as they update.",
+  "Space Grotesk is the wordmark only. Everything a person reads is Nunito.",
+  "The plant never wilts, never shrinks and never loses a leaf.",
+  "The stem grows on principal cleared. Roots grow on work: weeks, sessions, kept commitments.",
+  "The jar never changes, because the container is not the achievement.",
+  "Every estimate carries an Estimated chip, everywhere it appears.",
+  "Every session states its length, its agenda and why it is worth having.",
+];
+
+export const NUMBER_RULES: { wrong: string; right: string; why: string }[] = [
+  {
+    wrong: "3.69% monthly",
+    right: "3.69% / month · 44.28% / year",
+    why: "The monthly quote is the single biggest comprehension failure in this market.",
+  },
+  {
+    wrong: "-14900",
+    right: "AED 14,900.00",
+    why: "No negative money, no minus signs on a person's own balance, always tabular.",
+  },
+  {
+    wrong: "Interest charged",
+    right: "Rent on the debt",
+    why: "Interest is an abstraction. Rent is a thing people already understand paying for nothing.",
+  },
+  {
+    wrong: "Debt free in 21 months",
+    right: "June 2027 · Estimated",
+    why: "A month someone can picture, marked as a projection rather than a promise.",
+  },
+];
+
+export const BANNED_COPY: string[] = [
+  "Crush your debt",
+  "Take control",
+  "Keep your streak alive",
+  "Never feel stressed about money again",
+  "Scientifically proven",
+  "Submit",
+];
+
+/** GitHub as process evidence. No repository link: the screenshots are the point. */
+export const GITHUB_SHOTS: Shot[] = [
+  {
+    src: "/case/gh-pulls.png",
+    alt: "The repository's pull request list, showing successive merged pull requests for the app, the brand system, the audit fixes and the case study.",
+    label:
+      "Every change arrived as a pull request, so the history reads as a record of decisions rather than a pile of commits.",
+  },
+  {
+    src: "/case/gh-pr-body.png",
+    alt: "A pull request description setting out what changed and the reasoning behind each decision, including the balance transfer logic and what was left untested.",
+    label:
+      "The reasoning is written down, including the rule that Ren proposes a balance transfer rather than editing the ledger, and an explicit list of what was not tested in a real call.",
+  },
+  {
+    src: "/case/gh-commits.png",
+    alt: "A list of commit messages describing product decisions, such as giving Ren its own call room and stopping the chart claiming credit for the payoff.",
+    label:
+      "Commit messages are written as decisions rather than tasks, so the history says why the product changed. Roughly forty of them across four days.",
+  },
+];
+
+export const HYPOTHESES: { id: string; claim: string; test: string }[] = [
+  {
+    id: "H1",
+    claim:
+      "People carrying manageable debt do not know their realistic debt free date, and would value seeing decisions move it.",
+    test: "Ask what month they will be completely debt free. Before showing them anything.",
+  },
+  {
+    id: "H2",
+    claim: "Plans get abandoned because life made the plan inaccurate, not because motivation ran out.",
+    test: "Ask about the last repayment plan they stopped following, and what happened that month.",
+  },
+  {
+    id: "H3",
+    claim: "A real segment already knows what to do and cannot execute consistently.",
+    test: "Ask what stops them doing the thing they already know they should do.",
+  },
+  {
+    id: "H4",
+    claim: "Positive psychology is valuable as method and weak as positioning.",
+    test: "Two descriptions, one naming the psychology and one naming the benefit. Measure which one gets a reply.",
+  },
+  {
+    id: "H5",
+    claim: "Voice is situational, wanted at decisions and setbacks rather than on a schedule.",
+    test: "Ask when they would talk rather than type, not whether they would like voice coaching.",
+  },
+];
+
+export const NEXT: { title: string; body: string }[] = [
+  {
+    title: "An Impeccable design pass",
+    body: "The product works and it is not finished. Next is a full craft pass over every surface: type scale and rhythm, the plant at every state, empty and error states, motion timing, the call view on a small phone, and the details the deadline swallowed.",
+  },
+  {
+    title: "Auditing the UX again, then with people",
+    body: "The last audit scored the brand at 92 and the action loop at 44. The loop has been rebuilt, so it gets re audited, and then the same journey goes in front of real people in Dubai carrying real balances.",
+  },
+  {
+    title: "The twelve questions",
+    body: "A real customer interview guide that never pitches Ren until the end, built to kill H1 to H5 rather than collect encouragement. That is the next piece of work that could change the product, and none of it exists yet.",
   },
 ];
 
@@ -259,6 +623,13 @@ export const DECISIONS: {
     instead: "Let the tool move the balance when the person says yes on the call.",
     why:
       "Voice mishears. Money must not move on a mishearing, and transferred principal is not progress: the engine records it at zero cleared.",
+  },
+  {
+    question: "Someone says avoiding interest matters to them religiously.",
+    chose: "The whole plan moves into that frame from that moment, and never before it.",
+    instead: "A setting, or a market segment, or a default for the region.",
+    why:
+      "The coaching evidence is explicit that values work only when the values are the person's own. Ren describes what a contract does and sends rulings to a scholar.",
   },
   {
     question: "What happens when the debt reaches zero?",
@@ -366,37 +737,37 @@ export const STACK: { name: string; logo: string; role: string }[] = [
   {
     name: "Devin",
     logo: "/case/logos/devin.png",
-    role: "Built it. Paired with it as the engineer on the whole thing: the payoff engine, the Convex schema, the four surfaces, the voice plumbing, and the browser agent that later walked the journey looking for what I had missed.",
+    role: "The engineer. Payoff engine, schema, four surfaces, voice plumbing, and the browser agent that walked the journey afterwards finding what I had missed.",
   },
   {
     name: "Claude",
     logo: "/case/logos/claude.svg",
-    role: "Thinking partner for the research and the writing. The market report, the synthetic panel, the foundation brief and the PRD were argued out here, including the parts that came back against my own idea.",
+    role: "Thinking partner for the research, the brief and the PRD, including the verdicts that came back against my own idea.",
   },
   {
     name: "Convex",
     logo: "/case/logos/convex.png",
-    role: "The live database under every screen and every one of Ren's tools, so a commitment logged mid-call is on the dashboard before the call ends and the voice can never quote a balance the screen disagrees with.",
+    role: "Live database under every screen and every tool, so the voice can never quote a balance the screen disagrees with.",
   },
   {
     name: "ElevenLabs",
     logo: "/case/logos/elevenlabs.svg",
-    role: "The call itself, over WebRTC. Ren's prompt, turn-taking and seven server tools live here; the tools call this app's own API routes, so Ren reads real balances instead of improvising them.",
+    role: "The call, over WebRTC. Ren's prompt, turn taking and seven server tools that hit this app's own API routes.",
   },
   {
     name: "Context.dev",
     logo: "/case/logos/context.png",
-    role: "Specified, not yet wired. It is how Ren is meant to pull live rates and offers with a source and a retrieval date attached. Today those come from a dated reference table, which keeps Ren from inventing a rate but does not keep it current.",
+    role: "Specified, not yet wired. The intended source of live rates and offers with a retrieval date attached. Today they come from a dated table.",
   },
   {
     name: "GitHub",
     logo: "/case/logos/github.svg",
-    role: "Where the work is legible. Every change arrived as a pull request with the reasoning written down, so the build history reads as a record of decisions rather than a pile of commits.",
+    role: "Pull requests with the reasoning written down, so the build history is a record of decisions.",
   },
   {
     name: "Vercel",
     logo: "/case/logos/vercel.svg",
-    role: "Hosting. Every branch gets its own preview URL, so the product and this case study could be opened and judged on a real device rather than described.",
+    role: "Hosting, with a preview URL per branch so the work could be opened on a real phone.",
   },
 ];
 
@@ -426,4 +797,5 @@ export const NOT_PROVEN = [
   "Market size is unverified. Public UAE data does not expose revolving card distress by age, income or card count.",
   "Coaching efficacy for debt payoff specifically is not established: one randomised evaluation supports financial coaching, a 2026 systematic review calls the evidence base too weak to conclude.",
   "Quiet mode's audio muting could not be measured on the machine I tested on. It needs a human ear before I would claim it works.",
+  "Context.dev is not wired for live retrieval, so no offer or rate in the product is guaranteed current.",
 ];

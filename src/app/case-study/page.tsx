@@ -7,11 +7,24 @@ import { GrowthAnimation } from "@/components/case/GrowthAnimation";
 import { Reveal } from "@/components/case/Reveal";
 import { Walkthrough } from "@/components/case/Walkthrough";
 import {
+  ALTERNATIVES,
   AUDIT,
+  BANNED_COPY,
   CHAPTERS,
   DECISIONS,
+  DESIGN_RULES,
+  DESIGN_TOKENS,
+  GITHUB_SHOTS,
   HISTORY,
+  HYPOTHESES,
+  IMPACT,
+  LADDER,
+  LOOP,
+  NEXT,
   NOT_PROVEN,
+  NUMBER_RULES,
+  PERSONAS,
+  RATE_FACTS,
   STACK,
   TALK_DATES,
   TESTING,
@@ -88,6 +101,35 @@ export default function CaseStudy() {
           </div>
         </section>
 
+        {/* Impact in plain language, before any chart a reader has to decode. */}
+        <section className="mx-auto max-w-5xl px-5 pt-14 sm:pt-16">
+          <Reveal>
+            <h2 className="max-w-[30ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+              What the design actually does to the problem
+            </h2>
+            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+              A person with four cards has around twenty numbers and no answer. The work here was
+              turning that into one date, one next action, and a picture of progress that cannot
+              punish you. These are the four figures I would put on a whiteboard.
+            </p>
+          </Reveal>
+          <dl className="mt-9 grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
+            {IMPACT.map((item) => (
+              <Reveal key={item.label}>
+                <div className="border-t-2 border-stem pt-4">
+                  <dt className="n text-[27px] font-bold leading-none tracking-[-0.03em] text-stem-700 sm:text-[31px]">
+                    {item.value}
+                  </dt>
+                  <p className="mt-2 text-[15px] font-bold leading-snug text-ink-900">
+                    {item.label}
+                  </p>
+                  <dd className="mt-2 text-[14px] leading-relaxed text-ink-400">{item.note}</dd>
+                </div>
+              </Reveal>
+            ))}
+          </dl>
+        </section>
+
         {/* What it is built on, and what each piece is actually responsible for. */}
         <section className="border-y border-rule bg-card/60">
           <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
@@ -121,10 +163,54 @@ export default function CaseStudy() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-5xl px-5 pt-16 pb-16">
+        {/* The chart, with the reading of it written out so nobody has to decode it. */}
+        <section className="mx-auto grid max-w-5xl items-center gap-9 px-5 pt-16 pb-16 md:grid-cols-[1fr_0.85fr] md:gap-12">
           <Reveal>
             <DebtLine history={HISTORY} talkDates={TALK_DATES} />
           </Reveal>
+          <Reveal delay={80}>
+            <div>
+              <h2 className="text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
+                How to read it
+              </h2>
+              <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
+                The green line is everything the person owes, week by week. It goes down. Each ring
+                is one conversation with Ren. Eleven weeks, six conversations, AED 48,545 less debt,
+                and a payoff date that moved from a shrug to June 2027.
+              </p>
+              <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
+                Two honest caveats. This is the seeded demo profile the app ships with, not a real
+                customer. And the line falls because someone paid it down, not because they installed
+                an app, which is why the product says cleared while coaching with Ren rather than
+                claiming it caused anything.
+              </p>
+            </div>
+          </Reveal>
+        </section>
+
+        {/* The six numbers that make this a Gulf problem rather than a generic one. */}
+        <section className="border-y border-rule bg-ink-900 py-14 sm:py-16">
+          <div className="mx-auto max-w-5xl px-5">
+            <Reveal>
+              <h2 className="max-w-[34ch] text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-cream sm:text-[31px]">
+                Six numbers that make a Dubai card different from the one your payoff calculator
+                assumes
+              </h2>
+            </Reveal>
+            <dl className="mt-10 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+              {RATE_FACTS.map((fact) => (
+                <Reveal key={fact.label}>
+                  <div className="border-t border-cream/25 pt-4">
+                    <dt className="n text-[25px] font-bold leading-none tracking-[-0.03em] text-leaf-300">
+                      {fact.figure}
+                    </dt>
+                    <p className="mt-2 text-[15px] font-bold leading-snug text-cream">{fact.label}</p>
+                    <dd className="mt-2 text-[14px] leading-relaxed text-lid/75">{fact.note}</dd>
+                  </div>
+                </Reveal>
+              ))}
+            </dl>
+          </div>
         </section>
 
         {/* Process. Context, struggle, transformation, one chapter at a time. */}
@@ -180,6 +266,113 @@ export default function CaseStudy() {
                         </li>
                       ))}
                     </ul>
+                  ) : null}
+
+                  {chapter.id === "alternatives" ? (
+                    <>
+                    <ul className="mt-8 space-y-3 sm:hidden">
+                      {ALTERNATIVES.map((tool) => (
+                        <li key={tool.name} className="rounded-card border border-rule bg-card p-4">
+                          <p className="text-[15px] font-bold text-ink-900">{tool.name}</p>
+                          <p className="n text-[12px] text-ink-300">{tool.price}</p>
+                          <p className="mt-2 text-[14px] leading-snug text-ink-500">{tool.serves}</p>
+                          <p className="mt-1.5 text-[14px] leading-snug text-root">{tool.leaves}</p>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-8 hidden overflow-hidden rounded-card border border-rule bg-card sm:block">
+                      <table className="w-full border-collapse text-left">
+                        <caption className="sr-only">
+                          What each existing alternative serves, what it costs, and what it leaves
+                          unsolved
+                        </caption>
+                        <thead>
+                          <tr className="bg-root-50">
+                            <th scope="col" className="px-4 py-3 text-[12px] font-bold uppercase tracking-wide text-ink-500">
+                              Tool
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-[12px] font-bold uppercase tracking-wide text-ink-500">
+                              Serves
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-[12px] font-bold uppercase tracking-wide text-ink-500">
+                              Leaves unsolved
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ALTERNATIVES.map((tool) => (
+                            <tr key={tool.name} className="border-t border-rule align-top">
+                              <th scope="row" className="px-4 py-4 text-[14px] font-bold text-ink-900">
+                                {tool.name}
+                                <span className="n mt-1 block text-[12px] font-normal text-ink-300">
+                                  {tool.price}
+                                </span>
+                              </th>
+                              <td className="px-4 py-4 text-[14px] leading-snug text-ink-500">
+                                {tool.serves}
+                              </td>
+                              <td className="px-4 py-4 text-[14px] leading-snug text-root">
+                                {tool.leaves}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    </>
+                  ) : null}
+
+                  {chapter.id === "panel" ? (
+                    <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+                      {PERSONAS.map((persona) => (
+                        <li key={persona.who} className="rounded-card border border-rule bg-card p-4">
+                          <p className="text-[15px] font-bold text-ink-900">{persona.who}</p>
+                          <p className="mt-1.5 text-[14px] leading-snug text-ink-500">
+                            {persona.situation}
+                          </p>
+                          <p className="mt-1.5 text-[14px] leading-snug text-ink-400">
+                            {persona.behaviour}
+                          </p>
+                          <p className="mt-2.5 text-[13px] leading-snug text-soil">{persona.doubt}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {chapter.id === "coaching" ? (
+                    <ol className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {LOOP.map((item, index) => (
+                        <li
+                          key={item.step}
+                          className="rounded-card bg-leaf-50 p-4"
+                        >
+                          <span className="n text-[12px] font-bold text-stem">0{index + 1}</span>
+                          <p className="mt-1 text-[15px] font-bold text-stem-700">{item.step}</p>
+                          <p className="mt-1 text-[13px] leading-snug text-ink-500">{item.note}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+
+                  {chapter.id === "strategy" ? (
+                    <ol className="mt-8 space-y-0 border-l-2 border-soil/40 pl-5">
+                      {LADDER.map((rung, index) => (
+                        <li key={rung} className="relative py-2.5">
+                          <span
+                            className="absolute -left-[26px] top-4 h-2 w-2 rounded-full bg-soil"
+                            aria-hidden
+                          />
+                          <span className="n mr-3 text-[12px] font-bold text-soil">0{index + 1}</span>
+                          <span className="text-[15px] leading-snug text-ink-700">{rung}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : null}
+
+                  {chapter.pull ? (
+                    <p className="mt-8 border-l-2 border-stem pl-5 text-[19px] font-bold leading-snug tracking-[-0.015em] text-ink-900 sm:text-[22px]">
+                      {chapter.pull}
+                    </p>
                   ) : null}
 
                   {chapter.aside ? (
@@ -351,6 +544,41 @@ export default function CaseStudy() {
           </Reveal>
         </section>
 
+        {/* GitHub as process evidence: screenshots, deliberately no link. */}
+        <section className="border-y border-rule bg-card/60 py-16 sm:py-20">
+          <div className="mx-auto max-w-5xl px-5">
+            <Reveal>
+              <h2 className="max-w-[30ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+                The build history, as a record of decisions
+              </h2>
+              <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+                Nothing landed on the main branch without a pull request explaining why it was the
+                right call. I am not linking the source here, since the interesting part is the
+                reasoning rather than the code, so this is the process as it happened.
+              </p>
+            </Reveal>
+            <ul className="mt-10 grid gap-8 md:grid-cols-3">
+              {GITHUB_SHOTS.map((shot) => (
+                <Reveal key={shot.src}>
+                  <li>
+                    <div className="h-[240px] overflow-hidden rounded-xl border border-rule bg-card">
+                      <Image
+                        src={shot.src}
+                        alt={shot.alt}
+                        width={1600}
+                        height={1000}
+                        sizes="(min-width: 768px) 300px, 100vw"
+                        className="h-auto w-full"
+                      />
+                    </div>
+                    <p className="mt-3 text-[14px] leading-relaxed text-ink-400">{shot.label}</p>
+                  </li>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         {/* The craft layer, shown rather than described. */}
         <section className="border-y border-rule bg-cream-2/60 py-16 sm:py-24">
           <div className="mx-auto grid max-w-5xl items-center gap-10 px-5 md:grid-cols-2 md:gap-14">
@@ -385,6 +613,154 @@ export default function CaseStudy() {
           </div>
         </section>
 
+        {/* The design system itself: palette, rules, and the number formats. */}
+        <section className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
+          <Reveal>
+            <h2 className="max-w-[32ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+              The design system, and the ten rules it enforces
+            </h2>
+            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+              Ten tokens, one typeface for reading and one for the wordmark, and a set of rules
+              written so that a colour cannot be used to make somebody feel worse about their own
+              money.
+            </p>
+          </Reveal>
+
+          <Reveal>
+            <ul className="mt-9 grid grid-cols-2 gap-4 sm:grid-cols-5">
+              {DESIGN_TOKENS.map((token) => (
+                <li key={token.hex} className="overflow-hidden rounded-xl border border-rule bg-card">
+                  <div className="h-16 w-full" style={{ backgroundColor: token.hex }} aria-hidden />
+                  <div className="px-3 py-2.5">
+                    <p className="text-[13px] font-bold text-ink-900">{token.name}</p>
+                    <p className="n text-[11px] uppercase tracking-wide text-ink-300">{token.hex}</p>
+                    <p className="mt-1 text-[12px] leading-snug text-ink-400">{token.use}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <div className="mt-12 grid gap-10 md:grid-cols-[1fr_1fr] md:gap-14">
+            <Reveal>
+              <div>
+                <h3 className="text-[19px] font-bold tracking-[-0.02em] text-ink-900">
+                  Type, and the two jobs it does
+                </h3>
+                <div className="mt-5 rounded-card border border-rule bg-card p-6">
+                  <p className="font-logo text-[30px] font-bold leading-none tracking-[-0.02em] text-ink-900">
+                    Sproutjar
+                  </p>
+                  <p className="mt-1.5 text-[13px] text-ink-300">
+                    Space Grotesk. The wordmark, and nothing else in the product.
+                  </p>
+                  <p className="mt-6 text-[22px] font-bold leading-snug tracking-[-0.02em] text-ink-900">
+                    You are eleven weeks in, and June 2027 just moved closer.
+                  </p>
+                  <p className="mt-2 text-[16px] leading-relaxed text-ink-500">
+                    Nunito, for everything a person reads. Rounder, warmer, and legible at the size
+                    a heading actually appears on a phone.
+                  </p>
+                  <p className="n mt-6 text-[24px] font-bold tracking-[-0.02em] text-stem-700">
+                    AED 39,100.00
+                  </p>
+                  <p className="mt-1.5 text-[13px] text-ink-300">
+                    Tabular numerals everywhere money appears, so columns do not dance while a
+                    balance updates.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={80}>
+              <div>
+                <h3 className="text-[19px] font-bold tracking-[-0.02em] text-ink-900">
+                  How a number is allowed to be written
+                </h3>
+                <ul className="mt-5 space-y-4">
+                  {NUMBER_RULES.map((rule) => (
+                    <li key={rule.right} className="rounded-card border border-rule bg-card p-4">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <span className="n text-[15px] text-ink-300 line-through decoration-danger/60">
+                          {rule.wrong}
+                        </span>
+                        <span className="n text-[16px] font-bold text-stem-700">{rule.right}</span>
+                      </div>
+                      <p className="mt-1.5 text-[14px] leading-relaxed text-ink-400">{rule.why}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="mt-12 grid gap-10 md:grid-cols-[1.15fr_0.85fr] md:gap-14">
+            <Reveal>
+              <div>
+                <h3 className="text-[19px] font-bold tracking-[-0.02em] text-ink-900">
+                  The ten rules
+                </h3>
+                <ol className="mt-5 space-y-3">
+                  {DESIGN_RULES.map((rule, index) => (
+                    <li key={rule} className="flex gap-3.5 text-[15px] leading-snug text-ink-500">
+                      <span className="n mt-0.5 w-5 shrink-0 text-[13px] font-bold text-stem">
+                        {index + 1}
+                      </span>
+                      {rule}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </Reveal>
+            <Reveal delay={80}>
+              <div className="rounded-card bg-root-50 p-6">
+                <h3 className="text-[17px] font-bold tracking-[-0.02em] text-ink-900">
+                  Copy that is banned, not discouraged
+                </h3>
+                <ul className="mt-4 space-y-2.5">
+                  {BANNED_COPY.map((line) => (
+                    <li key={line} className="text-[15px] leading-snug text-root line-through">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-4 text-[14px] leading-relaxed text-ink-500">
+                  Two reasons. UAE advertising rules do not allow a financial product to promise an
+                  outcome, and the coaching literature is clear that a promise you cannot keep costs
+                  you the relationship the method depends on.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* The five things a real interview would have to kill. */}
+        <section className="border-y border-rule bg-cream-2/50 py-16 sm:py-20">
+          <div className="mx-auto max-w-5xl px-5">
+            <Reveal>
+              <h2 className="max-w-[32ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+                Five hypotheses, written so a real interview could kill them
+              </h2>
+              <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+                This is what the synthetic panel is actually for. Not evidence, but claims specific
+                enough to be wrong, each with the question I would ask before showing anybody the
+                product.
+              </p>
+            </Reveal>
+            <ol className="mt-10 divide-y divide-rule border-t border-rule">
+              {HYPOTHESES.map((item) => (
+                <Reveal key={item.id}>
+                  <li className="grid gap-2 py-5 sm:grid-cols-[52px_1fr_1fr] sm:gap-8">
+                    <span className="n text-[15px] font-bold text-stem">{item.id}</span>
+                    <p className="text-[16px] leading-snug text-ink-900">{item.claim}</p>
+                    <p className="text-[15px] leading-snug text-ink-400">{item.test}</p>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
         <section className="mx-auto max-w-3xl px-5 py-16 sm:py-24">
           <Reveal>
             <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
@@ -410,6 +786,38 @@ export default function CaseStudy() {
           </Reveal>
         </section>
 
+        {/* Where it actually stands, and what happens next. */}
+        <section className="bg-ink-900 py-16 sm:py-24">
+          <div className="mx-auto max-w-5xl px-5">
+            <Reveal>
+              <p className="text-[13px] font-bold uppercase tracking-[0.14em] text-leaf-300">
+                Where it stands
+              </p>
+              <h2 className="mt-4 max-w-[30ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-cream sm:text-[34px]">
+                This is a work in progress, and the next step is the craft
+              </h2>
+              <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-lid">
+                Everything on this page runs, on a real database, with real calls. It was also built
+                to a hackathon deadline, and it shows in the places a deadline always shows. So the
+                next step is not a new feature.
+              </p>
+            </Reveal>
+            <ol className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">
+              {NEXT.map((step, index) => (
+                <Reveal key={step.title}>
+                  <li className="border-t border-cream/25 pt-4">
+                    <span className="n text-[13px] font-bold text-leaf-300">0{index + 1}</span>
+                    <h3 className="mt-2 text-[18px] font-bold leading-snug text-cream">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-[15px] leading-relaxed text-lid/80">{step.body}</p>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
         <footer className="border-t border-rule">
           <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-10 sm:flex-row sm:items-center sm:justify-between">
             <Logo />
@@ -420,12 +828,6 @@ export default function CaseStudy() {
               >
                 Open the product
               </Link>
-              <a
-                href="https://github.com/bismamunawardigital/Sproutjar"
-                className="rounded-full border border-rule px-4 py-2 text-[13px] font-bold text-ink-500 transition hover:border-stem hover:text-stem-700"
-              >
-                Read the code
-              </a>
             </div>
           </div>
         </footer>
