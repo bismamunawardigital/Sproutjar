@@ -418,30 +418,6 @@ export const LADDER: string[] = [
   "Rebuild reserves, then rebuild wealth",
 ];
 
-/** Plain language impact, stated as design contribution rather than outcome. */
-export const IMPACT: { value: string; label: string; note: string }[] = [
-  {
-    value: "1 number",
-    label: "A date instead of a balance",
-    note: "The seeded profile's payoff date is June 2027. Every card, rate and payment in the app resolves into that one number, and every decision moves it.",
-  },
-  {
-    value: "AED 48,545",
-    label: "Cleared in the demo story",
-    note: "Eleven weeks of the seeded profile, from AED 87,645 to AED 39,100. Seeded demo data, not a user outcome, and the app did not pay it down.",
-  },
-  {
-    value: "0 red",
-    label: "Screens that shame you",
-    note: "Red never describes the person's own money. Interest is root brown, cleared principal is stem green, and nothing on screen shrinks when a month goes badly.",
-  },
-  {
-    value: "44.28%",
-    label: "The rate said out loud, annually",
-    note: "Banks quote 3.69% a month. The product always converts it and shows the dirhams charged this month, because the monthly quote is the comprehension failure.",
-  },
-];
-
 export const DESIGN_TOKENS: { hex: string; name: string; use: string }[] = [
   { hex: "#F2EDE4", name: "Cream", use: "Canvas" },
   { hex: "#FDFCF8", name: "Card", use: "Surfaces" },

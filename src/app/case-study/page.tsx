@@ -17,7 +17,6 @@ import {
   GITHUB_SHOTS,
   HISTORY,
   HYPOTHESES,
-  IMPACT,
   LADDER,
   LOOP,
   NEXT,
@@ -99,35 +98,6 @@ export default function CaseStudy() {
               />
             </div>
           </div>
-        </section>
-
-        {/* Impact in plain language, before any chart a reader has to decode. */}
-        <section className="mx-auto max-w-5xl px-5 pt-14 sm:pt-16">
-          <Reveal>
-            <h2 className="max-w-[30ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
-              What the design actually does to the problem
-            </h2>
-            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
-              A person with four cards has around twenty numbers and no answer. The work here was
-              turning that into one date, one next action, and a picture of progress that cannot
-              punish you. These are the four figures I would put on a whiteboard.
-            </p>
-          </Reveal>
-          <dl className="mt-9 grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
-            {IMPACT.map((item) => (
-              <Reveal key={item.label}>
-                <div className="border-t-2 border-stem pt-4">
-                  <dt className="n text-[27px] font-bold leading-none tracking-[-0.03em] text-stem-700 sm:text-[31px]">
-                    {item.value}
-                  </dt>
-                  <p className="mt-2 text-[15px] font-bold leading-snug text-ink-900">
-                    {item.label}
-                  </p>
-                  <dd className="mt-2 text-[14px] leading-relaxed text-ink-400">{item.note}</dd>
-                </div>
-              </Reveal>
-            ))}
-          </dl>
         </section>
 
         {/* What it is built on, and what each piece is actually responsible for. */}
