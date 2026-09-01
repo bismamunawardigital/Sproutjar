@@ -34,14 +34,16 @@ export default function CaseStudy() {
         <section className="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-12 pb-14 sm:pt-16 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
           <div>
             <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] text-ink-900 sm:text-[46px]">
-              A voice coach for people who know exactly what they owe and have never said it
-              out loud.
+              Sproutjar is an app that talks you out of credit card debt.
             </h1>
             <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-ink-500">
-              Sproutjar is a debt-recovery product for salaried professionals in the UAE carrying
-              balances across two to four cards. Ren is the coach inside it: it has your actual
-              numbers, remembers what you chose last month, and asks what happened. I did the
-              research, the positioning, the brand, the interface and the code.
+              You tell it what you owe. It builds the payoff plan, then Ren — a voice coach that
+              can see your actual balances — calls it through with you: what to pay first, what
+              you committed to last month, what happened when it went wrong. Built for salaried
+              professionals in the UAE carrying balances across two to four cards.
+            </p>
+            <p className="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-ink-500">
+              I did the research, the positioning, the brand, the interface and the code.
             </p>
             <p className="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-ink-400">
               It runs. Live database, live voice calls, a payoff engine doing real amortisation.
