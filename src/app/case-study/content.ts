@@ -362,33 +362,40 @@ export const AUDIT = {
   ],
 };
 
-export const STACK = [
+export const STACK: { name: string; logo: string; role: string }[] = [
   {
     name: "Devin",
+    logo: "/case/logos/devin.png",
     role: "Built it. Paired with it as the engineer on the whole thing: the payoff engine, the Convex schema, the four surfaces, the voice plumbing, and the browser agent that later walked the journey looking for what I had missed.",
   },
   {
     name: "Claude",
+    logo: "/case/logos/claude.svg",
     role: "Thinking partner for the research and the writing. The market report, the synthetic panel, the foundation brief and the PRD were argued out here, including the parts that came back against my own idea.",
   },
   {
     name: "Convex",
+    logo: "/case/logos/convex.png",
     role: "The live database under every screen and every one of Ren's tools, so a commitment logged mid-call is on the dashboard before the call ends and the voice can never quote a balance the screen disagrees with.",
   },
   {
     name: "ElevenLabs",
+    logo: "/case/logos/elevenlabs.svg",
     role: "The call itself, over WebRTC. Ren's prompt, turn-taking and seven server tools live here; the tools call this app's own API routes, so Ren reads real balances instead of improvising them.",
   },
   {
     name: "Context.dev",
+    logo: "/case/logos/context.png",
     role: "Specified, not yet wired. It is how Ren is meant to pull live rates and offers with a source and a retrieval date attached. Today those come from a dated reference table, which keeps Ren from inventing a rate but does not keep it current.",
   },
   {
     name: "GitHub",
+    logo: "/case/logos/github.svg",
     role: "Where the work is legible. Every change arrived as a pull request with the reasoning written down, so the build history reads as a record of decisions rather than a pile of commits.",
   },
   {
     name: "Vercel",
+    logo: "/case/logos/vercel.svg",
     role: "Hosting. Every branch gets its own preview URL, so the product and this case study could be opened and judged on a real device rather than described.",
   },
 ];

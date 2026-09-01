@@ -66,6 +66,28 @@ export default function CaseStudy() {
           </Reveal>
         </section>
 
+        {/* The walkthrough sits directly under the hero: seeing it beats reading about it. */}
+        <section className="bg-ink-900 py-14 sm:py-16">
+          <div className="mx-auto grid max-w-5xl items-center gap-9 px-5 md:grid-cols-[0.85fr_1fr] md:gap-12">
+            <div>
+              <h2 className="text-[26px] font-bold tracking-[-0.02em] text-cream sm:text-[31px]">
+                Four minutes inside it
+              </h2>
+              <p className="mt-3 max-w-[44ch] text-[16px] leading-relaxed text-lid">
+                A call with Ren, the plant and the payoff date, the debt board, and what the
+                product does with what you said after you hang up.
+              </p>
+            </div>
+            <div className="mx-auto w-full max-w-[420px] md:mx-0 md:justify-self-end">
+              <Walkthrough
+                src="/case/ren-walkthrough.mp4"
+                poster="/case/ren-walkthrough-poster.jpg"
+                minutes="4 min"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* What it is built on, and what each piece is actually responsible for. */}
         <section className="border-y border-rule bg-card/60">
           <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
@@ -77,9 +99,18 @@ export default function CaseStudy() {
                 {STACK.map((tool) => (
                   <div
                     key={tool.name}
-                    className="grid gap-1.5 py-4 sm:grid-cols-[150px_1fr] sm:gap-8"
+                    className="grid gap-1.5 py-4 sm:grid-cols-[170px_1fr] sm:gap-8"
                   >
-                    <dt className="text-[15px] font-bold text-ink-900">{tool.name}</dt>
+                    <dt className="flex items-center gap-2.5 text-[15px] font-bold text-ink-900">
+                      <Image
+                        src={tool.logo}
+                        alt=""
+                        width={22}
+                        height={22}
+                        className="h-[22px] w-[22px] shrink-0 object-contain"
+                      />
+                      {tool.name}
+                    </dt>
                     <dd className="max-w-[62ch] text-[15px] leading-relaxed text-ink-500">
                       {tool.role}
                     </dd>
@@ -94,26 +125,6 @@ export default function CaseStudy() {
           <Reveal>
             <DebtLine history={HISTORY} talkDates={TALK_DATES} />
           </Reveal>
-        </section>
-
-        {/* The five minutes that answer "what is it", before any argument about why. */}
-        <section className="bg-ink-900 py-14 sm:py-20">
-          <div className="mx-auto max-w-4xl px-5">
-            <h2 className="text-[26px] font-bold tracking-[-0.02em] text-cream sm:text-[32px]">
-              Five minutes inside it
-            </h2>
-            <p className="mt-3 max-w-[60ch] text-[16px] leading-relaxed text-lid">
-              A call with Ren, the plant and the payoff date, the debt board, and what the product
-              does with what you said after you hang up.
-            </p>
-            <div className="mt-7">
-              <Walkthrough
-                src="/case/ren-walkthrough.mp4"
-                poster="/case/ren-walkthrough-poster.jpg"
-                minutes="5 min"
-              />
-            </div>
-          </div>
         </section>
 
         {/* Process. Context, struggle, transformation, one chapter at a time. */}
