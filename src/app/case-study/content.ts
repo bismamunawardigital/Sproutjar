@@ -37,61 +37,6 @@ export const TALK_DATES = [
   "2026-08-29",
 ];
 
-/**
- * The six sessions in the seeded demo profile: the agenda the app proposed, the commitment the
- * person made in their own words, and the balance after they held it.
- */
-export const SESSION_LADDER: {
-  when: string;
-  agenda: string;
-  commitment: string;
-  habit: string;
-  balance: string;
-}[] = [
-  {
-    when: "Session 1, 22 June",
-    agenda: "What is this money for, and what does it actually cost",
-    commitment: "“I will stop using the ADCB card while we clear it.”",
-    habit: "New spending stops on the card being cleared",
-    balance: "87,645",
-  },
-  {
-    when: "Session 2, 6 July",
-    agenda: "Pick the payoff order, highest rate first",
-    commitment: "“I will pay the day the salary lands, not the day before the due date.”",
-    habit: "Payment moves to payday",
-    balance: "77,936",
-  },
-  {
-    when: "Session 3, 21 July",
-    agenda: "Where the surplus goes before it gets spent",
-    commitment: "“I will move AED 2,000 to the jar the same morning.”",
-    habit: "The surplus is moved, not left in the account",
-    balance: "68,227",
-  },
-  {
-    when: "Session 4, 4 August",
-    agenda: "The month that broke, and what changes in the plan",
-    commitment: "“I will keep the plan, at a smaller number, for one month.”",
-    habit: "A bad month re plans instead of restarting",
-    balance: "58,518",
-  },
-  {
-    when: "Session 5, 18 August",
-    agenda: "The card that keeps refilling, and the limit on it",
-    commitment: "“I will ask the bank to cut the limit on the cleared card.”",
-    habit: "Controlled access to an emptied card",
-    balance: "48,809",
-  },
-  {
-    when: "Session 6, 29 August",
-    agenda: "The belief that this is who I am with money",
-    commitment: "“I will write down what changed, in my own words, weekly.”",
-    habit: "Progress is recorded by the person, not the app",
-    balance: "39,100",
-  },
-];
-
 /** The numbers that make the Gulf version of this problem different, each one sourced. */
 export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
   {
@@ -498,23 +443,16 @@ export const LOCAL_LAYERS: { title: string; body: string }[] = [
  * tool or artefact so the workflow is legible without reading the chapters.
  */
 export const AI_WORKFLOW: { step: string; tool: string }[] = [
-  { step: "Deep research", tool: "Skeptical advisor prompt, sources bucketed" },
-  { step: "Debt strategies", tool: "Gulf rate mechanics, the escape ladder" },
+  { step: "Deep research", tool: "Skeptical advisor prompt, Gulf rate mechanics" },
   { step: "Synthetic interviews", tool: "Five personas, promoters and detractors" },
-  { step: "Voice agent trained", tool: "ElevenLabs, prompt from the coaching research" },
-  { step: "Live retrieval wired", tool: "Context.dev, current bank offers with a source" },
   { step: "PRD written", tool: "42 features, unhappy paths weighted the same" },
-  { step: "Brand built", tool: "Logo, palette, the plant animation" },
-  { step: "Flows mapped", tool: "Onboarding, session, post call, relapse" },
-  { step: "Built with Devin", tool: "Next.js, TypeScript, the payoff engine" },
-  { step: "Versioned", tool: "GitHub, a PR per change" },
-  { step: "Live data", tool: "Convex, real balances mid call" },
-  { step: "Shipped", tool: "Vercel, a preview URL per branch" },
-  { step: "Walkthrough recorded", tool: "Loom, the full journey end to end" },
-  { step: "UX stress tested", tool: "Gemini 3 Pro audit of the recording" },
-  { step: "UX fixed", tool: "Commitment loop, momentum, screen overlap" },
-  { step: "Audited again", tool: "Second pass on the rebuilt flows" },
-  { step: "Next", tool: "In progress, revealed soon" },
+  { step: "Brand and flows", tool: "Logo, palette, plant animation, four journeys" },
+  { step: "Voice agent trained", tool: "ElevenLabs, prompt from the coaching research" },
+  { step: "Built with Devin", tool: "Next.js, the payoff engine, a PR per change" },
+  { step: "Wired to live data", tool: "Convex balances, Context.dev bank offers" },
+  { step: "Shipped and recorded", tool: "Vercel, then a Loom of the whole journey" },
+  { step: "UX stress tested", tool: "Gemini 3 Pro audit, fixes, a second pass" },
+  { step: "Next", tool: "Revealed soon" },
 ];
 
 /** Research to build, in order, with the artefact each step produced. */
