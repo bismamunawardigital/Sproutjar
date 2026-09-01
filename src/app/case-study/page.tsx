@@ -17,7 +17,6 @@ import {
   GITHUB_SHOTS,
   HISTORY,
   HYPOTHESES,
-  IMPACT,
   LADDER,
   LOOP,
   NEXT,
@@ -101,35 +100,6 @@ export default function CaseStudy() {
           </div>
         </section>
 
-        {/* Impact in plain language, before any chart a reader has to decode. */}
-        <section className="mx-auto max-w-5xl px-5 pt-14 sm:pt-16">
-          <Reveal>
-            <h2 className="max-w-[30ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
-              What the design actually does to the problem
-            </h2>
-            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
-              A person with four cards has around twenty numbers and no answer. The work here was
-              turning that into one date, one next action, and a picture of progress that cannot
-              punish you. These are the four figures I would put on a whiteboard.
-            </p>
-          </Reveal>
-          <dl className="mt-9 grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
-            {IMPACT.map((item) => (
-              <Reveal key={item.label}>
-                <div className="border-t-2 border-stem pt-4">
-                  <dt className="n text-[27px] font-bold leading-none tracking-[-0.03em] text-stem-700 sm:text-[31px]">
-                    {item.value}
-                  </dt>
-                  <p className="mt-2 text-[15px] font-bold leading-snug text-ink-900">
-                    {item.label}
-                  </p>
-                  <dd className="mt-2 text-[14px] leading-relaxed text-ink-400">{item.note}</dd>
-                </div>
-              </Reveal>
-            ))}
-          </dl>
-        </section>
-
         {/* What it is built on, and what each piece is actually responsible for. */}
         <section className="border-y border-rule bg-card/60">
           <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
@@ -171,18 +141,26 @@ export default function CaseStudy() {
           <Reveal delay={80}>
             <div>
               <h2 className="text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
-                How to read it
+                Why the line goes down
               </h2>
               <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
-                The green line is everything the person owes, week by week. It goes down. Each ring
-                is one conversation with Ren. Eleven weeks, six conversations, AED 48,545 less debt,
-                and a payoff date that moved from a shrug to June 2027.
+                The green line is everything the person owes, week by week. Each ring is a coaching
+                session, and none of them is a chat. The app proposes the agenda before the call,
+                built from what changed since the last one, so the session has a job: pick the
+                payoff order, survive a broken month, deal with the card that keeps refilling.
+              </p>
+              <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
+                Each session ends with one commitment the person believes they can keep, in their
+                own words, and the next session opens on it, kept or not. Over eleven weeks that is
+                six agendas, six commitments and a set of small habit changes: pay on the day the
+                salary lands, stop spending on the card being cleared, move the surplus before it
+                gets spent. The principal falls because those held, not because the balance was
+                looked at. AED 48,545 cleared and a payoff date of June 2027.
               </p>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
-                Two honest caveats. This is the seeded demo profile the app ships with, not a real
-                customer. And the line falls because someone paid it down, not because they installed
-                an app, which is why the product says cleared while coaching with Ren rather than
-                claiming it caused anything.
+                One honest caveat: this is the seeded demo profile the app ships with, not a real
+                customer. The person paid the debt down, and the product says cleared while coaching
+                with Ren rather than claiming the app did it.
               </p>
             </div>
           </Reveal>
@@ -193,8 +171,8 @@ export default function CaseStudy() {
           <div className="mx-auto max-w-5xl px-5">
             <Reveal>
               <h2 className="max-w-[34ch] text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-cream sm:text-[31px]">
-                Six numbers that make a Dubai card different from the one your payoff calculator
-                assumes
+                Seven numbers that make a Gulf credit card different from the one your payoff
+                calculator assumes
               </h2>
             </Reveal>
             <dl className="mt-10 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
@@ -399,20 +377,29 @@ export default function CaseStudy() {
           <div className="mx-auto max-w-3xl px-5">
             <Reveal>
               <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-cream sm:text-[34px]">
-                Then I recorded the whole thing and asked to be told it was bad
+                I stress tested the UX with a full audit, because I was the wrong person to review
+                my own work
               </h2>
               <p className="mt-4 text-[18px] leading-relaxed text-lid">
-                A screen recording of the full flow went to Gemini 3 Pro under a prompt written to
-                remove every escape route: a senior designer with no interest in soft feedback,
-                critiquing the journey holistically rather than screen by screen, told to disagree
-                with me and to delete any observation that could apply to any SaaS product.
+                Everything up to this point was mine and defensible on paper, which is exactly the
+                problem: I had no way to see the seams I had designed myself into. So I recorded a
+                screen capture of the full journey, onboarding through a call and out the other side,
+                and ran it through a UX audit with Gemini 3 Pro.
               </p>
               <p className="mt-4 text-[16px] leading-relaxed text-lid/85">
-                The audit is the hinge of this project. Everything before it was mine and defensible
-                on paper. What came back was about the seams: where momentum died, what two screens
-                were both trying to be, what the product implied when a call produced nothing, and
-                which numbers claimed more than they had earned. The decisions below are what I did
-                about it, including the ones where I disagreed and kept my version.
+                The prompt mattered more than the model. It removed every escape route: a senior
+                designer with no interest in soft feedback, scoring the journey holistically rather
+                than screen by screen, explicitly told to disagree with me and to delete any
+                observation that could apply to any SaaS product. Generic advice was the failure
+                mode I was guarding against.
+              </p>
+              <p className="mt-4 text-[16px] leading-relaxed text-lid/85">
+                It uncovered four things I had not seen. The commitment loop was broken, so the one
+                promise the whole method rests on could be made and never returned to. Momentum died
+                at the end of a call, where the product went quiet at the moment the person was most
+                ready to act. Two screens were quietly competing to be the same screen. And some
+                numbers on the dashboard claimed more than they had earned. The decisions below are
+                what I did about each, including the ones where I disagreed and kept my version.
               </p>
             </Reveal>
             <Reveal>
@@ -734,17 +721,18 @@ export default function CaseStudy() {
           </div>
         </section>
 
-        {/* The five things a real interview would have to kill. */}
+        {/* The five claims real interviews would have to validate. */}
         <section className="border-y border-rule bg-cream-2/50 py-16 sm:py-20">
           <div className="mx-auto max-w-5xl px-5">
             <Reveal>
               <h2 className="max-w-[32ch] text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
-                Five hypotheses, written so a real interview could kill them
+                Five hypotheses to validate with real user research
               </h2>
               <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
-                This is what the synthetic panel is actually for. Not evidence, but claims specific
-                enough to be wrong, each with the question I would ask before showing anybody the
-                product.
+                This is what the synthetic panel is actually for: turning objections into claims
+                specific enough to test. Each one is written with the question I would ask in a real
+                interview, before showing anybody the product, so the answer comes from customers
+                rather than from me.
               </p>
             </Reveal>
             <ol className="mt-10 divide-y divide-rule border-t border-rule">
@@ -798,8 +786,8 @@ export default function CaseStudy() {
               </h2>
               <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-lid">
                 Everything on this page runs, on a real database, with real calls. It was also built
-                to a hackathon deadline, and it shows in the places a deadline always shows. So the
-                next step is not a new feature.
+                fast, and it shows in the places speed always shows. So the next step is not a new
+                feature.
               </p>
             </Reveal>
             <ol className="mt-10 grid gap-8 md:grid-cols-3 md:gap-10">

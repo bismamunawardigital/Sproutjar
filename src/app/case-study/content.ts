@@ -45,9 +45,14 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     note: "Emirates NBD works its own examples at 3.25% and 3.69% a month. Citibank UAE publishes 42% moving to 44.28%. The US baseline in the source material was around 21.5%.",
   },
   {
+    figure: "36.28% to 36.75%",
+    label: "What a Saudi card costs a year",
+    note: "Riyad Bank publishes a monthly term cost of 2.50% to 2.55% on its platinum and signature cards, stated as an annual profit rate of 36.28% to 36.75%. Islamic structure, same order of magnitude as Dubai.",
+  },
+  {
     figure: "2% to 4%",
-    label: "How the bank quotes it: per month",
-    note: "A monthly rate does not feel like anything. Rule in the product: never leave a rate in monthly form, always show the year and the dirhams charged this month.",
+    label: "How every Gulf bank quotes it: per month",
+    note: "A monthly rate does not feel like anything, and it is the convention from Dubai to Riyadh. Rule in the product: never leave a rate in monthly form, always show the year and the money charged this month.",
   },
   {
     figure: "+0.5% / month",
@@ -60,14 +65,14 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     note: "Interest runs from the transaction date unless 100% is paid by the due date. People paying nearly everything believe they are being responsible and are not. Cash advances never get grace.",
   },
   {
-    figure: "50% DBR",
-    label: "Cap on repayments against income",
-    note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Keeping the old card open for your score has a cost here.",
+    figure: "40% to 50%",
+    label: "How much salary can go to repayments, and it moves by country",
+    note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Kuwait's central bank caps instalments at 40% of net salary, 30% for pensioners. The plan has to be built from the person's own numbers, not a regional rule of thumb.",
   },
   {
     figure: "3.3% NPL",
-    label: "Why I will not call this a national crisis",
-    note: "Retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. Public data does not expose revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
+    label: "Why I will not call this a regional crisis",
+    note: "UAE retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. No Gulf regulator publishes revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
   },
 ];
 
@@ -167,11 +172,12 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "panel",
-    title: "Five people who do not exist, and the one who told me not to build it",
+    title: "I built a synthetic user panel of promoters and detractors, and interviewed all five",
     lead:
-      "I ran a synthetic interview panel of five personas, deliberately including one woman whose current system already works. None of it is evidence. What it is good for is generating objections sharp enough to design against.",
+      "Before I could reach real customers I wrote five personas and ran a full interview with each: two who should love this, two who are sceptical, and one who should refuse to buy it. The point was not applause. It was to hear, in one place, why someone would pay for this and why someone would not touch it.",
     body: [
       "Zayd was the most useful. He knows what avalanche means, has built the spreadsheet twice, and abandons it the month reality diverges from it. His objection is the one the whole business has to answer: why is this not just ChatGPT plus Excel. Omar gave me the sentence I now use to explain the product, that the debt cycle is like dieting, austerity then relief then relapse. Leena showed why the mathematically optimal plan is often the personally unsustainable one. And Maya, who is organised and fine, said the quiet part out loud about my own positioning.",
+      "Building the panel with detractors in it is the reason it was useful. Five enthusiasts would have confirmed everything and changed nothing. This produced five buying objections and one clear non customer, which is a cheaper way to find them than shipping. None of it is evidence, and I do not treat it as any: a synthetic panel generates objections and hypotheses, and only real interviews can settle them.",
       "Nobody on the panel wanted a forty minute scheduled call with an AI about their credit cards. That matched the research verdict on voice, and it is why sessions are ten, twenty or forty minutes at the person's choice, nothing is scheduled, and Ren is a room in the product rather than the product.",
     ],
     quotes: [
@@ -243,12 +249,13 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "against-myself",
-    title: "The finding that argued against the thing I wanted to build",
+    title: "Why this is voice first, and not another chat window",
     lead:
-      "I wanted a voice coach. The research verdict on that was one word: unsupported. The evidence validates a journey, not a modality, and every persona rejected long scheduled calls.",
+      "A text agent answers questions. That is not the problem here. The problem is a person who already knows the answer and cannot keep doing it, and the thing that moves that is a relationship with something that talks back.",
     body: [
-      "I kept voice anyway, and the case study is the right place to say why. Saying a number out loud to something that answers is a different act from typing it into a form, and the problem I found (people who know what to do and cannot keep doing it) is the problem accountability solves. Nobody has ever been held accountable by a text field.",
-      "But I designed around the finding rather than through it. The person picks the length and the agenda before the call. Quiet mode lets someone whisper on a Metro platform and read Ren's answer on screen. Every number Ren says is also on the screen behind it. If a real cohort tells me voice is dead weight, the journey survives without it. That was the point of building it in this order.",
+      "Three reasons voice earns its place. Saying a number out loud is a different act from typing it: people admit the real balance, the loan they left out of the spreadsheet, the month they hid, because speech is confession and a form is data entry. Tone carries what the text never sends, so when someone flattens out on the sentence about their family, Ren has a signal a chat box does not get and can slow down, ask, or drop the agenda for the one that matters. And voice has a personality: pace, warmth, the pauses. You do not build accountability with a text field, you build it with somebody who is expecting you.",
+      "Ren is an ElevenLabs conversational agent joined over WebRTC from the app, with a signed session minted server side so no key reaches the browser. The prompt is written from the coaching research, not from a persona sketch: permission before challenging, teaching or suggesting, reflection in the person's own words, one commitment at the end. Turn taking took as much work as the words, because the default failure of a voice agent is interrupting somebody who is thinking; the silence timeout is long, and Ren never asks whether you are still there. Seven server tools point at this app's own API routes, so mid call Ren can read live balances, run the payoff plan, log a commitment, capture a belief and file an offer.",
+      "I designed around the honest limits rather than through them. The research verdict on voice as a modality is unsupported, and no persona wanted a forty minute scheduled call, so the person picks the length and the agenda before the call, nothing is scheduled, quiet mode lets someone whisper on a Metro platform and read the reply on screen, and every number Ren says is also on screen behind it. If a real cohort tells me voice is dead weight, the journey survives without it.",
     ],
     shots: [
       {
@@ -261,12 +268,14 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "brief",
-    title: "A brief, then a PRD written to fail against",
+    title: "How I actually worked: research, brief, PRD, flows, then build",
     lead:
-      "Between the research and the build came a foundation brief: positioning, banned language, the coaching method, the legal posture. Then forty two numbered features with the unhappy paths weighted equally.",
+      "The order was deliberate and it is the part I would defend in a review. Research fed a positioning brief, the brief fed a PRD of forty two numbered features, the PRD fed the user flows, and only then did anything get built.",
     body: [
-      "Two things in the brief do more work than anything else. The first is language that is banned rather than discouraged: no guaranteed outcomes, no guaranteed feelings, no scientifically proven. UAE advertising rules and the coaching literature's own failure modes point the same way, so the rule is absolute and the product copy obeys it. The second is an appendix of corrections, every claim I got wrong during research and what replaced it, including a reassurance about travel bans I withdrew entirely because being wrong in either direction hurts someone.",
-      "The PRD's success criteria are the part I would defend in a review, because they are behavioural rather than aspirational. The first exchange of onboarding may not ask for a number. A missed commitment must produce no red, no shrinking plant and no guilt copy. Read ten of Ren's lines aloud and none of them should sound like an assistant. The out of scope list is as long as the feature list and holds everything that would be easiest to add and worst to have: streaks, badges, points, a community feed, dark mode.",
+      "The brief came first because it decides what the product is allowed to be: who it is for, the value proposition, the coaching method, the legal posture, and the language that is banned rather than discouraged. No guaranteed outcomes, no guaranteed feelings, no scientifically proven, and no crush your debt. UAE advertising rules and the coaching literature's own failure modes point the same way, so the rule is absolute and every line of copy in the app obeys it. The brief also carries an appendix of corrections, every claim I got wrong during research and what replaced it, including a reassurance about travel bans I withdrew entirely because being wrong in either direction hurts someone.",
+      "The PRD is forty two numbered features with the unhappy paths weighted the same as the happy ones, and success criteria written behaviourally so they can be failed: the first exchange of onboarding may not ask for a number, a missed commitment must produce no red, no shrinking plant and no guilt copy, read ten of Ren's lines aloud and none of them should sound like an assistant. The out of scope list is as long as the feature list, and it holds everything that would be easiest to add and worst to have: streaks, badges, points, a community feed, a text chatbot.",
+      "Then the flows, four of them, because the flows are where product strategy stops being a slogan. Onboarding earns the numbers rather than demanding them, so it opens on what the money is for. The session flow is a contract before a conversation: length, intent, and an agenda the app proposes from what changed since the last call. The post call flow is the one most products skip, where the commitment is written in the person's own words and filed. And the relapse flow, the month that broke, which decides whether someone stays: no red, no restart, a re plan, and the next session opening on the last commitment kept or not.",
+      "The strategy underneath all of it is one sentence. Do not compete on conversation, compete on continuity: the journey, the live financial state, the memory of what the person said, and the plan that adapts. Ren is a room in that product, not the product, which is why the dashboard works with the call switched off.",
     ],
     aside: {
       title: "Corrections carried into the build",
@@ -281,7 +290,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "build",
-    title: "Built to a hackathon deadline, in hours",
+    title: "The build, and the plumbing that makes it a product",
     lead:
       "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call, seven server tools wired to this app's own API routes.",
     body: [
@@ -418,30 +427,6 @@ export const LADDER: string[] = [
   "Rebuild reserves, then rebuild wealth",
 ];
 
-/** Plain language impact, stated as design contribution rather than outcome. */
-export const IMPACT: { value: string; label: string; note: string }[] = [
-  {
-    value: "1 number",
-    label: "A date instead of a balance",
-    note: "The seeded profile's payoff date is June 2027. Every card, rate and payment in the app resolves into that one number, and every decision moves it.",
-  },
-  {
-    value: "AED 48,545",
-    label: "Cleared in the demo story",
-    note: "Eleven weeks of the seeded profile, from AED 87,645 to AED 39,100. Seeded demo data, not a user outcome, and the app did not pay it down.",
-  },
-  {
-    value: "0 red",
-    label: "Screens that shame you",
-    note: "Red never describes the person's own money. Interest is root brown, cleared principal is stem green, and nothing on screen shrinks when a month goes badly.",
-  },
-  {
-    value: "44.28%",
-    label: "The rate said out loud, annually",
-    note: "Banks quote 3.69% a month. The product always converts it and shows the dirhams charged this month, because the monthly quote is the comprehension failure.",
-  },
-];
-
 export const DESIGN_TOKENS: { hex: string; name: string; use: string }[] = [
   { hex: "#F2EDE4", name: "Cream", use: "Canvas" },
   { hex: "#FDFCF8", name: "Card", use: "Surfaces" },
@@ -554,7 +539,7 @@ export const HYPOTHESES: { id: string; claim: string; test: string }[] = [
 export const NEXT: { title: string; body: string }[] = [
   {
     title: "An Impeccable design pass",
-    body: "The product works and it is not finished. Next is a full craft pass over every surface: type scale and rhythm, the plant at every state, empty and error states, motion timing, the call view on a small phone, and the details the deadline swallowed.",
+    body: "The product works and it is not finished. Next is a full craft pass over every surface: type scale and rhythm, the plant at every state, empty and error states, motion timing, the call view on a small phone, and the details that building fast swallowed.",
   },
   {
     title: "Auditing the UX again, then with people",
