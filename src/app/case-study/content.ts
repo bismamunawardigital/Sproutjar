@@ -174,7 +174,7 @@ export const CHAPTERS: Chapter[] = [
     id: "build",
     title: "Built for a hackathon deadline, in hours",
     lead:
-      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call. Nine tools wired to real API routes, so Ren reads live balances mid-sentence instead of improvising them.",
+      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call. Seven tools wired to real API routes, so Ren reads live balances mid-sentence instead of improvising them.",
     body: [
       "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty-eight dirhams this month, that number came out of the same database the screen is reading, and the payoff engine that produced it runs month-by-month amortisation over every card at its own rate.",
       "Ren can write a commitment, log a belief, propose a balance transfer. Ren cannot move money, change a balance, or delete a card. The proposal lands on screen and waits for the person to confirm it after their bank has actually done it, because a coach that acts on a mishearing is worse than no coach.",
@@ -295,6 +295,72 @@ export const DECISIONS: {
       "The product's whole claim is that it works from real numbers. One unmarked guess costs more credibility than ten marked ones.",
   },
 ];
+
+export const AUDIT = {
+  verdict: "A brilliant debt-recovery narrative held back by a broken commitment loop.",
+  score: "65.2 / 100 composite, across five UI and UX dimensions",
+  scoreLine:
+    "Brand system scored 92 and was called world-class adherence to the guidelines. Action state and feedback scored 44 and was marked critical. That gap is the whole finding: the product looked like itself and did not close its own loop.",
+  images: [
+    {
+      src: "/case/audit-verdict-cards.png",
+      alt: "Three audit cards. The genius: culturally grounded framing. The breaking point: the post-session drop-off. The number one fix: a unified commitment loop.",
+      label:
+        "The audit's own summary. What worked, what broke, and the single fix it argued for.",
+    },
+    {
+      src: "/case/audit-scorecard.png",
+      alt: "Scorecard: information architecture 54, financial data density 62, brand system 92 strong, action state management 44 critical, mobile ergonomics 66.",
+      label:
+        "Five dimensions scored. The brand scored highest, the behaviour loop lowest, which is the uncomfortable version of the result.",
+    },
+    {
+      src: "/case/audit-inspector-handshake.png",
+      alt: "The audit's prescribed post-call debrief sheet next to its notes: the handshake is missing from the application entirely.",
+      label:
+        "The missing screen, drawn. A thirty second debrief that turns what was agreed out loud into the commitment on Home.",
+    },
+    {
+      src: "/case/audit-inspector-growth.png",
+      alt: "The audit's redesign of the debt clearing screen with avalanche target badges and explicit actions, beside the friction it found in the shipped version.",
+      label:
+        "Growth, rebuilt by the auditor: bold balance, the monthly cost as a badge, and 'Take it off' replaced by actions that say what they do.",
+    },
+  ],
+  findings: [
+    {
+      found:
+        "When a call ends, nothing is captured. Home goes back to “Nothing here yet” for someone eleven weeks and six sessions in.",
+      verdict:
+        "Named the breaking point of the product: the agreement reached out loud never becomes state, so the burden falls back on the person's memory.",
+      did: "Built the ending. A call now finishes with the commitment written, or the person's own words with an editable commitment offered, or an honest nothing landed today. Home holds it until it is done or adapted.",
+    },
+    {
+      found: "Home and Ren were the same screen: two tabs, one dark card, one Call Ren button.",
+      verdict:
+        "Information architecture scored 54. Two tabs doing one job collapses the map of the app.",
+      did: "Home became the overview with a doorway. Ren became the coaching room and the archive, with intent pills that set the contract before the call starts.",
+    },
+    {
+      found: "'Take it off' on a debt card. Does it mean paid, deleted, or excluded from the plan?",
+      verdict: "Flagged as dangerous ambiguity on the one screen where a wrong tap loses history.",
+      did: "Explicit actions, and settled cards leave the payoff order for a cleared list instead of being deleted.",
+    },
+    {
+      found:
+        "The You tab counted follow-through as four out of six, and the timeline headline read “what your talks have moved”.",
+      verdict:
+        "Called both out: the count reads as punitive to a user whose main risk is shame, and the headline claims the coach caused what the person's own money did.",
+      did: "The count is gone. The line now says cleared while coaching with Ren, across six conversations, which is the most it can honestly say.",
+    },
+    {
+      found: "Manual +100, +250 and +500 buttons on the savings side.",
+      verdict:
+        "Called an arcade ledger that contradicts the product's own promise to end spreadsheet maintenance.",
+      did: "Kept, and I disagree with the fix. Milestone tiers without bank connections would be a nicer looking way to be wrong about someone's balance. The tap is honest until there is real account data behind it.",
+    },
+  ],
+};
 
 export const STACK = [
   {

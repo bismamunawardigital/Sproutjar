@@ -6,7 +6,16 @@ import { DebtLine } from "@/components/case/DebtLine";
 import { GrowthAnimation } from "@/components/case/GrowthAnimation";
 import { Reveal } from "@/components/case/Reveal";
 import { Walkthrough } from "@/components/case/Walkthrough";
-import { CHAPTERS, DECISIONS, HISTORY, NOT_PROVEN, STACK, TALK_DATES, TESTING } from "./content";
+import {
+  AUDIT,
+  CHAPTERS,
+  DECISIONS,
+  HISTORY,
+  NOT_PROVEN,
+  STACK,
+  TALK_DATES,
+  TESTING,
+} from "./content";
 
 export const metadata: Metadata = {
   title: "Sproutjar: how it was researched, designed and built",
@@ -202,6 +211,80 @@ export default function CaseStudy() {
                 about it, including the ones where I disagreed and kept my version.
               </p>
             </Reveal>
+            <Reveal>
+              <figure className="mt-10 border-t border-cream/20 pt-8">
+                <blockquote className="text-[21px] font-bold leading-snug tracking-[-0.02em] text-cream sm:text-[25px]">
+                  “{AUDIT.verdict}”
+                </blockquote>
+                <figcaption className="mt-3 text-[14px] text-lid/70">
+                  Its one line verdict. {AUDIT.score}.
+                </figcaption>
+              </figure>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* The audit's own artefacts, so the reader sees the critique rather than my account of it. */}
+        <section className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
+          <Reveal>
+            <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+              What it said, in its own pages
+            </h2>
+            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+              {AUDIT.scoreLine}
+            </p>
+            <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-400">
+              These are pages from the audit report itself, not user testing. One expert model
+              reviewing one recorded journey, and its redesigns are proposals, not measured
+              outcomes.
+            </p>
+          </Reveal>
+
+          <div className="mt-10 space-y-10">
+            {AUDIT.images.map((shot) => (
+              <Reveal key={shot.src}>
+                <figure>
+                  <div className="overflow-hidden rounded-xl border border-rule bg-card">
+                    <Image
+                      src={shot.src}
+                      alt={shot.alt}
+                      width={1600}
+                      height={900}
+                      sizes="(min-width: 1024px) 960px, 100vw"
+                      className="h-auto w-full"
+                    />
+                  </div>
+                  <figcaption className="mt-3 max-w-[68ch] text-[14px] leading-relaxed text-ink-400">
+                    {shot.label}
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-16 border-t border-rule pt-10">
+            <Reveal>
+              <h3 className="text-[21px] font-bold tracking-[-0.02em] text-ink-900 sm:text-[24px]">
+                Five findings, and what happened to each
+              </h3>
+            </Reveal>
+            <ol className="mt-8 space-y-9">
+              {AUDIT.findings.map((finding) => (
+                <Reveal key={finding.found}>
+                  <li>
+                    <h4 className="max-w-[62ch] text-[17px] font-bold leading-snug text-ink-900">
+                      {finding.found}
+                    </h4>
+                    <p className="mt-2.5 max-w-[66ch] text-[16px] leading-relaxed text-root">
+                      <span className="font-bold">The audit.</span> {finding.verdict}
+                    </p>
+                    <p className="mt-2 max-w-[66ch] text-[16px] leading-relaxed text-stem-700">
+                      <span className="font-bold">What I did.</span> {finding.did}
+                    </p>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
           </div>
         </section>
 
