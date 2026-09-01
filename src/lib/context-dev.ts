@@ -82,19 +82,45 @@ function toSource(result: unknown): RetrievedSource | null {
   };
 }
 
+/**
+ * Banks run a site per market on the country's own domain, so emiratesnbd.com.eg must not
+ * answer for a customer in the UAE. Any two letter final label that is not this market's is out.
+ */
+function inMarket(host: string, country: string): boolean {
+  const tld = host.split(".").pop() ?? "";
+  return tld.length !== 2 || tld === country.toLowerCase();
+}
+
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/** The extractor spells an absent field several ways, and none of them may reach the call. */
+const ABSENT = /^[/\\"'\s-]*(null|n\/a|none|not stated|not specified|unknown)[/\\"'\s.]*$/i;
+
 function text(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (trimmed === "" || trimmed.toLowerCase() === "null") return null;
+  if (trimmed === "" || ABSENT.test(trimmed)) return null;
   return trimmed;
 }
 
-async function post(url: string, key: string, body: unknown): Promise<Response> {
+async function post(
+  url: string,
+  key: string,
+  body: unknown,
+  timeoutMs: number,
+): Promise<Response> {
   return fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -102,14 +128,20 @@ async function post(url: string, key: string, body: unknown): Promise<Response> 
 async function extractTerms(key: string, url: string): Promise<RetrievedTerms | null> {
   let response: Response;
   try {
-    response = await post(EXTRACT_URL, key, {
-      url,
-      schema: OFFER_SCHEMA,
-      instructions: EXTRACT_INSTRUCTIONS,
-      factCheck: true,
-      maxPages: 1,
-      maxDepth: 0,
-    });
+    response = await post(
+      EXTRACT_URL,
+      key,
+      {
+        url,
+        schema: OFFER_SCHEMA,
+        instructions: EXTRACT_INSTRUCTIONS,
+        factCheck: true,
+        maxPages: 1,
+        maxDepth: 0,
+      },
+      // Ren is mid conversation: past this, drop to the search results rather than hold the call.
+      20_000,
+    );
   } catch {
     return null;
   }
@@ -119,7 +151,7 @@ async function extractTerms(key: string, url: string): Promise<RetrievedTerms | 
   if (typeof payload.data !== "object" || payload.data === null) return null;
   const data = payload.data as Record<string, unknown>;
 
-  return {
+  const terms: RetrievedTerms = {
     source_url: url,
     product: text(data.product),
     promotional_rate: text(data.promotional_rate),
@@ -130,11 +162,19 @@ async function extractTerms(key: string, url: string): Promise<RetrievedTerms | 
     islamic_profit_rate:
       typeof data.islamic_profit_rate === "boolean" ? data.islamic_profit_rate : null,
   };
+
+  const priced =
+    terms.promotional_rate ??
+    terms.standard_or_revert_rate ??
+    terms.transfer_fee ??
+    terms.early_settlement_fee;
+  // A product name and nothing else is not an offer, so the caller should say it found none.
+  return priced === null ? null : terms;
 }
 
 /**
  * Search the live web, then read the offer terms off the most likely official page.
- * `officialHint` is matched against result URLs so a comparison blog cannot pass as the bank.
+ * `officialHint` is matched against result hosts so a comparison site cannot pass as the bank.
  */
 export async function retrieve(
   query: string,
@@ -147,12 +187,17 @@ export async function retrieve(
 
   let response: Response;
   try {
-    response = await post(SEARCH_URL, key, {
-      query,
-      numResults: options.results ?? 10,
-      country: options.country ?? "ae",
-      timeoutMS: 20_000,
-    });
+    response = await post(
+      SEARCH_URL,
+      key,
+      {
+        query,
+        numResults: options.results ?? 10,
+        country: options.country ?? "ae",
+        timeoutMS: 15_000,
+      },
+      18_000,
+    );
   } catch {
     return { ok: false, reason: "Could not reach the live retrieval service just now." };
   }
@@ -163,10 +208,10 @@ export async function retrieve(
 
   const payload: SearchResponse = await response.json();
   const raw = Array.isArray(payload.results) ? payload.results : [];
-  const sources = raw
+  const found = raw
     .map(toSource)
-    .filter((source): source is RetrievedSource => source !== null)
-    .slice(0, 4);
+    .filter((source): source is RetrievedSource => source !== null);
+  const sources = found.slice(0, 4);
 
   if (sources.length === 0) {
     return { ok: false, reason: "Nothing current was found for that question." };
@@ -178,10 +223,16 @@ export async function retrieve(
   }
 
   const hint = options.officialHint?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
+  const country = options.country ?? "ae";
+  // The hint is matched on the host, never the path: paisabazaar.ae/emirates-nbd is not the bank.
+  const onBankSite = found.filter((source) => {
+    const host = hostOf(source.url);
+    if (host === null || !inMarket(host, country)) return false;
+    return hint.length > 2 ? host.replace(/[^a-z]/g, "").includes(hint) : true;
+  });
+  // The product page carries the rate; the help centre usually only carries the fees.
   const official =
-    hint.length > 2
-      ? sources.find((source) => source.url.toLowerCase().replace(/[^a-z]/g, "").includes(hint))
-      : sources[0];
+    onBankSite.find((source) => !/help|support|faq/i.test(source.url)) ?? onBankSite[0];
 
   // No page on the named bank's own domain: return the search results and no terms, rather
   // than reading another bank's offer back as if it were theirs.
