@@ -317,6 +317,14 @@ export const STACK = [
     name: "Context.dev",
     role: "Specified, not yet wired. It is how Ren is meant to pull live rates and offers with a source and a retrieval date attached. Today those come from a dated reference table, which keeps Ren from inventing a rate but does not keep it current.",
   },
+  {
+    name: "GitHub",
+    role: "Where the work is legible. Every change arrived as a pull request with the reasoning written down, so the build history reads as a record of decisions rather than a pile of commits.",
+  },
+  {
+    name: "Vercel",
+    role: "Hosting. Every branch gets its own preview URL, so the product and this case study could be opened and judged on a real device rather than described.",
+  },
 ];
 
 export const TESTING = [
