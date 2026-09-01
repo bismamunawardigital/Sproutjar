@@ -6,7 +6,7 @@ import { DebtLine } from "@/components/case/DebtLine";
 import { GrowthAnimation } from "@/components/case/GrowthAnimation";
 import { Reveal } from "@/components/case/Reveal";
 import { Walkthrough } from "@/components/case/Walkthrough";
-import { CHAPTERS, DECISIONS, HISTORY, NOT_PROVEN, TALK_DATES, TESTING } from "./content";
+import { CHAPTERS, DECISIONS, HISTORY, NOT_PROVEN, STACK, TALK_DATES, TESTING } from "./content";
 
 export const metadata: Metadata = {
   title: "Sproutjar: how it was researched, designed and built",
@@ -57,7 +57,31 @@ export default function CaseStudy() {
           </Reveal>
         </section>
 
-        <section className="mx-auto max-w-5xl px-5 pb-16">
+        {/* What it is built on, and what each piece is actually responsible for. */}
+        <section className="border-y border-rule bg-card/60">
+          <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
+            <Reveal>
+              <h2 className="text-[20px] font-bold tracking-[-0.02em] text-ink-900 sm:text-[23px]">
+                Built with
+              </h2>
+              <dl className="mt-7 divide-y divide-rule border-t border-rule">
+                {STACK.map((tool) => (
+                  <div
+                    key={tool.name}
+                    className="grid gap-1.5 py-4 sm:grid-cols-[150px_1fr] sm:gap-8"
+                  >
+                    <dt className="text-[15px] font-bold text-ink-900">{tool.name}</dt>
+                    <dd className="max-w-[62ch] text-[15px] leading-relaxed text-ink-500">
+                      {tool.role}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-5xl px-5 pt-16 pb-16">
           <Reveal>
             <DebtLine history={HISTORY} talkDates={TALK_DATES} />
           </Reveal>
