@@ -141,18 +141,26 @@ export default function CaseStudy() {
           <Reveal delay={80}>
             <div>
               <h2 className="text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
-                How to read it
+                Why the line goes down
               </h2>
               <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
-                The green line is everything the person owes, week by week. It goes down. Each ring
-                is one conversation with Ren. Eleven weeks, six conversations, AED 48,545 less debt,
-                and a payoff date that moved from a shrug to June 2027.
+                The green line is everything the person owes, week by week. Each ring is a coaching
+                session, and none of them is a chat. The app proposes the agenda before the call,
+                built from what changed since the last one, so the session has a job: pick the
+                payoff order, survive a broken month, deal with the card that keeps refilling.
+              </p>
+              <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
+                Each session ends with one commitment the person believes they can keep, in their
+                own words, and the next session opens on it, kept or not. Over eleven weeks that is
+                six agendas, six commitments and a set of small habit changes: pay on the day the
+                salary lands, stop spending on the card being cleared, move the surplus before it
+                gets spent. The principal falls because those held, not because the balance was
+                looked at. AED 48,545 cleared and a payoff date of June 2027.
               </p>
               <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
-                Two honest caveats. This is the seeded demo profile the app ships with, not a real
-                customer. And the line falls because someone paid it down, not because they installed
-                an app, which is why the product says cleared while coaching with Ren rather than
-                claiming it caused anything.
+                One honest caveat: this is the seeded demo profile the app ships with, not a real
+                customer. The person paid the debt down, and the product says cleared while coaching
+                with Ren rather than claiming the app did it.
               </p>
             </div>
           </Reveal>

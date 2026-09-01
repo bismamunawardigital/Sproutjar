@@ -73,7 +73,9 @@ export function DebtLine({
   return (
     <figure className="rounded-card border border-rule bg-card p-5 shadow-sh-2">
       <figcaption className="flex items-baseline justify-between gap-4">
-        <p className="text-[15px] font-bold text-ink-900">What eleven weeks of talking looks like</p>
+        <p className="text-[15px] font-bold text-ink-900">
+          Eleven weeks of kept commitments
+        </p>
         <p className="text-[12px] text-ink-300">Seeded demo profile</p>
       </figcaption>
 
@@ -82,7 +84,7 @@ export function DebtLine({
         viewBox={`0 0 ${W} ${H}`}
         className="mt-4 h-[200px] w-full"
         role="img"
-        aria-label={`Total owed falling from ${money(first.total)} to ${money(last.total)} over eleven weeks, with ${talkDates.length} conversations marked on the line.`}
+        aria-label={`Total owed falling from ${money(first.total)} to ${money(last.total)} over eleven weeks, with ${talkDates.length} coaching sessions marked on the line.`}
       >
         <polygon
           points={area}
@@ -136,8 +138,8 @@ export function DebtLine({
       </svg>
 
       <p className="mt-1 text-[13px] text-ink-400">
-        Each ring is one conversation with Ren.{" "}
-        <span className="n">{money(first.total - last.total)}</span> cleared across{" "}
+        Each ring is a session with an agenda and a commitment.{" "}
+        <span className="n">{money(first.total - last.total)}</span> of principal cleared across{" "}
         {talkDates.length} of them.
       </p>
     </figure>
