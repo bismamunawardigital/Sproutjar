@@ -37,6 +37,61 @@ export const TALK_DATES = [
   "2026-08-29",
 ];
 
+/**
+ * The six sessions in the seeded demo profile: the agenda the app proposed, the commitment the
+ * person made in their own words, and the balance after they held it.
+ */
+export const SESSION_LADDER: {
+  when: string;
+  agenda: string;
+  commitment: string;
+  habit: string;
+  balance: string;
+}[] = [
+  {
+    when: "Session 1, 22 June",
+    agenda: "What is this money for, and what does it actually cost",
+    commitment: "“I will stop using the ADCB card while we clear it.”",
+    habit: "New spending stops on the card being cleared",
+    balance: "87,645",
+  },
+  {
+    when: "Session 2, 6 July",
+    agenda: "Pick the payoff order, highest rate first",
+    commitment: "“I will pay the day the salary lands, not the day before the due date.”",
+    habit: "Payment moves to payday",
+    balance: "77,936",
+  },
+  {
+    when: "Session 3, 21 July",
+    agenda: "Where the surplus goes before it gets spent",
+    commitment: "“I will move AED 2,000 to the jar the same morning.”",
+    habit: "The surplus is moved, not left in the account",
+    balance: "68,227",
+  },
+  {
+    when: "Session 4, 4 August",
+    agenda: "The month that broke, and what changes in the plan",
+    commitment: "“I will keep the plan, at a smaller number, for one month.”",
+    habit: "A bad month re plans instead of restarting",
+    balance: "58,518",
+  },
+  {
+    when: "Session 5, 18 August",
+    agenda: "The card that keeps refilling, and the limit on it",
+    commitment: "“I will ask the bank to cut the limit on the cleared card.”",
+    habit: "Controlled access to an emptied card",
+    balance: "48,809",
+  },
+  {
+    when: "Session 6, 29 August",
+    agenda: "The belief that this is who I am with money",
+    commitment: "“I will write down what changed, in my own words, weekly.”",
+    habit: "Progress is recorded by the person, not the app",
+    balance: "39,100",
+  },
+];
+
 /** The numbers that make the Gulf version of this problem different, each one sourced. */
 export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
   {
@@ -68,11 +123,6 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     figure: "40% to 50%",
     label: "How much salary can go to repayments, and it moves by country",
     note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Kuwait's central bank caps instalments at 40% of net salary, 30% for pensioners. The plan has to be built from the person's own numbers, not a regional rule of thumb.",
-  },
-  {
-    figure: "3.3% NPL",
-    label: "Why I will not call this a regional crisis",
-    note: "UAE retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. No Gulf regulator publishes revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
   },
 ];
 
@@ -231,9 +281,7 @@ export const CHAPTERS: Chapter[] = [
     lead:
       "The payoff engine is the easy part. The judgment is knowing which layer someone is on, because avalanche versus snowball is irrelevant while the balance is still growing.",
     body: [
-      "The sequence Ren works through is stop creating new principal, separate a survival problem from a spending problem, protect a small anti relapse reserve, reduce the price of the debt, then choose a payoff order the person will actually execute, then free up cash flow, then defend against relapse. At 39% to 44% the cost of choosing snowball for the feeling over avalanche for the maths is higher here than in any American guide, so the product leans avalanche and clears trivial nuisance balances only where doing so releases a minimum payment or closes a card.",
-      "Reducing the price of the debt is the highest leverage and least used step in this market. Balance transfers exist, and they only work with all four conditions: a real rate reduction net of fees, a schedule that clears before the promotional period expires, no new spending on either card, and controlled access to the emptied one. There are local costs the guides miss, like the 1.05% early settlement fee on a transferred balance, and the bank is required to disclose it with a worked example, so the person can ask for it in writing.",
-      "Two local layers sit above the maths. The rights layer: the counselling obligation here sits on the creditor rather than a free charity, which is a genuinely useful right attached to a genuine conflict of interest, and the person should use it while knowing who the counsellor works for. And the riba layer, which is user triggered by design. It never appears as a setting or a default. The moment someone says avoiding interest matters to them, the plan moves fully into that frame, because the coaching evidence is clear that values work only when the values are the person's own. Ren describes what a contract does and sends rulings to a scholar.",
+      "At 39% to 44%, choosing snowball for the feeling over avalanche for the maths costs more here than in any American guide. So the product leans avalanche, and clears a trivial balance only where that releases a minimum payment or closes a card. This is the order Ren works down, before any payoff method matters.",
     ],
     aside: {
       title: "What Ren will not do",
@@ -272,11 +320,9 @@ export const CHAPTERS: Chapter[] = [
     lead:
       "The order was deliberate and it is the part I would defend in a review. Research fed a positioning brief, the brief fed a PRD of forty two numbered features, the PRD fed the user flows, and only then did anything get built.",
     body: [
-      "The brief came first because it decides what the product is allowed to be: who it is for, the value proposition, the coaching method, the legal posture, and the language that is banned rather than discouraged. No guaranteed outcomes, no guaranteed feelings, no scientifically proven, and no crush your debt. UAE advertising rules and the coaching literature's own failure modes point the same way, so the rule is absolute and every line of copy in the app obeys it. The brief also carries an appendix of corrections, every claim I got wrong during research and what replaced it, including a reassurance about travel bans I withdrew entirely because being wrong in either direction hurts someone.",
-      "The PRD is forty two numbered features with the unhappy paths weighted the same as the happy ones, and success criteria written behaviourally so they can be failed: the first exchange of onboarding may not ask for a number, a missed commitment must produce no red, no shrinking plant and no guilt copy, read ten of Ren's lines aloud and none of them should sound like an assistant. The out of scope list is as long as the feature list, and it holds everything that would be easiest to add and worst to have: streaks, badges, points, a community feed, a text chatbot.",
-      "Then the flows, four of them, because the flows are where product strategy stops being a slogan. Onboarding earns the numbers rather than demanding them, so it opens on what the money is for. The session flow is a contract before a conversation: length, intent, and an agenda the app proposes from what changed since the last call. The post call flow is the one most products skip, where the commitment is written in the person's own words and filed. And the relapse flow, the month that broke, which decides whether someone stays: no red, no restart, a re plan, and the next session opening on the last commitment kept or not.",
-      "The strategy underneath all of it is one sentence. Do not compete on conversation, compete on continuity: the journey, the live financial state, the memory of what the person said, and the plan that adapts. Ren is a room in that product, not the product, which is why the dashboard works with the call switched off.",
+      "The brief came first because it decides what the product is allowed to be, down to the language that is banned rather than discouraged. Success criteria in the PRD are written behaviourally so they can be failed: read ten of Ren's lines aloud and none should sound like an assistant.",
     ],
+    pull: "Do not compete on conversation. Compete on continuity.",
     aside: {
       title: "Corrections carried into the build",
       lines: [
@@ -296,7 +342,7 @@ export const CHAPTERS: Chapter[] = [
     body: [
       "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty eight dirhams this month, the number came out of the same database the screen is reading, and the payoff engine behind it runs month by month amortisation over every card at its own rate.",
       "The demo I judge it on is the balance transfer. Mid call I asked Ren what to do about the Emirates NBD card. It read the live balance and the 3.69% monthly rate out of Convex through its debt snapshot tool, worked the transfer against the fee and the promotional window, said the annual figure out loud rather than the monthly one, and proposed it. The offer appeared as a card in the call and filed itself on the Growth screen, unapplied, because Ren cannot move money and will not record transferred principal as progress. The person confirms it after their bank has actually done it. A coach that acts on a mishearing is worse than no coach.",
-      "One honest note on that flow: the rate and offer table Ren reasons over is a dated reference table inside the app, not live retrieval. Context.dev is specified as the source that would attach a rate, a source and a retrieval date to every offer, and it is not wired yet. Today Ren cannot invent a rate, and it also cannot promise you the offer is still live this morning.",
+      "That offer is now checked live. Context.dev is wired server side: Ren's tool searches the web for the bank's own pages, reads the published terms off the official page with fact checking on, and returns the promotional rate, the window, the revert rate and the fees with the source URL and the retrieval time attached. The key sits on our server, never in ElevenLabs and never in the browser. When retrieval fails, Ren says so in the call rather than reading the dated table out as this morning's rate.",
     ],
     shots: [
       {
@@ -425,6 +471,82 @@ export const LADDER: string[] = [
   "Free up cash flow",
   "Defend against relapse",
   "Rebuild reserves, then rebuild wealth",
+];
+
+/** A balance transfer only works when all four hold. Any one missing and it is a rearrangement. */
+export const TRANSFER_CONDITIONS: { test: string; detail: string }[] = [
+  { test: "A real rate cut, net of fees", detail: "Including the 1.05% early settlement fee on a transferred balance, which the bank must disclose with a worked example" },
+  { test: "A schedule that clears before the promo ends", detail: "Otherwise the revert rate lands on whatever is left" },
+  { test: "No new spending on either card", detail: "New principal on the emptied card undoes the whole move" },
+  { test: "Controlled access to the emptied card", detail: "Limit cut, card frozen, or closed" },
+];
+
+/** Two local layers that sit above the maths. */
+export const LOCAL_LAYERS: { title: string; body: string }[] = [
+  {
+    title: "The rights layer",
+    body: "The counselling obligation here sits on the creditor, not a free charity. A genuinely useful right, attached to a genuine conflict of interest. Use it, knowing who the counsellor works for.",
+  },
+  {
+    title: "The riba layer",
+    body: "User triggered by design, never a setting and never a default. The moment someone says avoiding interest matters to them, the plan moves fully into that frame. Ren describes what a contract does, and sends rulings to a scholar.",
+  },
+];
+
+/**
+ * The whole build as one AI-assisted pipeline, in the order it actually ran. Each step names the
+ * tool or artefact so the workflow is legible without reading the chapters.
+ */
+export const AI_WORKFLOW: { step: string; tool: string }[] = [
+  { step: "Deep research", tool: "Skeptical advisor prompt, sources bucketed" },
+  { step: "Debt strategies", tool: "Gulf rate mechanics, the escape ladder" },
+  { step: "Synthetic interviews", tool: "Five personas, promoters and detractors" },
+  { step: "Voice agent trained", tool: "ElevenLabs, prompt from the coaching research" },
+  { step: "Live retrieval wired", tool: "Context.dev, current bank offers with a source" },
+  { step: "PRD written", tool: "42 features, unhappy paths weighted the same" },
+  { step: "Brand built", tool: "Logo, palette, the plant animation" },
+  { step: "Flows mapped", tool: "Onboarding, session, post call, relapse" },
+  { step: "Built with Devin", tool: "Next.js, TypeScript, the payoff engine" },
+  { step: "Versioned", tool: "GitHub, a PR per change" },
+  { step: "Live data", tool: "Convex, real balances mid call" },
+  { step: "Shipped", tool: "Vercel, a preview URL per branch" },
+  { step: "Walkthrough recorded", tool: "Loom, the full journey end to end" },
+  { step: "UX stress tested", tool: "Gemini 3 Pro audit of the recording" },
+  { step: "UX fixed", tool: "Commitment loop, momentum, screen overlap" },
+  { step: "Audited again", tool: "Second pass on the rebuilt flows" },
+  { step: "Next", tool: "In progress, revealed soon" },
+];
+
+/** Research to build, in order, with the artefact each step produced. */
+export const PIPELINE: { step: string; made: string }[] = [
+  { step: "Research", made: "Skeptical advisor prompt, sources kept in separate buckets" },
+  { step: "Brief", made: "Who it is for, the method, the legal posture, the banned language" },
+  { step: "PRD", made: "42 numbered features, unhappy paths weighted the same" },
+  { step: "Flows", made: "Onboarding, session, post call, relapse" },
+  { step: "Build", made: "Live balances, seven server tools, a working call" },
+];
+
+export const PRD_STATS: { figure: string; label: string }[] = [
+  { figure: "42", label: "Numbered features, unhappy paths weighted like the happy ones" },
+  { figure: "4", label: "User flows mapped before a screen was drawn" },
+  { figure: "0", label: "Streaks, badges, points, feeds, text chatbot" },
+];
+
+/** Banned outright in the brief, not discouraged. */
+export const BANNED_PHRASES: string[] = [
+  "guaranteed outcomes",
+  "guaranteed feelings",
+  "scientifically proven",
+  "crush your debt",
+  "debt free in 6 months",
+  "you failed",
+];
+
+export const FLOWS: { name: string; rule: string }[] = [
+  { name: "Onboarding", rule: "Opens on what the money is for. The first exchange may not ask for a number." },
+  { name: "The session", rule: "A contract before a conversation: length, intent, and an agenda proposed from what changed." },
+  { name: "Post call", rule: "The commitment is written in the person's own words and filed, or the app says nothing landed." },
+  { name: "The month that broke", rule: "No red, no restart. A re plan, and the next session opens on the last commitment." },
 ];
 
 export const DESIGN_TOKENS: { hex: string; name: string; use: string }[] = [
@@ -742,7 +864,7 @@ export const STACK: { name: string; logo: string; role: string }[] = [
   {
     name: "Context.dev",
     logo: "/case/logos/context.png",
-    role: "Specified, not yet wired. The intended source of live rates and offers with a retrieval date attached. Today they come from a dated table.",
+    role: "Live retrieval behind Ren's balance transfer tool. Searches the bank's own pages and reads the published terms, with a source URL and a retrieval time on every figure.",
   },
   {
     name: "GitHub",
@@ -782,5 +904,5 @@ export const NOT_PROVEN = [
   "Market size is unverified. Public UAE data does not expose revolving card distress by age, income or card count.",
   "Coaching efficacy for debt payoff specifically is not established: one randomised evaluation supports financial coaching, a 2026 systematic review calls the evidence base too weak to conclude.",
   "Quiet mode's audio muting could not be measured on the machine I tested on. It needs a human ear before I would claim it works.",
-  "Context.dev is not wired for live retrieval, so no offer or rate in the product is guaranteed current.",
+  "Live retrieval reads what a bank publishes on its own page, which is not the same as the rate that bank would approve for one person. The offer is a proposal until their bank confirms it.",
 ];

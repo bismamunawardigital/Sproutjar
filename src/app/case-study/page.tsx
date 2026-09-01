@@ -2,31 +2,36 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { DebtLine } from "@/components/case/DebtLine";
 import { GrowthAnimation } from "@/components/case/GrowthAnimation";
 import { Reveal } from "@/components/case/Reveal";
 import { Walkthrough } from "@/components/case/Walkthrough";
 import {
+  AI_WORKFLOW,
   ALTERNATIVES,
   AUDIT,
   BANNED_COPY,
+  BANNED_PHRASES,
   CHAPTERS,
   DECISIONS,
   DESIGN_RULES,
   DESIGN_TOKENS,
+  FLOWS,
   GITHUB_SHOTS,
-  HISTORY,
   HYPOTHESES,
   LADDER,
+  LOCAL_LAYERS,
   LOOP,
   NEXT,
   NOT_PROVEN,
   NUMBER_RULES,
   PERSONAS,
+  PIPELINE,
+  PRD_STATS,
   RATE_FACTS,
+  SESSION_LADDER,
   STACK,
-  TALK_DATES,
   TESTING,
+  TRANSFER_CONDITIONS,
 } from "./content";
 
 export const metadata: Metadata = {
@@ -100,6 +105,51 @@ export default function CaseStudy() {
           </div>
         </section>
 
+        {/* The whole thing as one AI assisted pipeline, so the workflow is visible before the prose. */}
+        <section className="border-b border-rule bg-cream py-14 sm:py-16">
+          <div className="mx-auto max-w-5xl px-5">
+            <Reveal>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h2 className="max-w-[30ch] text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
+                  Seventeen steps, one AI assisted workflow, in the order it ran
+                </h2>
+                <p className="n text-[13px] text-ink-300">Research to shipped, then audited twice</p>
+              </div>
+            </Reveal>
+
+            <ol className="mt-9 grid gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+              {AI_WORKFLOW.map((stage, index) => {
+                const isLast = index === AI_WORKFLOW.length - 1;
+                return (
+                  <Reveal key={stage.step} delay={index * 25}>
+                    <li
+                      className={`h-full rounded-card border p-4 ${
+                        isLast
+                          ? "border-dashed border-soil/50 bg-root-50"
+                          : "border-rule bg-card shadow-sh-1"
+                      }`}
+                    >
+                      <span
+                        className={`n text-[12px] font-bold ${isLast ? "text-soil" : "text-stem"}`}
+                      >
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <p
+                        className={`mt-1 text-[15px] font-bold leading-snug ${
+                          isLast ? "text-soil" : "text-ink-900"
+                        }`}
+                      >
+                        {stage.step}
+                      </p>
+                      <p className="mt-1 text-[13px] leading-snug text-ink-400">{stage.tool}</p>
+                    </li>
+                  </Reveal>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+
         {/* What it is built on, and what each piece is actually responsible for. */}
         <section className="border-y border-rule bg-card/60">
           <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
@@ -133,36 +183,79 @@ export default function CaseStudy() {
           </div>
         </section>
 
-        {/* The chart, with the reading of it written out so nobody has to decode it. */}
-        <section className="mx-auto grid max-w-5xl items-center gap-9 px-5 pt-16 pb-16 md:grid-cols-[1fr_0.85fr] md:gap-12">
+        {/* Six sessions, each with an agenda and a commitment, and the balance after each one. */}
+        <section className="mx-auto max-w-5xl px-5 pt-16 pb-16">
           <Reveal>
-            <DebtLine history={HISTORY} talkDates={TALK_DATES} />
-          </Reveal>
-          <Reveal delay={80}>
-            <div>
-              <h2 className="text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
-                Why the line goes down
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <h2 className="max-w-[26ch] text-[23px] font-bold leading-[1.2] tracking-[-0.02em] text-ink-900 sm:text-[27px]">
+                Agenda, commitment, follow through. That is why the balance moves.
               </h2>
-              <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
-                The green line is everything the person owes, week by week. Each ring is a coaching
-                session, and none of them is a chat. The app proposes the agenda before the call,
-                built from what changed since the last one, so the session has a job: pick the
-                payoff order, survive a broken month, deal with the card that keeps refilling.
-              </p>
-              <p className="mt-3 text-[16px] leading-relaxed text-ink-500">
-                Each session ends with one commitment the person believes they can keep, in their
-                own words, and the next session opens on it, kept or not. Over eleven weeks that is
-                six agendas, six commitments and a set of small habit changes: pay on the day the
-                salary lands, stop spending on the card being cleared, move the surplus before it
-                gets spent. The principal falls because those held, not because the balance was
-                looked at. AED 48,545 cleared and a payoff date of June 2027.
-              </p>
-              <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
-                One honest caveat: this is the seeded demo profile the app ships with, not a real
-                customer. The person paid the debt down, and the product says cleared while coaching
-                with Ren rather than claiming the app did it.
-              </p>
+              <p className="text-[13px] text-ink-300">Seeded demo profile</p>
             </div>
+          </Reveal>
+
+          <Reveal delay={60}>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-card border border-rule bg-card p-5">
+                <p className="n text-[13px] text-ink-400">Opening balance</p>
+                <p className="n mt-1 text-[26px] font-bold tracking-[-0.02em] text-root">
+                  AED 87,645
+                </p>
+              </div>
+              <div className="rounded-card border border-rule bg-card p-5">
+                <p className="n text-[13px] text-ink-400">Principal cleared, 11 weeks</p>
+                <p className="n mt-1 text-[26px] font-bold tracking-[-0.02em] text-stem-700">
+                  AED 48,545
+                </p>
+              </div>
+              <div className="rounded-card border border-rule bg-card p-5">
+                <p className="n text-[13px] text-ink-400">Balance now</p>
+                <p className="n mt-1 text-[26px] font-bold tracking-[-0.02em] text-ink-900">
+                  AED 39,100
+                </p>
+              </div>
+            </div>
+          </Reveal>
+
+          <ol className="mt-10 border-l-2 border-stem/30 pl-6 sm:pl-8">
+            {SESSION_LADDER.map((session, index) => (
+              <Reveal key={session.when} delay={index * 40}>
+                <li className="relative pb-8 last:pb-0">
+                  <span
+                    className="absolute -left-[31px] top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-stem bg-cream sm:-left-[39px]"
+                    aria-hidden
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-stem" />
+                  </span>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                    <p className="text-[13px] font-bold uppercase tracking-wide text-stem-700">
+                      {session.when}
+                    </p>
+                    <p className="n text-[15px] font-bold text-ink-900">AED {session.balance}</p>
+                  </div>
+                  <p className="mt-1.5 text-[17px] font-bold leading-snug text-ink-900">
+                    {session.agenda}
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <p className="rounded-card bg-card p-3.5 text-[15px] leading-snug text-ink-700 shadow-sh-1">
+                      {session.commitment}
+                    </p>
+                    <p className="rounded-card bg-leaf-50 p-3.5 text-[14px] leading-snug text-stem-700">
+                      {session.habit}
+                    </p>
+                  </div>
+                </li>
+              </Reveal>
+            ))}
+          </ol>
+
+          <Reveal>
+            <p className="mt-8 max-w-[70ch] text-[15px] leading-relaxed text-ink-400">
+              The app proposes each agenda from what changed since the last call, so a session has a
+              job rather than being a chat. The principal fell because those commitments held. This
+              is the seeded demo profile the app ships with, not a real customer, and the product
+              says cleared while coaching with Ren rather than claiming the app did it.
+            </p>
           </Reveal>
         </section>
 
@@ -171,7 +264,7 @@ export default function CaseStudy() {
           <div className="mx-auto max-w-5xl px-5">
             <Reveal>
               <h2 className="max-w-[34ch] text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-cream sm:text-[31px]">
-                Seven numbers that make a Gulf credit card different from the one your payoff
+                Six numbers that make a Gulf credit card different from the one your payoff
                 calculator assumes
               </h2>
             </Reveal>
@@ -347,6 +440,112 @@ export default function CaseStudy() {
                     </ol>
                   ) : null}
 
+                  {chapter.id === "strategy" ? (
+                    <>
+                      <div className="mt-8 rounded-card border border-soil/30 bg-card p-5">
+                        <p className="text-[15px] font-bold text-ink-900">
+                          A balance transfer only works when all four hold
+                        </p>
+                        <p className="mt-1 text-[13px] leading-snug text-ink-400">
+                          Reducing the price of the debt is the highest leverage step in this market
+                          and the least used. Miss one condition and it is a rearrangement.
+                        </p>
+                        <ul className="mt-4 space-y-3">
+                          {TRANSFER_CONDITIONS.map((condition) => (
+                            <li key={condition.test} className="flex gap-3">
+                              <span
+                                className="mt-1 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-leaf-50 text-[11px] font-bold text-stem-700"
+                                aria-hidden
+                              >
+                                ✓
+                              </span>
+                              <span>
+                                <span className="block text-[15px] font-bold leading-snug text-ink-900">
+                                  {condition.test}
+                                </span>
+                                <span className="mt-0.5 block text-[14px] leading-snug text-ink-500">
+                                  {condition.detail}
+                                </span>
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {LOCAL_LAYERS.map((layer) => (
+                          <li key={layer.title} className="rounded-card bg-root-50 p-4">
+                            <p className="text-[15px] font-bold text-root">{layer.title}</p>
+                            <p className="mt-1.5 text-[14px] leading-snug text-ink-500">
+                              {layer.body}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+
+                  {chapter.id === "brief" ? (
+                    <>
+                      <ol className="mt-8 grid gap-3 sm:grid-cols-5">
+                        {PIPELINE.map((stage, index) => (
+                          <li
+                            key={stage.step}
+                            className="rounded-card border border-rule bg-card p-4"
+                          >
+                            <span className="n text-[12px] font-bold text-stem">0{index + 1}</span>
+                            <p className="mt-1 text-[15px] font-bold text-ink-900">{stage.step}</p>
+                            <p className="mt-1 text-[13px] leading-snug text-ink-400">
+                              {stage.made}
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+
+                      <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                        {PRD_STATS.map((stat) => (
+                          <div key={stat.label} className="rounded-card bg-leaf-50 p-4">
+                            <dt className="n text-[30px] font-bold leading-none tracking-[-0.03em] text-stem-700">
+                              {stat.figure}
+                            </dt>
+                            <dd className="mt-2 text-[13px] leading-snug text-ink-500">
+                              {stat.label}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+
+                      <div className="mt-4 rounded-card bg-card p-5 shadow-sh-1">
+                        <p className="text-[14px] font-bold text-ink-900">
+                          Banned outright, not discouraged
+                        </p>
+                        <ul className="mt-3 flex flex-wrap gap-2">
+                          {BANNED_PHRASES.map((phrase) => (
+                            <li
+                              key={phrase}
+                              className="rounded-full bg-root-50 px-3 py-1.5 text-[13px] text-root line-through"
+                            >
+                              {phrase}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {FLOWS.map((flow, index) => (
+                          <li key={flow.name} className="rounded-card border border-rule bg-card p-4">
+                            <p className="flex items-baseline gap-2 text-[15px] font-bold text-ink-900">
+                              <span className="n text-[12px] text-soil">Flow 0{index + 1}</span>
+                              {flow.name}
+                            </p>
+                            <p className="mt-1.5 text-[14px] leading-snug text-ink-500">
+                              {flow.rule}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+
                   {chapter.pull ? (
                     <p className="mt-8 border-l-2 border-stem pl-5 text-[19px] font-bold leading-snug tracking-[-0.015em] text-ink-900 sm:text-[22px]">
                       {chapter.pull}
@@ -377,14 +576,12 @@ export default function CaseStudy() {
           <div className="mx-auto max-w-3xl px-5">
             <Reveal>
               <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-cream sm:text-[34px]">
-                I stress tested the UX with a full audit, because I was the wrong person to review
-                my own work
+                I stress tested the UX with a full Gemini 3 Pro audit, to improve the flows
               </h2>
               <p className="mt-4 text-[18px] leading-relaxed text-lid">
-                Everything up to this point was mine and defensible on paper, which is exactly the
-                problem: I had no way to see the seams I had designed myself into. So I recorded a
-                screen capture of the full journey, onboarding through a call and out the other side,
-                and ran it through a UX audit with Gemini 3 Pro.
+                I recorded a screen capture of the whole journey, onboarding through a call and out
+                the other side, and ran it through a full UX audit with Gemini 3 Pro. The point was
+                to find the seams in the flows while they were still cheap to fix.
               </p>
               <p className="mt-4 text-[16px] leading-relaxed text-lid/85">
                 The prompt mattered more than the model. It removed every escape route: a senior
@@ -418,17 +615,17 @@ export default function CaseStudy() {
         {/* The audit's own artefacts, so the reader sees the critique rather than my account of it. */}
         <section className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
           <Reveal>
-            <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
-              What it said, in its own pages
-            </h2>
-            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
-              {AUDIT.scoreLine}
-            </p>
-            <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-400">
-              These are pages from the audit report itself, not user testing. One expert model
-              reviewing one recorded journey, and its redesigns are proposals, not measured
-              outcomes.
-            </p>
+            <div className="mx-auto max-w-3xl">
+              <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+                What it said, in its own pages
+              </h2>
+              <p className="mt-4 text-[17px] leading-relaxed text-ink-500">{AUDIT.scoreLine}</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-ink-400">
+                These are pages from the audit report itself, not user testing. One expert model
+                reviewing one recorded journey, and its redesigns are proposals, not measured
+                outcomes.
+              </p>
+            </div>
           </Reveal>
 
           <div className="mt-10 space-y-10">
@@ -453,7 +650,7 @@ export default function CaseStudy() {
             ))}
           </div>
 
-          <div className="mt-16 border-t border-rule pt-10">
+          <div className="mx-auto mt-16 max-w-3xl border-t border-rule pt-10">
             <Reveal>
               <h3 className="text-[21px] font-bold tracking-[-0.02em] text-ink-900 sm:text-[24px]">
                 Five findings, and what happened to each
@@ -463,13 +660,13 @@ export default function CaseStudy() {
               {AUDIT.findings.map((finding) => (
                 <Reveal key={finding.found}>
                   <li>
-                    <h4 className="max-w-[62ch] text-[17px] font-bold leading-snug text-ink-900">
+                    <h4 className="text-[17px] font-bold leading-snug text-ink-900">
                       {finding.found}
                     </h4>
-                    <p className="mt-2.5 max-w-[66ch] text-[16px] leading-relaxed text-root">
+                    <p className="mt-2.5 text-[16px] leading-relaxed text-root">
                       <span className="font-bold">The audit.</span> {finding.verdict}
                     </p>
-                    <p className="mt-2 max-w-[66ch] text-[16px] leading-relaxed text-stem-700">
+                    <p className="mt-2 text-[16px] leading-relaxed text-stem-700">
                       <span className="font-bold">What I did.</span> {finding.did}
                     </p>
                   </li>
