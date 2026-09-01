@@ -9,7 +9,7 @@ import { Walkthrough } from "@/components/case/Walkthrough";
 import { CHAPTERS, DECISIONS, HISTORY, NOT_PROVEN, TALK_DATES, TESTING } from "./content";
 
 export const metadata: Metadata = {
-  title: "Sproutjar — how it was researched, designed and built",
+  title: "Sproutjar: how it was researched, designed and built",
   description:
     "The case study behind Sproutjar: a voice coach for people clearing credit card debt in the Gulf. Research, the findings that argued against my own idea, the decisions taken, and what remains unproven.",
 };
@@ -31,14 +31,15 @@ export default function CaseStudy() {
 
       <main>
         {/* Result first: the thing itself, moving, before a word of process. */}
-        <section className="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-12 pb-14 sm:pt-16 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
+        <section className="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-12 pb-14 sm:pt-16 md:grid-cols-[1.2fr_0.8fr] md:gap-12">
           <div>
-            <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] text-ink-900 sm:text-[46px]">
-              Sproutjar is an app that talks you out of credit card debt.
+            <h1 className="max-w-[19ch] text-[31px] font-bold leading-[1.1] tracking-[-0.03em] text-ink-900 sm:text-[40px]">
+              Sproutjar is a financial wellness app that helps you clear credit card debt, with
+              an AI voice coach trained on positive psychology and life coaching.
             </h1>
             <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-ink-500">
-              You tell it what you owe. It builds the payoff plan, then Ren — a voice coach that
-              can see your actual balances — calls it through with you: what to pay first, what
+              You tell it what you owe. It builds the payoff plan, then Ren, a voice coach that
+              can see your actual balances, calls it through with you: what to pay first, what
               you committed to last month, what happened when it went wrong. Built for salaried
               professionals in the UAE carrying balances across two to four cards.
             </p>
@@ -47,7 +48,7 @@ export default function CaseStudy() {
             </p>
             <p className="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-ink-400">
               It runs. Live database, live voice calls, a payoff engine doing real amortisation.
-              What it does not have is users — every figure on this page comes from research or
+              What it does not have is users. Every figure on this page comes from research or
               from the seeded demo profile, and I have said which is which throughout.
             </p>
           </div>
@@ -171,7 +172,7 @@ export default function CaseStudy() {
               </p>
               <p className="mt-4 text-[16px] leading-relaxed text-lid/85">
                 The audit is the hinge of this project. Everything before it was mine and defensible
-                on paper. What came back was about the seams — where momentum died, what two screens
+                on paper. What came back was about the seams: where momentum died, what two screens
                 were both trying to be, what the product implied when a call produced nothing, and
                 which numbers claimed more than they had earned. The decisions below are what I did
                 about it, including the ones where I disagreed and kept my version.
@@ -217,8 +218,8 @@ export default function CaseStudy() {
               Then I sent an agent through it to break it
             </h2>
             <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
-              A browser agent walked the whole journey — onboarding, a real call, a commitment,
-              settling a card — while I watched what it did rather than what I expected it to do.
+              A browser agent walked the whole journey (onboarding, a real call, a commitment,
+              settling a card) while I watched what it did rather than what I expected it to do.
               It found four things. Three are fixed. The fourth I cannot honestly close.
             </p>
             <dl className="mt-8 space-y-6">
@@ -249,7 +250,7 @@ export default function CaseStudy() {
               <p className="mt-4 text-[16px] leading-relaxed text-ink-500">
                 The rules that came out of it are the reason the interface holds together. Money is
                 always tabular. Estimates always carry a chip. The call orb is the only gradient
-                permitted anywhere. And the plant never wilts — a design rule that is really a
+                permitted anywhere. And the plant never wilts, a design rule that is really a
                 product promise, because a product that visibly punishes you for a bad month is one
                 you delete during a bad month.
               </p>
@@ -285,7 +286,7 @@ export default function CaseStudy() {
             </ul>
             <p className="mt-8 text-[16px] leading-relaxed text-ink-500">
               What I would do with a real week: five interviews with people carrying card balances
-              in Dubai, testing the two claims the whole product rests on — that seeing a date move
+              in Dubai, testing the two claims the whole product rests on: that seeing a date move
               changes behaviour, and that being asked what happened is worth paying for.
             </p>
           </Reveal>
