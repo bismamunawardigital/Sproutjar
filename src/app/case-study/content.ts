@@ -45,9 +45,14 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     note: "Emirates NBD works its own examples at 3.25% and 3.69% a month. Citibank UAE publishes 42% moving to 44.28%. The US baseline in the source material was around 21.5%.",
   },
   {
+    figure: "36.28% to 36.75%",
+    label: "What a Saudi card costs a year",
+    note: "Riyad Bank publishes a monthly term cost of 2.50% to 2.55% on its platinum and signature cards, stated as an annual profit rate of 36.28% to 36.75%. Islamic structure, same order of magnitude as Dubai.",
+  },
+  {
     figure: "2% to 4%",
-    label: "How the bank quotes it: per month",
-    note: "A monthly rate does not feel like anything. Rule in the product: never leave a rate in monthly form, always show the year and the dirhams charged this month.",
+    label: "How every Gulf bank quotes it: per month",
+    note: "A monthly rate does not feel like anything, and it is the convention from Dubai to Riyadh. Rule in the product: never leave a rate in monthly form, always show the year and the money charged this month.",
   },
   {
     figure: "+0.5% / month",
@@ -60,14 +65,14 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     note: "Interest runs from the transaction date unless 100% is paid by the due date. People paying nearly everything believe they are being responsible and are not. Cash advances never get grace.",
   },
   {
-    figure: "50% DBR",
-    label: "Cap on repayments against income",
-    note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Keeping the old card open for your score has a cost here.",
+    figure: "40% to 50%",
+    label: "How much salary can go to repayments, and it moves by country",
+    note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Kuwait's central bank caps instalments at 40% of net salary, 30% for pensioners. The plan has to be built from the person's own numbers, not a regional rule of thumb.",
   },
   {
     figure: "3.3% NPL",
-    label: "Why I will not call this a national crisis",
-    note: "Retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. Public data does not expose revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
+    label: "Why I will not call this a regional crisis",
+    note: "UAE retail credit grew 16.1% and personal loans 8.6% in 2025, and bad loans fell to 3.3%. No Gulf regulator publishes revolving card distress by age, income or card count, so the problem is evidenced and the market size is not.",
   },
 ];
 
@@ -167,11 +172,12 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "panel",
-    title: "Five people who do not exist, and the one who told me not to build it",
+    title: "I built a synthetic user panel of promoters and detractors, and interviewed all five",
     lead:
-      "I ran a synthetic interview panel of five personas, deliberately including one woman whose current system already works. None of it is evidence. What it is good for is generating objections sharp enough to design against.",
+      "Before I could reach real customers I wrote five personas and ran a full interview with each: two who should love this, two who are sceptical, and one who should refuse to buy it. The point was not applause. It was to hear, in one place, why someone would pay for this and why someone would not touch it.",
     body: [
       "Zayd was the most useful. He knows what avalanche means, has built the spreadsheet twice, and abandons it the month reality diverges from it. His objection is the one the whole business has to answer: why is this not just ChatGPT plus Excel. Omar gave me the sentence I now use to explain the product, that the debt cycle is like dieting, austerity then relief then relapse. Leena showed why the mathematically optimal plan is often the personally unsustainable one. And Maya, who is organised and fine, said the quiet part out loud about my own positioning.",
+      "Building the panel with detractors in it is the reason it was useful. Five enthusiasts would have confirmed everything and changed nothing. This produced five buying objections and one clear non customer, which is a cheaper way to find them than shipping. None of it is evidence, and I do not treat it as any: a synthetic panel generates objections and hypotheses, and only real interviews can settle them.",
       "Nobody on the panel wanted a forty minute scheduled call with an AI about their credit cards. That matched the research verdict on voice, and it is why sessions are ten, twenty or forty minutes at the person's choice, nothing is scheduled, and Ren is a room in the product rather than the product.",
     ],
     quotes: [

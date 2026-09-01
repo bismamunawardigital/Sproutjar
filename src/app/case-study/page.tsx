@@ -171,8 +171,8 @@ export default function CaseStudy() {
           <div className="mx-auto max-w-5xl px-5">
             <Reveal>
               <h2 className="max-w-[34ch] text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-cream sm:text-[31px]">
-                Six numbers that make a Dubai card different from the one your payoff calculator
-                assumes
+                Seven numbers that make a Gulf credit card different from the one your payoff
+                calculator assumes
               </h2>
             </Reveal>
             <dl className="mt-10 grid gap-x-10 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
