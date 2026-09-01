@@ -12,7 +12,7 @@ const PAD_X = 8;
 
 /**
  * The proof shot at the top of the page: the balance line falling, drawn once,
- * with a dot for every conversation. The talks are on the line on purpose —
+ * with a dot for every conversation. The talks are on the line on purpose:
  * the argument of the product is that the money moved because someone talked.
  */
 export function DebtLine({

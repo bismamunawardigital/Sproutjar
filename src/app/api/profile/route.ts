@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { currentUser } from "@/lib/user";
 import { COUNTRIES } from "@/lib/money";
 
@@ -24,5 +24,5 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid profile", issues: parsed.error.issues }, { status: 400 });
   }
-  return NextResponse.json(await convex.mutation(api.sproutjar.updateProfile, parsed.data));
+  return NextResponse.json(await convexClient().mutation(api.sproutjar.updateProfile, parsed.data));
 }

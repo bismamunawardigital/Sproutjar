@@ -1,5 +1,5 @@
 import { api } from "../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, type DebtInput, type Strategy } from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { countryProfile } from "@/lib/money";
@@ -40,7 +40,7 @@ export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
  * profile. Swapping this for a session lookup is the only change auth requires.
  */
 export async function currentUser() {
-  const live = await convex.query(api.sproutjar.snapshot, {});
+  const live = await convexClient().query(api.sproutjar.snapshot, {});
   return live.user;
 }
 
@@ -50,7 +50,7 @@ export async function currentUser() {
  * someone owes.
  */
 export async function buildSnapshot() {
-  const live = await convex.query(api.sproutjar.snapshot, {});
+  const live = await convexClient().query(api.sproutjar.snapshot, {});
   const user = live.user;
 
   const debtRows = live.debts;

@@ -50,17 +50,17 @@ export const CHAPTERS: Chapter[] = [
       {
         text:
           "Shame appears, but so do job loss, illness, family expenses, accumulating EMIs, cash-flow mismatch, poor habits and misunderstandings.",
-        who: "Customer & Market Research Report — verdict on my own assumption",
+        who: "Customer & Market Research Report, verdict on my own assumption",
       },
     ],
     aside: {
       title: "What the research did to each assumption",
       lines: [
-        "People are struggling with cards and loans — supported, strongly, at problem level",
-        "Shame is the main reason people stay stuck — contradicted as a primary explanation",
-        "People mainly need education — too narrow",
-        "A calculator or planner is enough — contradicted; they already have those",
-        "There is a UAE card-debt crisis — not yet proven from public data",
+        "People are struggling with cards and loans: supported, strongly, at problem level",
+        "Shame is the main reason people stay stuck: contradicted as a primary explanation",
+        "People mainly need education: too narrow",
+        "A calculator or planner is enough: contradicted; they already have those",
+        "There is a UAE card-debt crisis: not yet proven from public data",
       ],
     },
   },
@@ -105,7 +105,7 @@ export const CHAPTERS: Chapter[] = [
     id: "synthetic",
     title: "Five people who do not exist",
     lead:
-      "I ran a synthetic interview panel — five personas, at least one of them happy with what she already uses — and then wrote down, in the brief, that none of it counts as evidence.",
+      "I ran a synthetic interview panel of five personas, at least one of them happy with what she already uses, and then wrote down, in the brief, that none of it counts as evidence.",
     body: [
       "Synthetic users can only reflect back the patterns already in the research they were built from. What they are genuinely good for is generating objections and testable claims, so that is all I took from them: five hypotheses, each one written so a real interview could kill it.",
       "One of those hypotheses went on to change the product more than any research finding did.",
@@ -127,7 +127,7 @@ export const CHAPTERS: Chapter[] = [
     lead:
       "I wanted a voice coach. The research verdict on that was one word: unsupported. Every persona rejected long scheduled calls, and the evidence validated a journey, not a modality.",
     body: [
-      "I kept voice anyway, and the case study is the right place to be honest about why. Saying a number out loud to something that answers is a different act from typing it into a form, and the specific problem I found — people who know what to do and cannot keep doing it — is the problem accountability solves. Nobody has ever been held accountable by a text field.",
+      "I kept voice anyway, and the case study is the right place to be honest about why. Saying a number out loud to something that answers is a different act from typing it into a form, and the specific problem I found (people who know what to do and cannot keep doing it) is the problem accountability solves. Nobody has ever been held accountable by a text field.",
       "But I designed around the finding rather than through it. Sessions are ten, twenty or forty minutes and the person picks; nothing is scheduled. Quiet mode lets someone whisper on a Metro platform and read Ren's answer on screen. Every number Ren says is also on the screen behind it. And the product does not ship a text chatbot, because a chatbot would quietly become the whole product and there are eight million users at Cleo already doing that.",
       "If a real cohort tells me voice is dead weight, the journey survives without it. That was the point of building it this way round.",
     ],
@@ -146,17 +146,17 @@ export const CHAPTERS: Chapter[] = [
     lead:
       "Between the research and the build, I wrote a foundation brief: positioning, language rules, the coaching method, the market and legal posture, and a standing instruction not to under-read a source.",
     body: [
-      "Two things in it do more work than anything else. The first is a list of language that is banned rather than discouraged — no guaranteed outcomes, no guaranteed feelings, no “scientifically proven”. UAE advertising rules and the coaching literature's own failure modes point the same direction, so the rule is absolute and the copy in the product obeys it.",
+      "Two things in it do more work than anything else. The first is a list of language that is banned rather than discouraged: no guaranteed outcomes, no guaranteed feelings, no “scientifically proven”. UAE advertising rules and the coaching literature's own failure modes point the same direction, so the rule is absolute and the copy in the product obeys it.",
       "The second is an appendix of corrections: every claim I got wrong during research, and what replaced it. A law I dated to the wrong year. An interest rate that was already out of date. A reassurance about travel bans I had to withdraw entirely, because it turns on facts I cannot verify and being wrong in either direction hurts someone. Ren now makes no claim there at all.",
     ],
     aside: {
       title: "Corrections carried into the build",
       lines: [
-        "Compound interest ban treated as upcoming — already live under UAE law",
-        "Cheque law dated to January 2022 — in force January 2023, different instrument",
-        "Card rate cited at 44.28% — currently 42%",
-        "Travel-ban reassurance — withdrawn; Ren makes no claim here",
-        "“Withhold validation to avoid premature interpretation” — wrong; affirmation is core to the method",
+        "Compound interest ban treated as upcoming, already live under UAE law",
+        "Cheque law dated to January 2022, in force January 2023, different instrument",
+        "Card rate cited at 44.28%, currently 42%",
+        "Travel-ban reassurance, withdrawn; Ren makes no claim here",
+        "“Withhold validation to avoid premature interpretation”, wrong; affirmation is core to the method",
       ],
     },
   },
@@ -174,17 +174,17 @@ export const CHAPTERS: Chapter[] = [
     id: "build",
     title: "Built for a hackathon deadline, in hours",
     lead:
-      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call. Nine tools wired to real API routes, so Ren reads live balances mid-sentence instead of improvising them.",
+      "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call. Seven tools wired to real API routes, so Ren reads live balances mid-sentence instead of improvising them.",
     body: [
       "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty-eight dirhams this month, that number came out of the same database the screen is reading, and the payoff engine that produced it runs month-by-month amortisation over every card at its own rate.",
-      "Ren can write a commitment, log a belief, propose a balance transfer. Ren cannot move money, change a balance, or delete a card. The proposal lands on screen and waits for the person to confirm it after their bank has actually done it — because a coach that acts on a mishearing is worse than no coach.",
+      "Ren can write a commitment, log a belief, propose a balance transfer. Ren cannot move money, change a balance, or delete a card. The proposal lands on screen and waits for the person to confirm it after their bank has actually done it, because a coach that acts on a mishearing is worse than no coach.",
     ],
     shots: [
       {
         src: "/case/app-dashboard.png",
         alt: "Home: the plant in its jar, a debt-free date of June 2027, left to pay, paid off, and the monthly interest labelled rent on the debt.",
         label:
-          "Home. The plant, the date, and the interest named as rent — the number nobody quotes you when you take the card.",
+          "Home. The plant, the date, and the interest named as rent, the number nobody quotes you when you take the card.",
       },
       {
         src: "/case/app-growth.png",
@@ -196,7 +196,7 @@ export const CHAPTERS: Chapter[] = [
         src: "/case/app-you.png",
         alt: "You: Layla, eleven weeks in, paid off and talks, what the money is for, something that already worked, and beliefs said out loud.",
         label:
-          "You. Their reason, their own past success, and the beliefs they have said out loud — in their words, dated, still editable.",
+          "You. Their reason, their own past success, and the beliefs they have said out loud, in their words, dated, still editable.",
       },
     ],
   },
@@ -225,7 +225,7 @@ export const DECISIONS: {
   },
   {
     question: "What does the chart claim?",
-    chose: "“Cleared while coaching with Ren — across six conversations.”",
+    chose: "“Cleared while coaching with Ren, across six conversations.”",
     instead: "“Your progress.”",
     why:
       "The line falls because someone paid it down, not because they installed an app. The wording had to stop short of claiming the app caused it.",
@@ -258,14 +258,14 @@ export const DECISIONS: {
       "Ren proposes, the offer appears as a card in the call and files itself on Growth, and the person applies it only after their bank has executed it.",
     instead: "Let the tool move the balance when the person says yes on the call.",
     why:
-      "Voice mishears. Money must not move on a mishearing, and transferred principal is not progress — the engine records it at zero cleared.",
+      "Voice mishears. Money must not move on a mishearing, and transferred principal is not progress: the engine records it at zero cleared.",
   },
   {
     question: "What happens when the debt reaches zero?",
     chose: "Ren changes horizon: jars, months of cover, the asks now that money is visible.",
     instead: "Congratulate and go quiet.",
     why:
-      "The research is explicit that people slip back. The strongest retention argument and the strongest user argument happen to be the same one — and Ren still recommends no investment product, fund or allocation.",
+      "The research is explicit that people slip back. The strongest retention argument and the strongest user argument happen to be the same one, and Ren still recommends no investment product, fund or allocation.",
   },
   {
     question: "Someone is in public and cannot talk.",
@@ -296,6 +296,103 @@ export const DECISIONS: {
   },
 ];
 
+export const AUDIT = {
+  verdict: "A brilliant debt-recovery narrative held back by a broken commitment loop.",
+  score: "65.2 / 100 composite, across five UI and UX dimensions",
+  scoreLine:
+    "Brand system scored 92 and was called world-class adherence to the guidelines. Action state and feedback scored 44 and was marked critical. That gap is the whole finding: the product looked like itself and did not close its own loop.",
+  images: [
+    {
+      src: "/case/audit-verdict-cards.png",
+      alt: "Three audit cards. The genius: culturally grounded framing. The breaking point: the post-session drop-off. The number one fix: a unified commitment loop.",
+      label:
+        "The audit's own summary. What worked, what broke, and the single fix it argued for.",
+    },
+    {
+      src: "/case/audit-scorecard.png",
+      alt: "Scorecard: information architecture 54, financial data density 62, brand system 92 strong, action state management 44 critical, mobile ergonomics 66.",
+      label:
+        "Five dimensions scored. The brand scored highest, the behaviour loop lowest, which is the uncomfortable version of the result.",
+    },
+    {
+      src: "/case/audit-inspector-handshake.png",
+      alt: "The audit's prescribed post-call debrief sheet next to its notes: the handshake is missing from the application entirely.",
+      label:
+        "The missing screen, drawn. A thirty second debrief that turns what was agreed out loud into the commitment on Home.",
+    },
+    {
+      src: "/case/audit-inspector-growth.png",
+      alt: "The audit's redesign of the debt clearing screen with avalanche target badges and explicit actions, beside the friction it found in the shipped version.",
+      label:
+        "Growth, rebuilt by the auditor: bold balance, the monthly cost as a badge, and 'Take it off' replaced by actions that say what they do.",
+    },
+  ],
+  findings: [
+    {
+      found:
+        "When a call ends, nothing is captured. Home goes back to “Nothing here yet” for someone eleven weeks and six sessions in.",
+      verdict:
+        "Named the breaking point of the product: the agreement reached out loud never becomes state, so the burden falls back on the person's memory.",
+      did: "Built the ending. A call now finishes with the commitment written, or the person's own words with an editable commitment offered, or an honest nothing landed today. Home holds it until it is done or adapted.",
+    },
+    {
+      found: "Home and Ren were the same screen: two tabs, one dark card, one Call Ren button.",
+      verdict:
+        "Information architecture scored 54. Two tabs doing one job collapses the map of the app.",
+      did: "Home became the overview with a doorway. Ren became the coaching room and the archive, with intent pills that set the contract before the call starts.",
+    },
+    {
+      found: "'Take it off' on a debt card. Does it mean paid, deleted, or excluded from the plan?",
+      verdict: "Flagged as dangerous ambiguity on the one screen where a wrong tap loses history.",
+      did: "Explicit actions, and settled cards leave the payoff order for a cleared list instead of being deleted.",
+    },
+    {
+      found:
+        "The You tab counted follow-through as four out of six, and the timeline headline read “what your talks have moved”.",
+      verdict:
+        "Called both out: the count reads as punitive to a user whose main risk is shame, and the headline claims the coach caused what the person's own money did.",
+      did: "The count is gone. The line now says cleared while coaching with Ren, across six conversations, which is the most it can honestly say.",
+    },
+    {
+      found: "Manual +100, +250 and +500 buttons on the savings side.",
+      verdict:
+        "Called an arcade ledger that contradicts the product's own promise to end spreadsheet maintenance.",
+      did: "Kept, and I disagree with the fix. Milestone tiers without bank connections would be a nicer looking way to be wrong about someone's balance. The tap is honest until there is real account data behind it.",
+    },
+  ],
+};
+
+export const STACK = [
+  {
+    name: "Devin",
+    role: "Built it. Paired with it as the engineer on the whole thing: the payoff engine, the Convex schema, the four surfaces, the voice plumbing, and the browser agent that later walked the journey looking for what I had missed.",
+  },
+  {
+    name: "Claude",
+    role: "Thinking partner for the research and the writing. The market report, the synthetic panel, the foundation brief and the PRD were argued out here, including the parts that came back against my own idea.",
+  },
+  {
+    name: "Convex",
+    role: "The live database under every screen and every one of Ren's tools, so a commitment logged mid-call is on the dashboard before the call ends and the voice can never quote a balance the screen disagrees with.",
+  },
+  {
+    name: "ElevenLabs",
+    role: "The call itself, over WebRTC. Ren's prompt, turn-taking and seven server tools live here; the tools call this app's own API routes, so Ren reads real balances instead of improvising them.",
+  },
+  {
+    name: "Context.dev",
+    role: "Specified, not yet wired. It is how Ren is meant to pull live rates and offers with a source and a retrieval date attached. Today those come from a dated reference table, which keeps Ren from inventing a rate but does not keep it current.",
+  },
+  {
+    name: "GitHub",
+    role: "Where the work is legible. Every change arrived as a pull request with the reasoning written down, so the build history reads as a record of decisions rather than a pile of commits.",
+  },
+  {
+    name: "Vercel",
+    role: "Hosting. Every branch gets its own preview URL, so the product and this case study could be opened and judged on a real device rather than described.",
+  },
+];
+
 export const TESTING = [
   {
     found: "Growth pointed at a card that was already settled",
@@ -320,6 +417,6 @@ export const NOT_PROVEN = [
   "The five personas are synthetic. They generate hypotheses; they cannot validate anything, and any price they name is fiction.",
   "Willingness to pay is untested, in a market where the good alternatives run from free to about fifteen dollars a month.",
   "Market size is unverified. Public UAE data does not expose revolving card distress by age, income or card count.",
-  "Coaching efficacy for debt payoff specifically is not established — one randomised evaluation supports financial coaching, a 2026 systematic review calls the evidence base too weak to conclude.",
+  "Coaching efficacy for debt payoff specifically is not established: one randomised evaluation supports financial coaching, a 2026 systematic review calls the evidence base too weak to conclude.",
   "Quiet mode's audio muting could not be measured on the machine I tested on. It needs a human ear before I would claim it works.",
 ];

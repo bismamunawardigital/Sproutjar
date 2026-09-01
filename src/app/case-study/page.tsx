@@ -6,10 +6,19 @@ import { DebtLine } from "@/components/case/DebtLine";
 import { GrowthAnimation } from "@/components/case/GrowthAnimation";
 import { Reveal } from "@/components/case/Reveal";
 import { Walkthrough } from "@/components/case/Walkthrough";
-import { CHAPTERS, DECISIONS, HISTORY, NOT_PROVEN, TALK_DATES, TESTING } from "./content";
+import {
+  AUDIT,
+  CHAPTERS,
+  DECISIONS,
+  HISTORY,
+  NOT_PROVEN,
+  STACK,
+  TALK_DATES,
+  TESTING,
+} from "./content";
 
 export const metadata: Metadata = {
-  title: "Sproutjar — how it was researched, designed and built",
+  title: "Sproutjar: how it was researched, designed and built",
   description:
     "The case study behind Sproutjar: a voice coach for people clearing credit card debt in the Gulf. Research, the findings that argued against my own idea, the decisions taken, and what remains unproven.",
 };
@@ -31,14 +40,15 @@ export default function CaseStudy() {
 
       <main>
         {/* Result first: the thing itself, moving, before a word of process. */}
-        <section className="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-12 pb-14 sm:pt-16 md:grid-cols-[1.05fr_0.95fr] md:gap-14">
+        <section className="mx-auto grid max-w-5xl items-center gap-10 px-5 pt-12 pb-14 sm:pt-16 md:grid-cols-[1.2fr_0.8fr] md:gap-12">
           <div>
-            <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] text-ink-900 sm:text-[46px]">
-              Sproutjar is an app that talks you out of credit card debt.
+            <h1 className="max-w-[19ch] text-[31px] font-bold leading-[1.1] tracking-[-0.03em] text-ink-900 sm:text-[40px]">
+              Sproutjar is a financial wellness app that helps you clear credit card debt, with
+              an AI voice coach trained on positive psychology and life coaching.
             </h1>
             <p className="mt-5 max-w-[54ch] text-[17px] leading-relaxed text-ink-500">
-              You tell it what you owe. It builds the payoff plan, then Ren — a voice coach that
-              can see your actual balances — calls it through with you: what to pay first, what
+              You tell it what you owe. It builds the payoff plan, then Ren, a voice coach that
+              can see your actual balances, calls it through with you: what to pay first, what
               you committed to last month, what happened when it went wrong. Built for salaried
               professionals in the UAE carrying balances across two to four cards.
             </p>
@@ -47,7 +57,7 @@ export default function CaseStudy() {
             </p>
             <p className="mt-4 max-w-[54ch] text-[15px] leading-relaxed text-ink-400">
               It runs. Live database, live voice calls, a payoff engine doing real amortisation.
-              What it does not have is users — every figure on this page comes from research or
+              What it does not have is users. Every figure on this page comes from research or
               from the seeded demo profile, and I have said which is which throughout.
             </p>
           </div>
@@ -56,7 +66,31 @@ export default function CaseStudy() {
           </Reveal>
         </section>
 
-        <section className="mx-auto max-w-5xl px-5 pb-16">
+        {/* What it is built on, and what each piece is actually responsible for. */}
+        <section className="border-y border-rule bg-card/60">
+          <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
+            <Reveal>
+              <h2 className="text-[20px] font-bold tracking-[-0.02em] text-ink-900 sm:text-[23px]">
+                Built with
+              </h2>
+              <dl className="mt-7 divide-y divide-rule border-t border-rule">
+                {STACK.map((tool) => (
+                  <div
+                    key={tool.name}
+                    className="grid gap-1.5 py-4 sm:grid-cols-[150px_1fr] sm:gap-8"
+                  >
+                    <dt className="text-[15px] font-bold text-ink-900">{tool.name}</dt>
+                    <dd className="max-w-[62ch] text-[15px] leading-relaxed text-ink-500">
+                      {tool.role}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-5xl px-5 pt-16 pb-16">
           <Reveal>
             <DebtLine history={HISTORY} talkDates={TALK_DATES} />
           </Reveal>
@@ -171,12 +205,86 @@ export default function CaseStudy() {
               </p>
               <p className="mt-4 text-[16px] leading-relaxed text-lid/85">
                 The audit is the hinge of this project. Everything before it was mine and defensible
-                on paper. What came back was about the seams — where momentum died, what two screens
+                on paper. What came back was about the seams: where momentum died, what two screens
                 were both trying to be, what the product implied when a call produced nothing, and
                 which numbers claimed more than they had earned. The decisions below are what I did
                 about it, including the ones where I disagreed and kept my version.
               </p>
             </Reveal>
+            <Reveal>
+              <figure className="mt-10 border-t border-cream/20 pt-8">
+                <blockquote className="text-[21px] font-bold leading-snug tracking-[-0.02em] text-cream sm:text-[25px]">
+                  “{AUDIT.verdict}”
+                </blockquote>
+                <figcaption className="mt-3 text-[14px] text-lid/70">
+                  Its one line verdict. {AUDIT.score}.
+                </figcaption>
+              </figure>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* The audit's own artefacts, so the reader sees the critique rather than my account of it. */}
+        <section className="mx-auto max-w-5xl px-5 py-16 sm:py-24">
+          <Reveal>
+            <h2 className="text-[27px] font-bold leading-[1.15] tracking-[-0.025em] text-ink-900 sm:text-[34px]">
+              What it said, in its own pages
+            </h2>
+            <p className="mt-4 max-w-[62ch] text-[17px] leading-relaxed text-ink-500">
+              {AUDIT.scoreLine}
+            </p>
+            <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-400">
+              These are pages from the audit report itself, not user testing. One expert model
+              reviewing one recorded journey, and its redesigns are proposals, not measured
+              outcomes.
+            </p>
+          </Reveal>
+
+          <div className="mt-10 space-y-10">
+            {AUDIT.images.map((shot) => (
+              <Reveal key={shot.src}>
+                <figure>
+                  <div className="overflow-hidden rounded-xl border border-rule bg-card">
+                    <Image
+                      src={shot.src}
+                      alt={shot.alt}
+                      width={1600}
+                      height={900}
+                      sizes="(min-width: 1024px) 960px, 100vw"
+                      className="h-auto w-full"
+                    />
+                  </div>
+                  <figcaption className="mt-3 max-w-[68ch] text-[14px] leading-relaxed text-ink-400">
+                    {shot.label}
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-16 border-t border-rule pt-10">
+            <Reveal>
+              <h3 className="text-[21px] font-bold tracking-[-0.02em] text-ink-900 sm:text-[24px]">
+                Five findings, and what happened to each
+              </h3>
+            </Reveal>
+            <ol className="mt-8 space-y-9">
+              {AUDIT.findings.map((finding) => (
+                <Reveal key={finding.found}>
+                  <li>
+                    <h4 className="max-w-[62ch] text-[17px] font-bold leading-snug text-ink-900">
+                      {finding.found}
+                    </h4>
+                    <p className="mt-2.5 max-w-[66ch] text-[16px] leading-relaxed text-root">
+                      <span className="font-bold">The audit.</span> {finding.verdict}
+                    </p>
+                    <p className="mt-2 max-w-[66ch] text-[16px] leading-relaxed text-stem-700">
+                      <span className="font-bold">What I did.</span> {finding.did}
+                    </p>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
           </div>
         </section>
 
@@ -217,8 +325,8 @@ export default function CaseStudy() {
               Then I sent an agent through it to break it
             </h2>
             <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
-              A browser agent walked the whole journey — onboarding, a real call, a commitment,
-              settling a card — while I watched what it did rather than what I expected it to do.
+              A browser agent walked the whole journey (onboarding, a real call, a commitment,
+              settling a card) while I watched what it did rather than what I expected it to do.
               It found four things. Three are fixed. The fourth I cannot honestly close.
             </p>
             <dl className="mt-8 space-y-6">
@@ -249,7 +357,7 @@ export default function CaseStudy() {
               <p className="mt-4 text-[16px] leading-relaxed text-ink-500">
                 The rules that came out of it are the reason the interface holds together. Money is
                 always tabular. Estimates always carry a chip. The call orb is the only gradient
-                permitted anywhere. And the plant never wilts — a design rule that is really a
+                permitted anywhere. And the plant never wilts, a design rule that is really a
                 product promise, because a product that visibly punishes you for a bad month is one
                 you delete during a bad month.
               </p>
@@ -285,7 +393,7 @@ export default function CaseStudy() {
             </ul>
             <p className="mt-8 text-[16px] leading-relaxed text-ink-500">
               What I would do with a real week: five interviews with people carrying card balances
-              in Dubai, testing the two claims the whole product rests on — that seeing a date move
+              in Dubai, testing the two claims the whole product rests on: that seeing a date move
               changes behaviour, and that being asked what happened is worth paying for.
             </p>
           </Reveal>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { assertToolKey } from "@/lib/tool-auth";
 import { formatMoney } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const currency = snap.country.currency;
-  const id = await convex.mutation(api.sproutjar.proposeBalanceMove, {
+  const id = await convexClient().mutation(api.sproutjar.proposeBalanceMove, {
     fromDebtId: from.id as Id<"debts">,
     toIssuer: body.to_bank,
     toName: body.to_card || `${body.to_bank} transfer`,

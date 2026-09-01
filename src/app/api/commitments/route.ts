@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid commitment", issues: parsed.error.issues }, { status: 400 });
   }
-  const id = await convex.mutation(api.sproutjar.addCommitment, parsed.data);
+  const id = await convexClient().mutation(api.sproutjar.addCommitment, parsed.data);
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }
 
@@ -42,7 +42,7 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
-  const id = await convex.mutation(api.sproutjar.setCommitmentStatus, {
+  const id = await convexClient().mutation(api.sproutjar.setCommitmentStatus, {
     id: parsed.data.id as Id<"commitments">,
     status: parsed.data.status,
     reflection: parsed.data.reflection,

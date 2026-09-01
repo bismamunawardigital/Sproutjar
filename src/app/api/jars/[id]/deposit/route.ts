@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../../../convex/_generated/api";
 import type { Id } from "../../../../../../convex/_generated/dataModel";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid deposit", issues: parsed.error.issues }, { status: 400 });
   }
-  const jar = await convex.mutation(api.sproutjar.depositToJar, {
+  const jar = await convexClient().mutation(api.sproutjar.depositToJar, {
     jarId: id as Id<"jars">,
     amount: parsed.data.amount,
     note: parsed.data.note,
