@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,6 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const id = await convex.mutation(api.sproutjar.nameBelief, parsed.data);
+  const id = await convexClient().mutation(api.sproutjar.nameBelief, parsed.data);
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +30,8 @@ export async function POST(request: Request) {
   // Bank the growth already earned before the new balance enters the maths,
   // so admitting to another card never costs someone stem.
   const before = await buildSnapshot();
-  await convex.mutation(api.sproutjar.recordStemPeak, { stemPct: before.stemPct });
+  await convexClient().mutation(api.sproutjar.recordStemPeak, { stemPct: before.stemPct });
 
-  const id = await convex.mutation(api.sproutjar.addDebt, parsed.data);
+  const id = await convexClient().mutation(api.sproutjar.addDebt, parsed.data);
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }

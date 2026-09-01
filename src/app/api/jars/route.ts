@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +23,6 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid jar", issues: parsed.error.issues }, { status: 400 });
   }
-  const jar = await convex.mutation(api.sproutjar.addJar, parsed.data);
+  const jar = await convexClient().mutation(api.sproutjar.addJar, parsed.data);
   return NextResponse.json(jar, { status: 201 });
 }

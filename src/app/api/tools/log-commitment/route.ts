@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 import { assertToolKey } from "@/lib/tool-auth";
 import { currentUser } from "@/lib/user";
 
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + parsed.data.days);
 
-  const id = await convex.mutation(api.sproutjar.addCommitment, {
+  const id = await convexClient().mutation(api.sproutjar.addCommitment, {
     wish: parsed.data.wish,
     outcome: parsed.data.outcome,
     obstacle: parsed.data.obstacle,

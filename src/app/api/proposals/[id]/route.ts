@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +20,9 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const proposalId = id as Id<"proposals">;
   if (parsed.data.action === "apply") {
-    await convex.mutation(api.sproutjar.applyProposal, { id: proposalId });
+    await convexClient().mutation(api.sproutjar.applyProposal, { id: proposalId });
   } else {
-    await convex.mutation(api.sproutjar.discardProposal, { id: proposalId });
+    await convexClient().mutation(api.sproutjar.discardProposal, { id: proposalId });
   }
 
   return NextResponse.json({ ok: true });

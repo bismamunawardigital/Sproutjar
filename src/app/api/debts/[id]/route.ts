@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
-import { convex } from "@/lib/convex";
+import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
-  const debt = await convex.mutation(api.sproutjar.updateDebt, {
+  const debt = await convexClient().mutation(api.sproutjar.updateDebt, {
     id: id as Id<"debts">,
     ...parsed.data,
   });
@@ -33,7 +33,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
 export async function DELETE(_request: Request, { params }: Params) {
   const { id } = await params;
-  const removed = await convex.mutation(api.sproutjar.removeDebt, { id: id as Id<"debts"> });
+  const removed = await convexClient().mutation(api.sproutjar.removeDebt, { id: id as Id<"debts"> });
   if (!removed) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ deleted: true });
 }
