@@ -290,7 +290,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "build",
-    title: "Built to a hackathon deadline, in hours",
+    title: "The build, and the plumbing that makes it a product",
     lead:
       "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call, seven server tools wired to this app's own API routes.",
     body: [
@@ -539,7 +539,7 @@ export const HYPOTHESES: { id: string; claim: string; test: string }[] = [
 export const NEXT: { title: string; body: string }[] = [
   {
     title: "An Impeccable design pass",
-    body: "The product works and it is not finished. Next is a full craft pass over every surface: type scale and rhythm, the plant at every state, empty and error states, motion timing, the call view on a small phone, and the details the deadline swallowed.",
+    body: "The product works and it is not finished. Next is a full craft pass over every surface: type scale and rhythm, the plant at every state, empty and error states, motion timing, the call view on a small phone, and the details that building fast swallowed.",
   },
   {
     title: "Auditing the UX again, then with people",
