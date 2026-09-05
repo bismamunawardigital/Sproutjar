@@ -1,7 +1,7 @@
 # Sproutjar
 
 Financial wellness life-coaching for people carrying credit card debt in the Gulf, built around
-**Ren**, a voice-first coach running on ElevenLabs Conversational AI.
+**Ren**, a voice-first coach running on ElevenLabs Conversational AI that can also be typed to.
 
 Ren is not a chatbot bolted onto a budgeting app. A session follows a real coaching arc — check in,
 agenda in the user's own words, strengths, one positive-psychology technique, action with real
@@ -12,12 +12,14 @@ session: the balances Ren reads from, the payoff maths it quotes, and the commit
 
 | Layer | What it does |
 | --- | --- |
-| `src/lib/debt-engine.ts` | Month-by-month payoff simulation with compounding. Snowball vs avalanche, per-card milestones, debt-free date, monthly bleed, "months of your life back" |
-| `src/lib/jars.ts` | Savings jars, growth stages, and the surplus split that fills a one-month buffer before attacking the cards |
+| `src/lib/debt-engine.ts` | Month-by-month payoff simulation at each card's own rate. Snowball vs avalanche, per-card milestones, debt-free date, monthly bleed, "months of your life back" |
+| `src/lib/cash-flow.ts` | The monthly amount to the cards: take-home − essentials − obligations − remittances − sinking funds, or the person's own figure, labelled which is in use |
+| `src/lib/jars.ts` | Savings jars, growth stages, and the small starter reserve (AED 3,000 by default) that is filled before the rest goes to the cards |
+| `src/lib/statement.ts` | Best-effort reading of a pasted card statement: balance, minimum, interest charged, due and statement days, for the person to confirm |
 | `src/lib/money.ts` | Six GCC countries, their currencies, bureaus, regulators and debt-burden caps. Three-decimal handling for KWD/BHD/OMR, plus speakable rounding for voice |
 | `src/app/api/tools/*` | The server tools Ren calls mid-conversation (see below) |
-| `src/app/api/*` | App CRUD: profile, debts, jars, deposits, commitments, snapshot |
-| `src/app/dashboard` | The app: live voice session with Ren, payoff timeline, strategy picker, jars, commitments |
+| `src/app/api/*` | App CRUD: profile, debts, jars, deposits, commitments, reviews, contract, snapshot |
+| `src/app/dashboard` | The app, four tabs: Today, Ren (voice or typed), Plan (cards, payday review, proposals, horizon), You (editable profile) |
 | `src/app/page.tsx` | Landing page |
 
 ## Ren's server tools
@@ -48,7 +50,7 @@ appears on the dashboard behind the conversation while the user is still talking
 npm install
 cp .env.example .env      # fill in ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID
 npx convex dev --once   # provisions the deployment, writes CONVEX_DEPLOYMENT + NEXT_PUBLIC_CONVEX_URL
-npm run db:seed         # Layla's eleven weeks, straight into Convex
+npm run db:seed         # Layla's thirty-two weeks, straight into the dev deployment only
 npm run dev
 ```
 

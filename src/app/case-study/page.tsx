@@ -27,6 +27,7 @@ import {
   PERSONAS,
   PIPELINE,
   PRD_STATS,
+  QATAR_CARDS,
   RATE_FACTS,
   STACK,
   TESTING,
@@ -182,12 +183,12 @@ export default function CaseStudy() {
           </div>
         </section>
 
-        {/* The six numbers that make this a Gulf problem rather than a generic one. */}
+        {/* The seven numbers that make this a Gulf problem rather than a generic one. */}
         <section className="border-y border-rule bg-ink-900 py-14 sm:py-16">
           <div className="mx-auto max-w-5xl px-5">
             <Reveal>
               <h2 className="max-w-[34ch] text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-cream sm:text-[31px]">
-                Six numbers that make a Gulf credit card different from the one your payoff
+                Seven numbers that make a Gulf credit card different from the one your payoff
                 calculator assumes
               </h2>
             </Reveal>
@@ -404,6 +405,57 @@ export default function CaseStudy() {
                           </li>
                         ))}
                       </ul>
+                    </>
+                  ) : null}
+
+                  {chapter.id === "qatar" ? (
+                    <>
+                      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+                        {QATAR_CARDS.map((card) => (
+                          <li key={card.issuer} className="rounded-card border border-rule bg-card p-4">
+                            <p className="text-[15px] font-bold text-ink-900">{card.issuer}</p>
+                            <p className="mt-0.5 text-[13px] leading-snug text-ink-400">{card.scope}</p>
+                            <dl className="mt-3 space-y-2.5">
+                              {[
+                                ["Rate", card.rate],
+                                ["Minimum", card.minimum],
+                                ["Grace", card.grace],
+                                ["Late", card.late],
+                                ["Cash", card.cash],
+                              ].map(([term, detail]) => (
+                                <div key={term}>
+                                  <dt className="text-[11px] font-bold uppercase tracking-wide text-ink-400">
+                                    {term}
+                                  </dt>
+                                  <dd
+                                    className={`mt-0.5 text-[14px] leading-snug ${
+                                      term === "Rate" ? "n font-bold text-ink-900" : "text-ink-500"
+                                    }`}
+                                  >
+                                    {detail}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                            <p className="mt-3 border-t border-rule pt-3 text-[12px] leading-snug text-ink-300">
+                              <a
+                                href={card.source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline decoration-rule underline-offset-2 hover:text-stem focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stem"
+                              >
+                                {card.source.title}
+                              </a>
+                              <span className="n"> · read {card.retrieved}</span>
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-[13px] leading-snug text-ink-400">
+                        Read off each bank&apos;s own page or tariff on the date shown, not from a
+                        comparison site. Banks change these without notice; the figure in a live call
+                        comes from the same retrieval, with its own source and time.
+                      </p>
                     </>
                   ) : null}
 
@@ -762,7 +814,7 @@ export default function CaseStudy() {
                     Space Grotesk. The wordmark, and nothing else in the product.
                   </p>
                   <p className="mt-6 text-[22px] font-bold leading-snug tracking-[-0.02em] text-ink-900">
-                    You are eleven weeks in, and June 2027 just moved closer.
+                    You are thirty two weeks in, and June 2027 just moved closer.
                   </p>
                   <p className="mt-2 text-[16px] leading-relaxed text-ink-500">
                     Nunito, for everything a person reads. Rounder, warmer, and legible at the size
