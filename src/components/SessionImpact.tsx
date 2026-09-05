@@ -4,10 +4,27 @@ import type { HistoryPoint } from "@/lib/user";
 type Talk = {
   id: string;
   agenda: string;
+  mode: string;
   startedAt: Date;
   wish: string | null;
   status: string | null;
 };
+
+/** Every row says where its commitment stands, in the same words Today uses. */
+function statusChip(status: string | null): { label: string; tone: string } {
+  switch (status) {
+    case "kept":
+      return { label: "Done", tone: "c-grow" };
+    case "partial":
+      return { label: "Partly done", tone: "c-amber" };
+    case "missed":
+      return { label: "Another time", tone: "c-neutral" };
+    case "open":
+      return { label: "Still open", tone: "c-neutral" };
+    default:
+      return { label: "Nothing to carry", tone: "c-neutral" };
+  }
+}
 
 const W = 320;
 const H = 84;
@@ -101,16 +118,15 @@ export function SessionImpact({
             <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-stem" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-bold leading-snug text-ink-900">{talk.agenda}</p>
-              {talk.wish ? (
-                <p className="mt-0.5 text-[13px] text-ink-400">
-                  {talk.wish}
-                  {talk.status === "kept" ? <span className="chip c-grow ml-2">Done</span> : null}
-                </p>
-              ) : (
-                <p className="mt-0.5 text-[13px] text-ink-300">
-                  Thinking out loud. Nothing to do after it.
-                </p>
-              )}
+              <p className="mt-0.5 text-[13px] text-ink-400">
+                {talk.wish ?? "Thinking out loud. Nothing to do after it."}
+              </p>
+              <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className={`chip ${statusChip(talk.status).tone}`}>
+                  {statusChip(talk.status).label}
+                </span>
+                {talk.mode === "text" ? <span className="chip c-neutral">Typed</span> : null}
+              </p>
             </div>
             <span className="shrink-0 text-[12px] text-ink-300">
               {talk.startedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}

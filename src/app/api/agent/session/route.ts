@@ -32,6 +32,14 @@ export async function GET() {
         : "no jar started",
     open_commitment: snap.commitments[0]?.wish ?? "none yet",
     card_count: String(snap.debts.length),
+    monthly_attack_source: snap.attack.source,
+    days_until_payday:
+      snap.payday.daysUntil === null ? "unknown" : String(snap.payday.daysUntil),
+    last_review_on: snap.lastReview
+      ? snap.lastReview.completedAt.toISOString().slice(0, 10)
+      : "never",
+    interest_outweighs_principal: snap.interestOutweighsPrincipal ? "true" : "false",
+    review_cadence: snap.reviewCadence,
   };
 
   if (!configured) {

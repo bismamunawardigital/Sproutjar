@@ -9,9 +9,14 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
   issuer: z.string().min(1).optional(),
+  kind: z.enum(["credit_card", "bnpl", "personal_loan", "overdraft"]).optional(),
+  provider: z.string().max(60).optional(),
   balance: z.coerce.number().nonnegative().optional(),
   monthlyRate: z.coerce.number().min(0).max(1).optional(),
   minimumPayment: z.coerce.number().nonnegative().optional(),
+  dueDay: z.coerce.number().int().min(1).max(31).optional(),
+  statementDay: z.coerce.number().int().min(1).max(31).optional(),
+  estimatedFields: z.string().max(40).optional(),
   isIslamic: z.boolean().optional(),
 });
 

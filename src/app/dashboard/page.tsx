@@ -1,5 +1,6 @@
 import { CommitmentBoard } from "@/components/CommitmentBoard";
 import { HomeAgendas } from "@/components/HomeAgendas";
+import { PaydayInvitation } from "@/components/PaydayInvitation";
 import { Plant } from "@/components/Plant";
 import { formatMoneyShort } from "@/lib/money";
 import { agendasFor } from "@/lib/session-agendas";
@@ -7,14 +8,14 @@ import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Today() {
   const snap = await buildSnapshot();
   const currency = snap.country.currency;
   const plan = snap.plan;
   const next = plan.milestones[0] ?? null;
   const agendas = agendasFor(snap);
   const building = snap.horizon === "building";
-  // When nothing is open, Home carries forward the last thing said on a call
+  // When nothing is open, Today carries forward the last thing said on a call
   // rather than showing an empty card.
   const byRecency = snap.recentCommitments
     .filter((c) => c.status !== "open")
@@ -43,12 +44,6 @@ export default async function Home() {
     <>
       <section className="rounded-card border border-rule bg-card p-5 text-center">
         <Plant state={snap.growth} className="mx-auto w-28" />
-        {snap.sessions.length > 0 ? (
-          <p className="mt-2 text-[12px] text-root">
-            <span className="n">{snap.sessions.length}</span>{" "}
-            {snap.sessions.length === 1 ? "talk" : "talks"}, one root each
-          </p>
-        ) : null}
         {building ? (
           <>
             <p className="label mt-3">Months you could cover</p>
@@ -67,7 +62,7 @@ export default async function Home() {
             </p>
             <p className="mt-2 text-[13px] text-ink-400">
               {plan.feasible && plan.months > 0
-                ? `${plan.months} months at ${formatMoneyShort(snap.surplus, currency)} a month`
+                ? `${plan.months} months at ${formatMoneyShort(snap.attack.amount, currency)} a month`
                 : "The minimums need more than there is right now. Ren can help you work the other side of it."}
             </p>
           </>
@@ -89,7 +84,7 @@ export default async function Home() {
           <div>
             <dt className="label">{building ? "Free each month" : "Rent on the debt"}</dt>
             <dd className={`n mt-1 text-[16px] ${building ? "text-stem-700" : "text-root"}`}>
-              {formatMoneyShort(building ? snap.surplus : plan.monthlyBleed, currency)}
+              {formatMoneyShort(building ? snap.attack.amount : plan.monthlyBleed, currency)}
             </dd>
             <dd className="mt-0.5 text-[11px] leading-snug text-ink-300">
               {building ? "no longer going to a bank" : "the interest, every month"}
@@ -97,6 +92,17 @@ export default async function Home() {
           </div>
         </dl>
       </section>
+
+      {!building && snap.payday.isWindow && snap.payday.day ? (
+        <PaydayInvitation
+          amount={snap.attack.amount}
+          source={snap.attack.source}
+          derived={snap.attack.derived}
+          currency={currency}
+          paydayDay={snap.payday.day}
+          daysUntil={snap.payday.daysUntil}
+        />
+      ) : null}
 
       <CommitmentBoard
         commitments={snap.commitments.map((c) => ({

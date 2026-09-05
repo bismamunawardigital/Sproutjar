@@ -9,10 +9,15 @@ export const dynamic = "force-dynamic";
 const debtSchema = z.object({
   name: z.string().min(1),
   issuer: z.string().min(1),
-  kind: z.string().default("credit_card"),
+  kind: z.enum(["credit_card", "bnpl", "personal_loan", "overdraft"]).default("credit_card"),
+  provider: z.string().max(60).optional(),
   balance: z.coerce.number().nonnegative(),
   monthlyRate: z.coerce.number().min(0).max(1),
   minimumPayment: z.coerce.number().nonnegative(),
+  dueDay: z.coerce.number().int().min(1).max(31).optional(),
+  statementDay: z.coerce.number().int().min(1).max(31).optional(),
+  /** Which of rate | minimum | balance the person was guessing at, comma separated. */
+  estimatedFields: z.string().max(40).optional(),
   isIslamic: z.boolean().default(false),
 });
 

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Mic, Sprout, User } from "lucide-react";
+import { Map as MapIcon, Mic, Sun, User } from "lucide-react";
 
 const TABS = [
-  { href: "/dashboard", label: "Home", Icon: Home },
+  { href: "/dashboard", label: "Today", Icon: Sun },
   { href: "/dashboard/ren", label: "Ren", Icon: Mic },
-  { href: "/dashboard/growth", label: "Growth", Icon: Sprout },
+  { href: "/dashboard/plan", label: "Plan", Icon: MapIcon },
   { href: "/dashboard/you", label: "You", Icon: User },
 ];
 

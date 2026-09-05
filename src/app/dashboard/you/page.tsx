@@ -1,15 +1,55 @@
 import { Collapse } from "@/components/Collapse";
 import { ProfileForm } from "@/components/ProfileForm";
+import { RenContract } from "@/components/RenContract";
 import { SessionLog } from "@/components/SessionLog";
 import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
 
+function ordinal(day: number): string {
+  const rest = day % 100;
+  if (rest >= 11 && rest <= 13) return `${day}th`;
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
+}
+
 export default async function YouPage() {
   const snap = await buildSnapshot();
   const currency = snap.country.currency;
   const weeks = snap.user.weeksActive;
+  const attack = snap.attack;
+  const worksFrom: { label: string; value: string }[] = [
+    { label: "Take-home", value: formatMoneyShort(snap.user.monthlyIncome, currency) },
+    {
+      label: "Payday",
+      value: snap.payday.day ? `the ${ordinal(snap.payday.day)}` : "not set",
+    },
+    {
+      label: "To the cards",
+      value: `${formatMoneyShort(attack.amount, currency)} · ${attack.source}`,
+    },
+    {
+      label: "Order",
+      value: snap.strategy === "avalanche" ? "highest rate first" : "smallest balance first",
+    },
+    {
+      label: "Review",
+      value: snap.reviewCadence === "weekly" ? "weekly" : "on payday",
+    },
+    {
+      label: "Windfalls",
+      value: snap.user.windfallRule ? "rule set" : "no rule yet",
+    },
+  ];
 
   return (
     <>
@@ -34,11 +74,68 @@ export default async function YouPage() {
             </dd>
           </div>
           <div className="px-4 py-4">
-            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Talks</dt>
-            <dd className="n mt-1 text-[17px] text-ink-900">{snap.sessions.length}</dd>
+            <dt className="text-[11px] uppercase tracking-wide text-ink-300">Set aside</dt>
+            <dd className="n mt-1 text-[17px] text-ink-900">
+              {formatMoneyShort(snap.totals.saved, currency)}
+            </dd>
           </div>
         </dl>
       </section>
+
+      <section className="rounded-card border border-rule bg-card p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="label">What Ren works from</p>
+            <p className="mt-1 text-[13px] text-ink-400">
+              Every number below is yours to correct. Ren never guesses past what is here.
+            </p>
+          </div>
+        </div>
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          {worksFrom.map((row) => (
+            <div key={row.label}>
+              <dt className="text-[11px] uppercase tracking-wide text-ink-300">{row.label}</dt>
+              <dd className="n mt-0.5 text-[14px] font-bold text-ink-800">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+        {snap.user.windfallRule ? (
+          <p className="mt-4 border-l-2 border-leaf-300 pl-3 text-[14px] italic leading-snug text-ink-700">
+            &ldquo;{snap.user.windfallRule}&rdquo;
+          </p>
+        ) : null}
+        <p className="mt-4 text-[13px] text-ink-400">
+          {attack.source === "chosen"
+            ? `You chose ${formatMoneyShort(attack.amount, currency)} a month. The formula from your salary and outgoings says ${formatMoneyShort(attack.derived, currency)}.`
+            : `${formatMoneyShort(attack.amount, currency)} a month is derived: salary, less essentials, obligations, what goes home and what is set aside. You can choose your own figure below.`}
+        </p>
+      </section>
+
+      <Collapse title="Edit what Ren works from" hint="Salary, payday, the monthly amount, your words">
+        <div className="mt-3">
+          <ProfileForm
+            initial={{
+              name: snap.user.name,
+              country: snap.user.country,
+              monthlyIncome: snap.user.monthlyIncome,
+              monthlyEssentials: snap.user.monthlyEssentials,
+              payday: snap.user.payday,
+              priorityObligations: snap.user.priorityObligations,
+              remittances: snap.user.remittances,
+              sinkingFunds: snap.user.sinkingFunds,
+              debtAttack: snap.user.debtAttack,
+              debtAttackSource: snap.user.debtAttackSource,
+              windfallRule: snap.user.windfallRule,
+              reviewCadence: snap.user.reviewCadence,
+              strategy: snap.strategy,
+              moneyPurpose: snap.user.moneyPurpose,
+              goodDecision: snap.user.goodDecision,
+              upbringing: snap.user.upbringing,
+            }}
+            currency={currency}
+          />
+        </div>
+      </Collapse>
 
       {snap.user.moneyPurpose ? (
         <section className="rounded-card border border-leaf-300 bg-leaf-50 p-5">
@@ -123,15 +220,7 @@ export default async function YouPage() {
         </section>
       ) : null}
 
-      <Collapse title="Your details" hint="Income, essentials, where you are">
-        <ProfileForm
-          name={snap.user.name}
-          country={snap.user.country}
-          monthlyIncome={snap.user.monthlyIncome}
-          monthlyEssentials={snap.user.monthlyEssentials}
-          currency={currency}
-        />
-      </Collapse>
+      <RenContract contracted compact />
 
       <p className="px-1 text-[12px] leading-relaxed text-ink-300">
         Sproutjar is coaching, not financial, legal or religious advice. For anything that needs a
