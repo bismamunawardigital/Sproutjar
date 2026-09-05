@@ -77,6 +77,8 @@ export function buildPayoffPlan(
   monthlyBudget: number,
   strategy: Strategy,
   startDate = new Date(),
+  /** What actually reaches the cards in month one, when part of the amount tops up the reserve. */
+  firstMonthBudget = monthlyBudget,
 ): PayoffPlan {
   const ordered = orderDebts(debts, strategy);
   const minimums = totalMinimums(debts);
@@ -127,7 +129,7 @@ export function buildPayoffPlan(
       totalInterest += interest;
     }
 
-    let budget = monthlyBudget;
+    let budget = month === 1 ? Math.max(minimums, firstMonthBudget) : monthlyBudget;
 
     // Minimums on everything except the focus debt, which absorbs the surplus.
     const focus = live[0];
@@ -184,9 +186,10 @@ export function compareStrategies(
   debts: DebtInput[],
   monthlyBudget: number,
   startDate = new Date(),
+  firstMonthBudget = monthlyBudget,
 ): StrategyComparison {
-  const snowball = buildPayoffPlan(debts, monthlyBudget, "snowball", startDate);
-  const avalanche = buildPayoffPlan(debts, monthlyBudget, "avalanche", startDate);
+  const snowball = buildPayoffPlan(debts, monthlyBudget, "snowball", startDate, firstMonthBudget);
+  const avalanche = buildPayoffPlan(debts, monthlyBudget, "avalanche", startDate, firstMonthBudget);
   const firstSnowball = snowball.milestones[0]?.monthCleared ?? 0;
   const firstAvalanche = avalanche.milestones[0]?.monthCleared ?? 0;
   return {

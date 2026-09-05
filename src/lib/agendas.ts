@@ -118,6 +118,18 @@ export type AgendaContext = {
   openCommitment?: { wish: string; trigger: string } | null;
   belief?: { text: string; namedOn: Date } | null;
   sessionsHeld: number;
+  /** The last review's four numbers, when there has been one. */
+  lastReview?: {
+    completedAt: Date;
+    principalRepaid: number;
+    interestCharged: number;
+    newBorrowing: number;
+    reflection: string;
+  } | null;
+  /** Weeks of history where the balance went the way the plan said it would, out of the total. */
+  weeksOnPlan?: { onPlan: number; total: number } | null;
+  /** Set in the days around payday: the amount the person decided on, and whether it was theirs or derived. */
+  payday?: { amount: number; source: "derived" | "chosen"; isWindow: boolean } | null;
 };
 
 function monthName(date: Date): string {
@@ -147,21 +159,60 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
     });
   }
 
-  generated.push({
-    id: "the-bleed",
-    title: "What the interest is really costing you",
-    reason: `${context.currency} ${Math.round(context.monthlyBleed).toLocaleString(
-      "en-US",
-    )} goes on interest this month. There are ways to bring that number down — worth a look.`,
-    technique: "Getting clear",
-    minutes: 20,
-  });
+  const review = context.lastReview ?? null;
+  const money = (n: number) => `${context.currency} ${Math.round(n).toLocaleString("en-US")}`;
 
-  if (context.sessionsHeld > 0) {
+  if (context.payday?.isWindow) {
+    generated.push({
+      id: "payday",
+      title: "What goes to the cards this payday",
+      reason: `You decided on ${money(context.payday.amount)}${
+        context.payday.source === "chosen" ? ", your own figure" : ""
+      }. If this month is different, say so and the date moves. No one is marking this.`,
+      technique: "Deciding, not being told",
+      minutes: 10,
+    });
+  }
+
+  if (review && review.newBorrowing > 0) {
+    generated.push({
+      id: "review-gap",
+      title: "What went on the cards last month",
+      reason: `Your ${monthName(review.completedAt)} review shows ${money(
+        review.newBorrowing,
+      )} new on a card while ${money(review.principalRepaid)} came off. Not a verdict. What was that week like?`,
+      technique: "Working out what happened",
+      minutes: 15,
+    });
+  }
+
+  // The price of the debt is only raised when the numbers say it is the problem:
+  // a month where the bank took more than the plan cleared.
+  if (review && review.interestCharged > review.principalRepaid) {
+    generated.push({
+      id: "the-price",
+      title: "Whether the debt could cost less",
+      reason: `Last month ${money(review.interestCharged)} went on interest and ${money(
+        review.principalRepaid,
+      )} came off the balance. When the bank is ahead of you, moving a balance to a lower rate is worth exploring. Nothing moves unless you decide it does.`,
+      technique: "Getting clear",
+      minutes: 20,
+    });
+  } else {
+    generated.push({
+      id: "the-bleed",
+      title: "What the interest is really costing you",
+      reason: `${money(context.monthlyBleed)} goes on interest this month. Knowing the number changes what the minimum payment feels like.`,
+      technique: "Getting clear",
+      minutes: 20,
+    });
+  }
+
+  if (context.weeksOnPlan && context.weeksOnPlan.total > 0 && context.weeksOnPlan.onPlan > 0) {
     generated.push({
       id: "what-worked",
       title: "The weeks that did go well",
-      reason: "Three of the last eleven weeks went the way you wanted. Worth knowing why.",
+      reason: `${context.weeksOnPlan.onPlan} of the last ${context.weeksOnPlan.total} weeks the balance came down by at least what you planned. Worth knowing what those weeks had.`,
       technique: "What works",
       minutes: 10,
     });

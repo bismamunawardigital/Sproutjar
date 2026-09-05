@@ -34,7 +34,26 @@ export function agendasFor(snap: Snapshot): Agenda[] {
     missedCommitment: missed ? { wish: missed.wish, createdAt: missed.createdAt } : null,
     belief: belief ? { text: belief.text, namedOn: belief.namedOn } : null,
     sessionsHeld: snap.sessions.length,
+    lastReview: snap.lastReview,
+    weeksOnPlan: weeksOnPlan(snap),
+    payday: { amount: snap.attack.amount, source: snap.attack.source, isWindow: snap.payday.isWindow },
   });
 
   return snap.sessions.length > 0 ? generated : shuffledStarters(snap.debts.length + 7);
+}
+
+/**
+ * Of the last twelve weeks on record, how many saw the total come down by at
+ * least the plan's weekly share of principal. Counted from what was logged, so
+ * the line Ren opens with is always true of this person.
+ */
+function weeksOnPlan(snap: Snapshot): { onPlan: number; total: number } | null {
+  const points = snap.history.slice(-13);
+  if (points.length < 2) return null;
+  const weeklyPrincipal = Math.max(0, (snap.surplus - snap.plan.monthlyBleed) * 12 / 52);
+  let onPlan = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    if (points[i - 1].total - points[i].total >= weeklyPrincipal * 0.9) onPlan += 1;
+  }
+  return { onPlan, total: points.length - 1 };
 }

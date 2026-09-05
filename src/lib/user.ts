@@ -1,6 +1,14 @@
 import { api } from "../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
-import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, type DebtInput, type Strategy } from "@/lib/debt-engine";
+import { daysUntilPayday, debtAttackFor, isPaydayWindow } from "@/lib/cash-flow";
+import {
+  buildPayoffPlan,
+  compareStrategies,
+  formatMonthYear,
+  minimumsOnlyOutlook,
+  type DebtInput,
+  type Strategy,
+} from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { countryProfile } from "@/lib/money";
 import { plantState, principalCleared } from "@/lib/plant";
@@ -31,6 +39,30 @@ function totalOwedOverTime(
   }
 
   return [...byDay.values()];
+}
+
+/**
+ * What the monthly amount becomes once the last card is gone: the reserve fills
+ * first, then each jar in turn, each with the month it would be full.
+ */
+function afterDebtHorizon(
+  debtFreeOn: Date | null,
+  monthly: number,
+  jars: { name: string; purpose: string; target: number; saved: number }[],
+) {
+  if (!debtFreeOn || monthly <= 0) return [];
+  const ordered = [...jars].sort((a, b) =>
+    a.purpose === b.purpose ? 0 : a.purpose === "emergency" ? -1 : 1,
+  );
+  let month = 0;
+  return ordered.flatMap((jar) => {
+    const remaining = Math.max(0, jar.target - jar.saved);
+    if (remaining <= 0) return [];
+    month += Math.ceil(remaining / monthly);
+    const fillsOn = new Date(debtFreeOn.getTime());
+    fillsOn.setMonth(fillsOn.getMonth() + month);
+    return [{ name: jar.name, remaining, monthsAfter: month, fillsOn: formatMonthYear(fillsOn) }];
+  });
 }
 
 export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
@@ -68,16 +100,41 @@ export async function buildSnapshot() {
   }));
 
   const country = countryProfile(user.country);
-  const surplus = Math.max(0, user.monthlyIncome - user.monthlyEssentials);
+  const attack = debtAttackFor(user);
+  const surplus = attack.amount;
   const strategy = (user.strategy === "avalanche" ? "avalanche" : "snowball") as Strategy;
 
-  const starterTarget = recommendedStarterJar(user.monthlyEssentials);
   const starterJar = jarRows.find((j) => j.purpose === "emergency");
+  const starterTarget = recommendedStarterJar(starterJar?.target);
   const split = allocateSurplus(surplus, starterTarget, starterJar?.saved ?? 0);
 
-  const plan = buildPayoffPlan(debts, surplus, strategy);
-  const comparison = compareStrategies(debts, surplus);
+  // One engine run behind every number on screen: the reserve top-up comes off
+  // month one, everything after that is the full amount.
+  const plan = buildPayoffPlan(debts, surplus, strategy, new Date(), split.toDebt);
+  const comparison = compareStrategies(debts, surplus, new Date(), split.toDebt);
   const minimumsOnly = minimumsOnlyOutlook(debts);
+
+  const reviews = live.reviews.map((r) => ({ ...r, id: r._id, completedAt: new Date(r.completedAt) }));
+  const lastReview = reviews[0] ?? null;
+  // The four numbers since the last review, from whatever has been logged since.
+  const sinceReview = live.balanceEntries
+    .filter((e) => e.loggedAt > (lastReview?.completedAt.getTime() ?? 0))
+    .reduce(
+      (acc, e) => ({
+        paid: acc.paid + e.amountPaid,
+        principalRepaid: acc.principalRepaid + e.principalCleared,
+        interestCharged: acc.interestCharged + e.interestCharged,
+        newBorrowing: acc.newBorrowing + (e.newBorrowing ?? 0),
+      }),
+      { paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0 },
+    );
+
+  const debtFreeDate = (() => {
+    if (!plan.feasible || plan.months === 0) return null;
+    const d = new Date();
+    d.setMonth(d.getMonth() + plan.months);
+    return d;
+  })();
 
   const openingPrincipal = debtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);
   const history = totalOwedOverTime(debtRows, live.balanceEntries);
@@ -95,7 +152,24 @@ export async function buildSnapshot() {
   return {
     user: { ...user, id: user._id },
     country,
-    debts: debtRows.map((d) => ({ ...d, id: d._id })),
+    debts: debtRows.map((d) => {
+      // The last figure the person actually read off a statement, if any.
+      const reviewed = [...live.balanceEntries]
+        .reverse()
+        .find((e) => e.debtId === d._id && e.source === "review");
+      return {
+        ...d,
+        id: d._id,
+        lastReviewed: reviewed
+          ? {
+              at: new Date(reviewed.loggedAt),
+              paid: reviewed.amountPaid,
+              interestCharged: reviewed.interestCharged,
+              newBorrowing: reviewed.newBorrowing ?? 0,
+            }
+          : null,
+      };
+    }),
     /** Transfers Ren worked out on a call, waiting on a tap before they count. */
     proposals: live.proposals.map((p) => ({
       ...p,
@@ -131,6 +205,25 @@ export async function buildSnapshot() {
       dueAt: c.dueAt === undefined ? null : new Date(c.dueAt),
     })),
     surplus,
+    /** The monthly amount for the cards, and the lines it was derived from. */
+    attack,
+    payday: {
+      day: user.payday ?? null,
+      daysUntil: daysUntilPayday(user.payday),
+      isWindow: isPaydayWindow(user.payday),
+    },
+    /** Past reviews, newest first, each carrying its four numbers and the date before and after. */
+    reviews,
+    lastReview,
+    sinceReview,
+    reviewCadence: (user.reviewCadence === "weekly" ? "weekly" : "payday") as "weekly" | "payday",
+    /**
+     * The lever most people never pull: when a month's interest outweighs the
+     * principal it cleared, the price of the debt is the problem, not the effort.
+     */
+    interestOutweighsPrincipal:
+      lastReview !== null && lastReview.interestCharged > lastReview.principalRepaid,
+    afterDebt: afterDebtHorizon(debtFreeDate, surplus, jarRows),
     /**
      * Clearing the cards is the first goal, not the product. Once they are gone
      * the same coaching turns to what the money is now for, and the number that

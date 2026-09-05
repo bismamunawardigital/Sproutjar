@@ -2,8 +2,21 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { debtAttackFor } from "../src/lib/cash-flow";
+import { buildPayoffPlan, type DebtInput } from "../src/lib/debt-engine";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
+
+function engineInput(debt: Doc<"debts">): DebtInput {
+  return {
+    id: debt._id,
+    name: debt.name,
+    issuer: debt.issuer,
+    balance: debt.balance,
+    monthlyRate: debt.monthlyRate,
+    minimumPayment: debt.minimumPayment,
+  };
+}
 
 async function demoUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
   const user = await ctx.db
@@ -25,7 +38,7 @@ export const snapshot = query({
     const user = await demoUser(ctx);
     const mine = user._id;
 
-    const [debts, jars, commitments, beliefs, sessions, balanceEntries, proposals] =
+    const [debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews] =
       await Promise.all([
       ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("jars").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
@@ -34,6 +47,7 @@ export const snapshot = query({
       ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("balanceEntries").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("proposals").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
+      ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
     ]);
 
     return {
@@ -49,6 +63,7 @@ export const snapshot = query({
       proposals: proposals
         .filter((p) => p.status === "pending")
         .sort((a, b) => b.createdAt - a.createdAt),
+      reviews: reviews.sort((a, b) => b.completedAt - a.completedAt),
     };
   },
 });
@@ -67,6 +82,13 @@ export const recordStemPeak = mutation({
   },
 });
 
+const debtDetailArgs = {
+  dueDay: v.optional(v.number()),
+  statementDay: v.optional(v.number()),
+  provider: v.optional(v.string()),
+  estimatedFields: v.optional(v.string()),
+};
+
 export const addDebt = mutation({
   args: {
     name: v.string(),
@@ -76,6 +98,7 @@ export const addDebt = mutation({
     monthlyRate: v.number(),
     minimumPayment: v.number(),
     isIslamic: v.boolean(),
+    ...debtDetailArgs,
   },
   handler: async (ctx, args) => {
     const user = await demoUser(ctx);
@@ -84,7 +107,7 @@ export const addDebt = mutation({
       userId: user._id,
       // Today's balance is what the plant starts growing against.
       openingBalance: args.balance,
-      isEstimated: false,
+      isEstimated: Boolean(args.estimatedFields),
       carryingBalance: true,
       status: "active",
     });
@@ -96,16 +119,19 @@ export const updateDebt = mutation({
     id: v.id("debts"),
     name: v.optional(v.string()),
     issuer: v.optional(v.string()),
+    kind: v.optional(v.string()),
     balance: v.optional(v.number()),
     monthlyRate: v.optional(v.number()),
     minimumPayment: v.optional(v.number()),
     isIslamic: v.optional(v.boolean()),
+    ...debtDetailArgs,
   },
   handler: async (ctx, { id, ...fields }) => {
     const user = await demoUser(ctx);
     const debt = await ctx.db.get(id);
     if (!debt || debt.userId !== user._id) return null;
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+    if (fields.estimatedFields !== undefined) patch.isEstimated = fields.estimatedFields !== "";
     await ctx.db.patch(id, patch);
     if (fields.balance !== undefined && fields.balance !== debt.balance) {
       await ctx.db.insert("balanceEntries", {
@@ -145,6 +171,7 @@ export const logBalance = mutation({
     balance: v.number(),
     amountPaid: v.number(),
     interestCharged: v.number(),
+    newBorrowing: v.optional(v.number()),
     source: v.string(),
   },
   handler: async (ctx, args) => {
@@ -159,9 +186,107 @@ export const logBalance = mutation({
       amountPaid: args.amountPaid,
       principalCleared: Math.max(0, debt.balance - args.balance),
       interestCharged: args.interestCharged,
+      newBorrowing: args.newBorrowing ?? 0,
       source: args.source,
       loggedAt: Date.now(),
     });
+  },
+});
+
+/**
+ * The review ritual. One reading per card: what was paid, what new went on it,
+ * and what it now stands at. Interest is whatever the balance moved that the
+ * payment and the new borrowing do not explain, so the four numbers reconcile
+ * by construction rather than by trust.
+ */
+export const recordReview = mutation({
+  args: {
+    cadence: v.string(),
+    reflection: v.string(),
+    entries: v.array(
+      v.object({
+        debtId: v.id("debts"),
+        paid: v.number(),
+        newBorrowing: v.number(),
+        balance: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await demoUser(ctx);
+    const now = Date.now();
+    const debts = await ctx.db
+      .query("debts")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const active = debts.filter((d) => d.status === "active");
+    const attack = debtAttackFor(user).amount;
+    const strategy = user.strategy === "avalanche" ? "avalanche" : "snowball";
+    const debtFreeBefore = buildPayoffPlan(active.map(engineInput), attack, strategy).debtFreeOn;
+
+    const reviewId = await ctx.db.insert("reviews", {
+      userId: user._id,
+      cadence: args.cadence,
+      openingDebt: 0,
+      closingDebt: 0,
+      paid: 0,
+      principalRepaid: 0,
+      interestCharged: 0,
+      newBorrowing: 0,
+      debtFreeBefore,
+      debtFreeAfter: debtFreeBefore,
+      reflection: args.reflection,
+      completedAt: now,
+    });
+
+    const totals = { openingDebt: 0, closingDebt: 0, paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0 };
+    for (const entry of args.entries) {
+      const debt = active.find((d) => d._id === entry.debtId);
+      if (!debt) continue;
+      const paid = Math.max(0, entry.paid);
+      const newBorrowing = Math.max(0, entry.newBorrowing);
+      const balance = Math.max(0, entry.balance);
+      // What the card would stand at if no interest had been charged.
+      const expected = debt.balance - paid + newBorrowing;
+      const interestCharged = Math.max(0, balance - expected);
+      const principalRepaid = Math.max(0, paid - interestCharged);
+
+      totals.openingDebt += debt.balance;
+      totals.closingDebt += balance;
+      totals.paid += paid;
+      totals.principalRepaid += principalRepaid;
+      totals.interestCharged += interestCharged;
+      totals.newBorrowing += newBorrowing;
+
+      debt.balance = balance;
+      await ctx.db.patch(debt._id, {
+        balance,
+        status: balance <= 0 ? "settled" : debt.status,
+      });
+      await ctx.db.insert("balanceEntries", {
+        userId: user._id,
+        debtId: debt._id,
+        balance,
+        amountPaid: paid,
+        principalCleared: principalRepaid,
+        interestCharged,
+        newBorrowing,
+        reviewId,
+        source: "review",
+        loggedAt: now,
+      });
+    }
+
+    const debtFreeAfter = buildPayoffPlan(
+      active.filter((d) => d.balance > 0).map(engineInput),
+      attack,
+      strategy,
+    ).debtFreeOn;
+    await ctx.db.patch(reviewId, { ...totals, debtFreeAfter });
+    if (user.reviewCadence !== args.cadence) {
+      await ctx.db.patch(user._id, { reviewCadence: args.cadence });
+    }
+    return reviewId;
   },
 });
 
@@ -171,6 +296,17 @@ export const updateProfile = mutation({
     country: v.optional(v.string()),
     monthlyIncome: v.optional(v.number()),
     monthlyEssentials: v.optional(v.number()),
+    payday: v.optional(v.number()),
+    priorityObligations: v.optional(v.number()),
+    remittances: v.optional(v.number()),
+    sinkingFunds: v.optional(v.number()),
+    debtAttack: v.optional(v.number()),
+    debtAttackSource: v.optional(v.string()),
+    windfallRule: v.optional(v.string()),
+    reviewCadence: v.optional(v.string()),
+    moneyPurpose: v.optional(v.string()),
+    goodDecision: v.optional(v.string()),
+    upbringing: v.optional(v.string()),
     strategy: v.optional(v.string()),
   },
   handler: async (ctx, fields) => {
@@ -178,6 +314,16 @@ export const updateProfile = mutation({
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
     await ctx.db.patch(user._id, patch);
     return ctx.db.get(user._id);
+  },
+});
+
+/** Recorded once the person has read what Ren does and does not do. */
+export const acceptContract = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await demoUser(ctx);
+    if (!user.contractedAt) await ctx.db.patch(user._id, { contractedAt: Date.now() });
+    return user._id;
   },
 });
 
@@ -291,6 +437,14 @@ export const proposeBalanceMove = mutation({
     fee: v.number(),
     revertRate: v.number(),
     note: v.string(),
+    sourceUrl: v.optional(v.string()),
+    sourceTitle: v.optional(v.string()),
+    retrievedAt: v.optional(v.string()),
+    publishedPromoRate: v.optional(v.string()),
+    publishedPromoPeriod: v.optional(v.string()),
+    publishedRevertRate: v.optional(v.string()),
+    publishedFee: v.optional(v.string()),
+    publishedEarlySettlementFee: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await demoUser(ctx);
@@ -387,13 +541,14 @@ export const startSession = mutation({
     technique: v.string(),
     plannedMinutes: v.number(),
     contractChoice: v.string(),
+    mode: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { mode, ...args }) => {
     const user = await demoUser(ctx);
     return ctx.db.insert("sessions", {
       ...args,
       userId: user._id,
-      mode: "voice",
+      mode: mode ?? "voice",
       summary: "",
       closingReflection: "",
       startedAt: Date.now(),
@@ -409,15 +564,23 @@ export const endSession = mutation({
   },
 });
 
+type SeedEvent = { week: number; principal?: number; newBorrowing?: number };
+
 type SeedDebt = {
   name: string;
   issuer: string;
+  kind: string;
+  provider?: string;
   openingBalance: number;
   balance: number;
   monthlyRate: number;
   minimumPayment: number;
+  dueDay: number;
+  statementDay: number;
   isIslamic: boolean;
-  isEstimated: boolean;
+  estimatedFields?: string;
+  /** Lumps and slips that the straight line does not explain. */
+  events: SeedEvent[];
 };
 
 type SeedCommitment = {
@@ -428,22 +591,50 @@ type SeedCommitment = {
   sessionIndex: number;
 };
 
+/** Weeks of history behind the demo. Everything dated in the seed hangs off this. */
+const HISTORY_WEEKS = 32;
+/** The newest weekly reading is this many days old. */
+const HISTORY_OFFSET_DAYS = 2;
+
 /**
- * Idempotent: wipes the demo user's rows and lays down Layla's eleven weeks
- * again. Safe to run before a demo.
+ * Idempotent: wipes the demo user's rows and lays down Layla's thirty-two
+ * weeks again. Safe to run before a demo.
  */
 export const seed = mutation({
   args: {
+    profile: v.object({
+      monthlyIncome: v.number(),
+      monthlyEssentials: v.number(),
+      payday: v.number(),
+      priorityObligations: v.number(),
+      remittances: v.number(),
+      sinkingFunds: v.number(),
+      debtAttack: v.number(),
+      debtAttackSource: v.string(),
+      windfallRule: v.string(),
+      reviewCadence: v.string(),
+    }),
     debts: v.array(
       v.object({
         name: v.string(),
         issuer: v.string(),
+        kind: v.string(),
+        provider: v.optional(v.string()),
         openingBalance: v.number(),
         balance: v.number(),
         monthlyRate: v.number(),
         minimumPayment: v.number(),
+        dueDay: v.number(),
+        statementDay: v.number(),
         isIslamic: v.boolean(),
-        isEstimated: v.boolean(),
+        estimatedFields: v.optional(v.string()),
+        events: v.array(
+          v.object({
+            week: v.number(),
+            principal: v.optional(v.number()),
+            newBorrowing: v.optional(v.number()),
+          }),
+        ),
       }),
     ),
     jars: v.array(
@@ -462,6 +653,7 @@ export const seed = mutation({
         technique: v.string(),
         plannedMinutes: v.number(),
         contractChoice: v.string(),
+        mode: v.optional(v.string()),
         daysAgo: v.number(),
       }),
     ),
@@ -474,9 +666,18 @@ export const seed = mutation({
         sessionIndex: v.number(),
       }),
     ),
+    /** One payday review, covering the weeks between fromWeek (exclusive) and toWeek (inclusive). */
+    review: v.object({
+      fromWeek: v.number(),
+      toWeek: v.number(),
+      reflection: v.string(),
+      daysAgo: v.number(),
+    }),
   },
   handler: async (ctx, args) => {
     const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const weekAt = (week: number) => now - ((HISTORY_WEEKS - week) * 7 + HISTORY_OFFSET_DAYS) * day;
     const existing = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", DEMO_EMAIL))
@@ -492,6 +693,7 @@ export const seed = mutation({
         ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
         ctx.db.query("balanceEntries").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
         ctx.db.query("proposals").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
+        ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ]);
       for (const rows of stale) await Promise.all(rows.map((row) => ctx.db.delete(row._id)));
       await ctx.db.delete(mine);
@@ -501,38 +703,69 @@ export const seed = mutation({
       name: "Layla",
       email: DEMO_EMAIL,
       country: "AE",
-      monthlyIncome: 18000,
-      monthlyEssentials: 11500,
+      ...args.profile,
       strategy: "snowball",
-      weeksActive: 11,
+      weeksActive: HISTORY_WEEKS,
       upbringing: "Money was something the adults argued about after we went to bed.",
       moneyPurpose: "So my mother never has to ask anyone for anything.",
       goodDecision: "I stopped using two of the cards in March and I haven't touched them since.",
       stemPeak: 0,
+      contractedAt: weekAt(1) - 2 * day,
     });
 
+    // Per week, across every card: the four numbers the payday review is built from.
+    const weekly = Array.from({ length: HISTORY_WEEKS + 1 }, () => ({
+      balance: 0,
+      paid: 0,
+      principal: 0,
+      interest: 0,
+      newBorrowing: 0,
+    }));
+
     for (const debt of args.debts as SeedDebt[]) {
+      const { events, ...fields } = debt;
       const debtId = await ctx.db.insert("debts", {
-        ...debt,
+        ...fields,
         userId,
-        kind: "credit_card",
+        isEstimated: Boolean(debt.estimatedFields),
         carryingBalance: true,
         status: "active",
       });
-      // Eleven weeks of real movement, so the plant's stem has something true behind it.
-      const step = (debt.openingBalance - debt.balance) / 11;
-      for (let week = 1; week <= 11; week += 1) {
-        const balance = debt.openingBalance - step * week;
+
+      const lumps = events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
+      const slips = events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
+      // The steady weekly clearance once the one-offs are taken out of the line.
+      const step = (debt.openingBalance - debt.balance - lumps + slips) / HISTORY_WEEKS;
+      const weeklyRate = debt.monthlyRate * (7 / 30.4);
+
+      let previous = debt.openingBalance;
+      weekly[0].balance += previous;
+      for (let week = 1; week <= HISTORY_WEEKS; week += 1) {
+        const event = events.find((e) => e.week === week);
+        const lump = event?.principal ?? 0;
+        const newBorrowing = event?.newBorrowing ?? 0;
+        const balance =
+          week === HISTORY_WEEKS ? debt.balance : previous - step - lump + newBorrowing;
+        const interestCharged = previous * weeklyRate;
+        const principalCleared = Math.max(0, previous + newBorrowing - balance);
+        const amountPaid = principalCleared + interestCharged;
         await ctx.db.insert("balanceEntries", {
           userId,
           debtId,
           balance,
-          amountPaid: step + balance * debt.monthlyRate,
-          principalCleared: step,
-          interestCharged: balance * debt.monthlyRate,
-          source: "self_report",
-          loggedAt: Date.now() - (11 - week) * 7 * day,
+          amountPaid,
+          principalCleared,
+          interestCharged,
+          newBorrowing,
+          source: lump > 0 ? "windfall" : "self_report",
+          loggedAt: weekAt(week),
         });
+        weekly[week].balance += balance;
+        weekly[week].paid += amountPaid;
+        weekly[week].principal += principalCleared;
+        weekly[week].interest += interestCharged;
+        weekly[week].newBorrowing += newBorrowing;
+        previous = balance;
       }
     }
 
@@ -541,7 +774,7 @@ export const seed = mutation({
       await ctx.db.insert("beliefs", {
         userId,
         text: belief.text,
-        namedOn: Date.now() - belief.daysAgo * day,
+        namedOn: now - belief.daysAgo * day,
         status: "active",
       });
     }
@@ -556,11 +789,11 @@ export const seed = mutation({
           technique: session.technique,
           plannedMinutes: session.plannedMinutes,
           contractChoice: session.contractChoice,
-          mode: "voice",
+          mode: session.mode ?? "voice",
           summary: "",
           closingReflection: "",
-          startedAt: Date.now() - session.daysAgo * day,
-          endedAt: Date.now() - session.daysAgo * day + session.plannedMinutes * 60 * 1000,
+          startedAt: now - session.daysAgo * day,
+          endedAt: now - session.daysAgo * day + session.plannedMinutes * 60 * 1000,
         }),
       );
     }
@@ -576,12 +809,68 @@ export const seed = mutation({
         trigger: commitment.trigger,
         ownershipConfirmed: true,
         reflection: "",
-        dueAt: Date.now() - commitment.daysAgo * day + 7 * day,
+        dueAt: now - commitment.daysAgo * day + 7 * day,
         status: commitment.status,
-        createdAt: Date.now() - commitment.daysAgo * day,
+        createdAt: now - commitment.daysAgo * day,
       });
     }
+
+    const { review } = args;
+    const window = weekly.slice(review.fromWeek + 1, review.toWeek + 1);
+    const sum = (key: "paid" | "principal" | "interest" | "newBorrowing") =>
+      window.reduce((total, week) => total + week[key], 0);
+    const planOn = (balances: Map<string, number>) =>
+      buildPayoffPlan(
+        (args.debts as SeedDebt[])
+          .map((d, i) => ({ ...engineInputFromSeed(d, i), balance: balances.get(d.name) ?? 0 }))
+          .filter((d) => d.balance > 0),
+        args.profile.debtAttack,
+        "snowball",
+        new Date(weekAt(review.toWeek)),
+      ).debtFreeOn;
+    const balancesAt = (week: number) =>
+      new Map(
+        (args.debts as SeedDebt[]).map((d) => [d.name, seedBalanceAt(d, week)]),
+      );
+    await ctx.db.insert("reviews", {
+      userId,
+      cadence: review.fromWeek === review.toWeek - 1 ? "weekly" : "payday",
+      openingDebt: weekly[review.fromWeek].balance,
+      closingDebt: weekly[review.toWeek].balance,
+      paid: sum("paid"),
+      principalRepaid: sum("principal"),
+      interestCharged: sum("interest"),
+      newBorrowing: sum("newBorrowing"),
+      debtFreeBefore: planOn(balancesAt(review.fromWeek)),
+      debtFreeAfter: planOn(balancesAt(review.toWeek)),
+      reflection: review.reflection,
+      completedAt: now - review.daysAgo * day,
+    });
 
     return { userId };
   },
 });
+
+function engineInputFromSeed(debt: SeedDebt, index: number): DebtInput {
+  return {
+    id: String(index),
+    name: debt.name,
+    issuer: debt.issuer,
+    balance: debt.balance,
+    monthlyRate: debt.monthlyRate,
+    minimumPayment: debt.minimumPayment,
+  };
+}
+
+/** Replays the same straight line the history loop lays down, up to a given week. */
+function seedBalanceAt(debt: SeedDebt, week: number): number {
+  const lumps = debt.events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
+  const slips = debt.events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
+  const step = (debt.openingBalance - debt.balance - lumps + slips) / HISTORY_WEEKS;
+  let balance = debt.openingBalance;
+  for (let w = 1; w <= week; w += 1) {
+    const event = debt.events.find((e) => e.week === w);
+    balance = w === HISTORY_WEEKS ? debt.balance : balance - step - (event?.principal ?? 0) + (event?.newBorrowing ?? 0);
+  }
+  return balance;
+}
