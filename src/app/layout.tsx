@@ -15,9 +15,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Sproutjar — debt recovery coaching with Ren",
+  title: "Sproutjar: credit-card debt coaching with Ren",
   description:
-    "Sproutjar is a debt recovery coaching product for salaried professionals in the Gulf. Ren is the coach inside it: every session arrives with a length, an agenda, and a reason for that agenda.",
+    "A voice-first financial wellness coach that starts with a realistic payoff plan for credit-card debt in the Gulf.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
