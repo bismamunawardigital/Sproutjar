@@ -106,15 +106,11 @@ const FAQ = [
   },
   {
     q: "Do I have to link my bank?",
-    a: "No. You can enter balances, rates and minimums by hand. A bank link is not live yet, and nothing moves without your tap.",
+    a: "No. You enter balances, rates and minimums by hand today. Soon you will be able to upload a card statement and let Sproutjar read the numbers for you. Either way, nothing moves without your tap.",
   },
   {
     q: "What does Ren know about me?",
     a: "Ren reads the numbers and notes you have entered, plus the goals and commitments from previous calls, before it speaks. It never starts from scratch and it never pretends to know something it does not.",
-  },
-  {
-    q: "Do I have to talk out loud?",
-    a: "No. You can type to Ren whenever you prefer, and quiet mode is there for public spaces. Voice is a mode, not the product.",
   },
   {
     q: "What happens when I click Plant the first seed?",
@@ -243,12 +239,12 @@ function ExamplePlanCard() {
       <div className="mt-5 rounded-sm bg-cream p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] font-bold text-ink-500">Monthly debt attack</p>
+            <p className="text-[12px] font-bold text-ink-500">Pay towards your cards each month</p>
             <p className="n text-[22px] font-extrabold text-stem-700">{formatMoney(EXAMPLE_MONTHLY_ATTACK, CURRENCY)}</p>
           </div>
           <div className="text-right">
             <p className="text-[12px] font-bold text-ink-500">Order</p>
-            <p className="text-[15px] font-bold text-ink-900">Highest rate first</p>
+            <p className="text-[15px] font-bold text-ink-900">Highest interest rate first</p>
           </div>
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
@@ -293,14 +289,15 @@ function RenCallCard() {
         </div>
         <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-stem-700">Ren</p>
         <p className="mt-2 max-w-sm text-center text-[18px] font-bold leading-snug text-ink-900 sm:text-[20px]">
-          &ldquo;Last time you wanted to get through the month without touching the ADCB card. Want to start there?&rdquo;
+          &ldquo;Last time you wanted to look at moving the ADCB balance somewhere cheaper. Shall we see what that would save you?&rdquo;
         </p>
       </div>
       <div className="mt-8 rounded-sm bg-cream p-4">
         <p className="label">Agenda</p>
-        <p className="mt-1.5 text-[15px] font-bold text-ink-900">Where things actually stand</p>
+        <p className="mt-1.5 text-[15px] font-bold text-ink-900">Cut the rent you pay on the debt</p>
         <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-          What you owe, what it is costing you, and roughly when it is over.
+          What the interest costs you each month, whether a balance transfer would lower it, and what the offer would
+          need to say before it is worth it.
         </p>
       </div>
       <p className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-ink-800 py-3.5 text-[15px] font-bold text-cream">
@@ -457,7 +454,7 @@ export default function Home() {
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Two ways to order the cards, dearest first or smallest first, with the date each one gives you",
+                "Two ways to order the cards, highest interest rate first or smallest balance first, with the date each one gives you",
                 "A card quoted at 3.25% a month shown as 39% a year, so the cost is not abstract",
                 "A bad month gets a re-plan, not a restart. The date may move, the habit stays",
                 "After the last card, the same plan turns to a reserve and then to savings jars",
@@ -554,25 +551,24 @@ export default function Home() {
         </section>
 
         {/* Trust */}
-        <section className="mt-20 rounded-card border border-rule bg-card p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-stem-700" aria-hidden>
+        <section className="mt-24 rounded-card border border-rule bg-card p-8 sm:p-10 lg:p-12">
+          <div className="max-w-2xl">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-leaf-100 text-stem-700" aria-hidden>
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
-                <path d="M9 12l2 2 4-4" />
+                <rect x="4" y="10.5" width="16" height="10" rx="2.5" />
+                <path d="M8 10.5V7.5a4 4 0 018 0v3" />
+                <path d="M12 14.5v2.5" />
               </svg>
             </span>
-            <div>
-              <h2 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[28px]">
-                Your numbers stay yours.
-              </h2>
-              <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-ink-500">
-                Talking about debt is personal. Sproutjar only asks for what the plan needs, keeps it for you and Ren
-                alone, and never sells it or shares it with banks, advertisers or anyone else.
-              </p>
-            </div>
+            <h2 className="mt-6 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[30px]">
+              Your financial data stays yours.
+            </h2>
+            <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
+              Talking about debt is personal. Sproutjar only asks for what the plan needs, keeps it for you and Ren
+              alone, and never sells it or shares it with banks, advertisers or anyone else.
+            </p>
           </div>
-          <ul className="mt-6 grid gap-4 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
+          <ul className="mt-10 grid gap-x-10 gap-y-7 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
             <li className="flex items-start gap-3">
               <Check className="mt-0.5 h-5 w-5 shrink-0" />
               <span>
@@ -602,6 +598,14 @@ export default function Home() {
               </span>
             </li>
           </ul>
+          <div className="mt-10 flex flex-col gap-3 rounded-sm bg-cream p-5 sm:flex-row sm:items-center sm:gap-5">
+            <span className="chip c-neutral w-fit shrink-0">Coming soon</span>
+            <p className="text-[15px] leading-relaxed text-ink-700">
+              <span className="font-bold text-ink-900">Statement reading.</span> Upload a card statement and Sproutjar will
+              pick out the balance, rate, minimum and due date for you. Still no bank login, and you check every number
+              before it goes into the plan.
+            </p>
+          </div>
         </section>
 
         {/* Evidence / case study */}
