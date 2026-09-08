@@ -29,7 +29,7 @@ function leafPosition(index: number, pairs: number) {
 export function HeroPlant({ className }: { className?: string }) {
   const stemTop = -40;
   const rootCount = 5;
-  const leafPairs = 4;
+  const leafPairs = 5;
   const pct = (SOIL_LINE - stemTop) / STEM_LENGTH;
   const dashoffset = STEM_LENGTH * (1 - pct);
 
