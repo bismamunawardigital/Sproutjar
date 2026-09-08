@@ -15,7 +15,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Sproutjar: credit-card debt coaching with Ren",
+  title: "Sproutjar: grow out of debt habits into savings habits",
   description:
     "A voice-first financial wellness coach that starts with a realistic payoff plan for credit-card debt in the Gulf.",
 };
