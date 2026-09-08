@@ -13,30 +13,6 @@ export type Chapter = {
   pull?: string;
 };
 
-/** Eleven weekly balance readings from the seeded demo profile the product ships with. */
-export const HISTORY = [
-  { at: "2026-06-22", total: 87645 },
-  { at: "2026-06-29", total: 82791 },
-  { at: "2026-07-06", total: 77936 },
-  { at: "2026-07-13", total: 73082 },
-  { at: "2026-07-20", total: 68227 },
-  { at: "2026-07-27", total: 63373 },
-  { at: "2026-08-03", total: 58518 },
-  { at: "2026-08-10", total: 53664 },
-  { at: "2026-08-17", total: 48809 },
-  { at: "2026-08-24", total: 43955 },
-  { at: "2026-08-31", total: 39100 },
-];
-
-export const TALK_DATES = [
-  "2026-06-22",
-  "2026-07-06",
-  "2026-07-21",
-  "2026-08-04",
-  "2026-08-18",
-  "2026-08-29",
-];
-
 /** The numbers that make the Gulf version of this problem different, each one sourced. */
 export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
   {
@@ -50,9 +26,14 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     note: "Riyad Bank publishes a monthly term cost of 2.50% to 2.55% on its platinum and signature cards, stated as an annual profit rate of 36.28% to 36.75%. Islamic structure, same order of magnitude as Dubai.",
   },
   {
-    figure: "2% to 4%",
+    figure: "12% a year",
+    label: "What a Qatar card costs, if your salary lands at the bank",
+    note: "QNB, Commercial Bank, Doha Bank and QIB all publish 1% a month on a revolving balance, and Doha Bank attributes the figure to Qatar Central Bank guidelines. Commercial Bank's tariff shows 2.25% a month, 27% a year, for customers without a salary transfer. Same habit problem, a third of the price, so the arithmetic has to be per market.",
+  },
+  {
+    figure: "1% to 4%",
     label: "How every Gulf bank quotes it: per month",
-    note: "A monthly rate does not feel like anything, and it is the convention from Dubai to Riyadh. Rule in the product: never leave a rate in monthly form, always show the year and the money charged this month.",
+    note: "A monthly rate does not feel like anything, and it is the convention from Dubai to Riyadh to Doha. Rule in the product: never leave a rate in monthly form, always show the year and the money charged this month.",
   },
   {
     figure: "+0.5% / month",
@@ -68,6 +49,78 @@ export const RATE_FACTS: { figure: string; label: string; note: string }[] = [
     figure: "40% to 50%",
     label: "How much salary can go to repayments, and it moves by country",
     note: "The CBUAE caps the debt burden ratio at half of gross salary, and banks commonly count a slice of unused card limits. Kuwait's central bank caps instalments at 40% of net salary, 30% for pensioners. The plan has to be built from the person's own numbers, not a regional rule of thumb.",
+  },
+];
+
+/**
+ * Published credit card terms from four Qatar issuers, read off each bank's own page or tariff on the
+ * date shown. Rates are per month as the banks quote them; the year figure is the simple twelve times
+ * the product uses everywhere. Terms change without notice, so the source and the date travel with
+ * every row.
+ */
+export const QATAR_CARDS: {
+  issuer: string;
+  scope: string;
+  rate: string;
+  minimum: string;
+  grace: string;
+  late: string;
+  cash: string;
+  source: { title: string; url: string };
+  retrieved: string;
+}[] = [
+  {
+    issuer: "QNB",
+    scope: "Retail tariff, credit cards",
+    rate: "1% a month, 12% a year",
+    minimum: "Not stated in the tariff",
+    grace: "None on cash advances: interest runs from the transaction date until repaid in full",
+    late: "0.25% a month; over limit QR 100",
+    cash: "1% a month plus a 4% fee, minimum QR 10",
+    source: { title: "QNB tariff of charges, Qatar", url: "https://www.qnb.com/sites/qnb/qnbqatar/document/en/enRetailTOC" },
+    retrieved: "2026-09-05",
+  },
+  {
+    issuer: "Commercial Bank",
+    scope: "Schedule of charges, all card packages, salary transfer customers",
+    rate: "1% a month, 12% a year. Without salary transfer: 2.25% a month, 27% a year",
+    minimum: "Classic product page: repay from 3% of the balance",
+    grace: "Up to 45 days interest free on the Classic product page; the tariff counts a maximum of 15 grace days after the statement, none on cash advances or fund transfers",
+    late: "0.25% or QAR 100, whichever is greater; over limit QAR 150 once 2% over",
+    cash: "1% a month plus 4% (Diners) or 4.5% (Visa, Mastercard)",
+    source: {
+      title: "Commercial Bank personal banking tariff of charges",
+      url: "https://www.cbq.qa/-/media/project/cbq/cbqwebsite/documents/tarrif-of-charges/cbq-personal-banking-tarrif-of-charges-en.pdf",
+    },
+    retrieved: "2026-09-05",
+  },
+  {
+    issuer: "Doha Bank",
+    scope: "Charges for personal customers, all consumer credit cards",
+    rate: "1% a month on all transactions, 12% a year, stated as per QCB guidelines",
+    minimum: "Not stated on the charges page",
+    grace: "Not stated on the charges page",
+    late: "QR 100 per missed payment or 0.25%, whichever is higher; over limit QR 100",
+    cash: "4.5% of the amount or QR 20, whichever is higher. Fast Cash instalments at 0.75% a month, 9% a year, over 6 or 12 months",
+    source: {
+      title: "Doha Bank charges for personal customers",
+      url: "https://www.dohabank.com.qa/personal/other-services/charges-for-personal-customers/",
+    },
+    retrieved: "2026-09-05",
+  },
+  {
+    issuer: "QIB",
+    scope: "Visa Gold, Platinum, Infinite and Digital revolving cards, Islamic structure",
+    rate: "1% profit a month on the unpaid balance, 12% a year",
+    minimum: "5% of the balance",
+    grace: "Up to 45 days when the statement is paid in full",
+    late: "No late fee: a 2% charity commitment on the unpaid amount, sent to charity",
+    cash: "3% withdrawal fee; listed as not applicable on the Digital card",
+    source: {
+      title: "QIB Visa Platinum credit card, fees",
+      url: "https://www.qib.com.qa/en/personal/cards/types/credit-cards/visa-cards/platinum-credit-card",
+    },
+    retrieved: "2026-09-05",
   },
 ];
 
@@ -241,6 +294,17 @@ export const CHAPTERS: Chapter[] = [
     },
   },
   {
+    id: "qatar",
+    title: "Qatar: the same habit at a third of the price",
+    lead:
+      "Sproutjar was researched in Dubai, where a card costs 39% to 44% a year. Doha is the second market, and the first thing the research had to do there was refuse to carry the UAE numbers across.",
+    body: [
+      "Every Qatar issuer I read publishes the same headline: 1% a month on a revolving balance, which the product shows as 12% a year. Doha Bank writes that the figure follows Qatar Central Bank guidelines, and I have left it at that rather than quote a directive I could not read in the original. The detail underneath is where the money is. Commercial Bank charges 2.25% a month, 27% a year, when your salary does not land at the bank. Cash advances run from day one at every issuer with a 3% to 4.5% fee on top. QIB, an Islamic bank, has no late fee at all: a late payment triggers a 2% commitment to charity, which is a different thing to explain to a person than a penalty. And a QIB minimum is 5% of the balance against Commercial Bank's 3%, so two people with the same debt have different floors.",
+      "What does not change is the behaviour. The plan still has to be built from the person's own salary, payday and obligations, the minimum is still a constraint rather than the ambition, a windfall still needs a rule decided before it lands, and a balance transfer still has to pass the same four tests. What changes is the arithmetic Ren speaks and the screen shows: the currency, the rate, the fee schedule, and which bank's official page the live retrieval is allowed to read. That switch already exists in the code, keyed on the person's country, and the table below is what it reads for Qatar.",
+    ],
+    pull: "Refuse to carry the UAE numbers across.",
+  },
+  {
     id: "against-myself",
     title: "Why this is voice first, and not another chat window",
     lead:
@@ -248,7 +312,7 @@ export const CHAPTERS: Chapter[] = [
     body: [
       "Three reasons voice earns its place. Saying a number out loud is a different act from typing it: people admit the real balance, the loan they left out of the spreadsheet, the month they hid, because speech is confession and a form is data entry. Tone carries what the text never sends, so when someone flattens out on the sentence about their family, Ren has a signal a chat box does not get and can slow down, ask, or drop the agenda for the one that matters. And voice has a personality: pace, warmth, the pauses. You do not build accountability with a text field, you build it with somebody who is expecting you.",
       "Ren is an ElevenLabs conversational agent joined over WebRTC from the app, with a signed session minted server side so no key reaches the browser. The prompt is written from the coaching research, not from a persona sketch: permission before challenging, teaching or suggesting, reflection in the person's own words, one commitment at the end. Turn taking took as much work as the words, because the default failure of a voice agent is interrupting somebody who is thinking; the silence timeout is long, and Ren never asks whether you are still there. Seven server tools point at this app's own API routes, so mid call Ren can read live balances, run the payoff plan, log a commitment, capture a belief and file an offer.",
-      "I designed around the honest limits rather than through them. The research verdict on voice as a modality is unsupported, and no persona wanted a forty minute scheduled call, so the person picks the length and the agenda before the call, nothing is scheduled, quiet mode lets someone whisper on a Metro platform and read the reply on screen, and every number Ren says is also on screen behind it. If a real cohort tells me voice is dead weight, the journey survives without it.",
+      "I designed around the honest limits rather than through them. The research verdict on voice as a modality is unsupported, and no persona wanted a forty minute scheduled call, so the person picks the length and the agenda before the call, nothing is scheduled, quiet mode lets someone whisper on a Metro platform and read the reply on screen, and every number Ren says is also on screen behind it. If a real cohort tells me voice is dead weight, the journey survives without it: Ren can also be typed to, in the same room with the same memory, and before anyone's first call a one-time card says what Ren does and does not do.",
     ],
     shots: [
       {
@@ -286,27 +350,28 @@ export const CHAPTERS: Chapter[] = [
       "Next.js and TypeScript, Convex for live persistence, ElevenLabs over WebRTC for the call, seven server tools wired to this app's own API routes.",
     body: [
       "That plumbing is the difference between a voice demo and a product. When Ren says the rent on your debt is one thousand three hundred and twenty eight dirhams this month, the number came out of the same database the screen is reading, and the payoff engine behind it runs month by month amortisation over every card at its own rate.",
-      "The demo I judge it on is the balance transfer. Mid call I asked Ren what to do about the Emirates NBD card. It read the live balance and the 3.69% monthly rate out of Convex through its debt snapshot tool, worked the transfer against the fee and the promotional window, said the annual figure out loud rather than the monthly one, and proposed it. The offer appeared as a card in the call and filed itself on the Growth screen, unapplied, because Ren cannot move money and will not record transferred principal as progress. The person confirms it after their bank has actually done it. A coach that acts on a mishearing is worse than no coach.",
+      "The demo I judge it on is the balance transfer. Mid call I asked Ren what to do about the Emirates NBD card. It read the live balance and the 3.69% monthly rate out of Convex through its debt snapshot tool, worked the transfer against the fee and the promotional window, said the annual figure out loud rather than the monthly one, and proposed it. The offer appeared as a card in the call and filed itself on the Plan screen, unapplied, because Ren cannot move money and will not record transferred principal as progress. The person confirms it after their bank has actually done it. A coach that acts on a mishearing is worse than no coach.",
       "That offer is now checked live. Context.dev is wired server side: Ren's tool searches the web for the bank's own pages, reads the published terms off the official page with fact checking on, and returns the promotional rate, the window, the revert rate and the fees with the source URL and the retrieval time attached. The key sits on our server, never in ElevenLabs and never in the browser. When retrieval fails, Ren says so in the call rather than reading the dated table out as this morning's rate.",
+      "A second audit, run against the research rather than the screens, changed the shape of the month. The plan now runs on a monthly amount derived from the person's own salary, payday, essentials, obligations, money sent home and known lumps, with their own figure allowed to override it and the screen saying which is in use. Payday brings a review in four numbers: debt at the start of the month, new borrowing, principal repaid, interest burned, with what each card received and one reflection in the person's words, and the date recomputes from that. Cards carry a due day, a statement day, a minimum and a type, BNPL included, and a statement can be pasted in when memory is not enough. Every rate is shown as the simple twelve times the monthly figure, because that is the only annual number a Gulf bank's own paperwork supports. And the four tabs read Today, Ren, Plan, You, in the person's words rather than mine.",
     ],
     shots: [
       {
         src: "/case/app-dashboard.png",
-        alt: "Home: the plant in its jar, a debt-free date of June 2027, left to pay, paid off, and the monthly interest labelled rent on the debt.",
+        alt: "Today, then called Home: the plant in its jar, a debt-free date of June 2027, left to pay, paid off, and the monthly interest labelled rent on the debt.",
         label:
-          "Home. The plant, the date, and the interest named as rent, the number nobody quotes you when you take the card.",
+          "Today, then called Home. The plant, the date, and the interest named as rent, the number nobody quotes you when you take the card.",
       },
       {
         src: "/case/app-growth.png",
-        alt: "Growth: a clearing and building toggle, three cards with balances, monthly and annual rates, interest this month, and amounts paid off.",
+        alt: "Plan, then called Growth: a clearing and building toggle, three cards with balances, monthly and annual rates, interest this month, and amounts paid off.",
         label:
-          "Growth. Every card at its own rate, what it costs this month, and what has already gone. One card marked Start here.",
+          "Plan, then called Growth. Every card at its own rate, what it costs this month, and what has already gone. One card marked Start here.",
       },
       {
         src: "/case/app-you.png",
-        alt: "You: Layla, eleven weeks in, paid off and talks, what the money is for, something that already worked, and beliefs said out loud.",
+        alt: "You, an earlier build: Layla, weeks in, paid off, what the money is for, something that already worked, and beliefs said out loud.",
         label:
-          "You. Their reason, their own past success, and the beliefs they have said out loud, in their words, dated, still editable.",
+          "You. Their reason, their own past success, the beliefs they have said out loud, and now the numbers Ren works from, all in their words and editable.",
       },
     ],
   },
@@ -626,9 +691,9 @@ export const DECISIONS: {
       "A commitment the person never made is a lie the product then holds them to. The third ending had to exist for the other two to mean anything.",
   },
   {
-    question: "Home and Ren had become the same screen.",
+    question: "Today and Ren had become the same screen.",
     chose:
-      "Home is the overview with a doorway; Ren is a coaching room with its own archive and intent pills that set the contract before the call.",
+      "Today is the overview with one doorway; Ren is a coaching room with its own archive, agenda pills and intent pills that set the contract before the call.",
     instead: "Keep the big call button on both and call it consistency.",
     why: "Two tabs that do the same thing teach people that one of them is decoration.",
   },
@@ -640,7 +705,7 @@ export const DECISIONS: {
       "The line falls because someone paid it down, not because they installed an app. The wording had to stop short of claiming the app caused it.",
   },
   {
-    question: "Growth still said “start here” on a card the person had already settled.",
+    question: "Plan still said “start here” on a card the person had already settled.",
     chose: "Zero-balance cards are excluded from payoff ordering and move to a cleared list.",
     instead: "Leave it; it is technically the smallest balance.",
     why:
@@ -664,7 +729,7 @@ export const DECISIONS: {
   {
     question: "Ren finds a balance transfer worth taking.",
     chose:
-      "Ren proposes, the offer appears as a card in the call and files itself on Growth, and the person applies it only after their bank has executed it.",
+      "Ren proposes, the offer appears as a card in the call and files itself on Plan with the bank's published terms, the source and the time it was read, and the person applies it only after their bank has executed it.",
     instead: "Let the tool move the balance when the person says yes on the call.",
     why:
       "Voice mishears. Money must not move on a mishearing, and transferred principal is not progress: the engine records it at zero cleared.",
@@ -678,7 +743,7 @@ export const DECISIONS: {
   },
   {
     question: "What happens when the debt reaches zero?",
-    chose: "Ren changes horizon: jars, months of cover, the asks now that money is visible.",
+    chose: "Plan shows the horizon before it arrives: the same monthly amount fills the reserve first, then the jars, each with a date, and nothing is recorded as moved until the person says so.",
     instead: "Congratulate and go quiet.",
     why:
       "The research is explicit that people slip back. The strongest retention argument and the strongest user argument happen to be the same one, and Ren still recommends no investment product, fund or allocation.",

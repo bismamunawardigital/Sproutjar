@@ -20,6 +20,7 @@ export default async function RenPage({
     return {
       id: session.id,
       agenda: session.agenda,
+      mode: session.mode,
       startedAt: session.startedAt,
       wish: produced ? produced.wish : null,
       status: produced ? produced.status : null,
@@ -31,6 +32,8 @@ export default async function RenPage({
       <SessionDeck
         userName={snap.user.name}
         initialAgenda={picked}
+        agendas={agendas}
+        contracted={typeof snap.user.contractedAt === "number" || snap.sessions.length > 0}
         commitment={
           snap.commitments[0]
             ? { wish: snap.commitments[0].wish, trigger: snap.commitments[0].trigger }

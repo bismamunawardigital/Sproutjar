@@ -7,11 +7,24 @@ import { COUNTRIES } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
+const money = z.coerce.number().nonnegative().optional();
+
 const profileSchema = z.object({
   name: z.string().min(1).optional(),
   country: z.enum(Object.keys(COUNTRIES) as [string, ...string[]]).optional(),
-  monthlyIncome: z.coerce.number().nonnegative().optional(),
-  monthlyEssentials: z.coerce.number().nonnegative().optional(),
+  monthlyIncome: money,
+  monthlyEssentials: money,
+  payday: z.coerce.number().int().min(1).max(31).optional(),
+  priorityObligations: money,
+  remittances: money,
+  sinkingFunds: money,
+  debtAttack: money,
+  debtAttackSource: z.enum(["derived", "chosen"]).optional(),
+  windfallRule: z.string().max(300).optional(),
+  reviewCadence: z.enum(["weekly", "payday"]).optional(),
+  moneyPurpose: z.string().max(300).optional(),
+  goodDecision: z.string().max(300).optional(),
+  upbringing: z.string().max(300).optional(),
   strategy: z.enum(["snowball", "avalanche"]).optional(),
 });
 

@@ -92,10 +92,16 @@ export function formatMoneyShort(amount: number, currency: string): string {
 /**
  * A monthly rate never appears without its annual equivalent. Quoting the
  * monthly figure alone is the comprehension failure the product exists to fix.
+ * The annual figure is the simple one banks in the region publish (monthly ×
+ * 12), so it matches the number on the statement.
  */
+export function annualRate(monthlyRate: number): number {
+  return monthlyRate * 12;
+}
+
 export function formatRate(monthlyRate: number): string {
   const monthly = (monthlyRate * 100).toFixed(2);
-  const annual = ((Math.pow(1 + monthlyRate, 12) - 1) * 100).toFixed(2);
+  const annual = (annualRate(monthlyRate) * 100).toFixed(2);
   return `${monthly}% monthly · ${annual}% a year`;
 }
 

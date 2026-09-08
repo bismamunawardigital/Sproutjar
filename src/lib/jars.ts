@@ -35,11 +35,15 @@ export function jarProgress(jar: JarInput, monthlyContribution = 0): JarProgress
 }
 
 /**
- * Ren's step 3: one month of essentials sits in a jar before any extra goes at the debt,
- * because without it the first surprise bill goes straight back on the card.
+ * A small anti-relapse reserve, sized to one ordinary shock (a car repair, a
+ * school fee that came early), not to a month of living. Every dirham parked
+ * here costs the card's rate while the cards are open, so the reserve is the
+ * person's number: this is only the suggestion offered before they have one.
  */
-export function recommendedStarterJar(monthlyEssentials: number): number {
-  return Math.round(monthlyEssentials);
+export const STARTER_RESERVE_DEFAULT = 3000;
+
+export function recommendedStarterJar(existingTarget?: number): number {
+  return existingTarget && existingTarget > 0 ? Math.round(existingTarget) : STARTER_RESERVE_DEFAULT;
 }
 
 /**

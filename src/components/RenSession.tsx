@@ -88,6 +88,9 @@ function RenSessionInner({
   const [showTranscript, setShowTranscript] = useState(false);
   const [glance, setGlance] = useState<GlanceCard | null>(null);
   const [quiet, setQuiet] = useState(false);
+  /** Typed Ren: no microphone, the same agent and memory, words both ways. */
+  const [typed, setTyped] = useState(false);
+  const [draft, setDraft] = useState("");
   /** Hung up: keeps a late SDK status or a stale transcript from reopening the call. */
   const [ended, setEnded] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
@@ -111,7 +114,8 @@ function RenSessionInner({
       setStatus("error");
     },
     onMessage: ({ message, source }) => {
-      if (source === "user") saidByYou.current = [...saidByYou.current, message];
+      if (source === "user" && saidByYou.current[saidByYou.current.length - 1] !== message)
+        saidByYou.current = [...saidByYou.current, message];
       const role = source === "user" ? "you" : ("ren" as const);
       setLines((prev) => {
         // The SDK re-sends a turn as it grows, so the same sentence arrives
@@ -189,7 +193,7 @@ function RenSessionInner({
     setEnded(false);
     setStatus("connecting");
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!typed) await navigator.mediaDevices.getUserMedia({ audio: true });
       const response = await fetch("/api/agent/session", { cache: "no-store" });
       const config = (await response.json()) as SessionConfig;
       if (!config.configured) {
@@ -203,6 +207,7 @@ function RenSessionInner({
       conversation.startSession({
         conversationToken: config.conversationToken,
         connectionType: "webrtc",
+        textOnly: typed,
         dynamicVariables: {
           ...config.dynamicVariables,
           agenda_title: agenda?.title ?? "Open",
@@ -212,7 +217,7 @@ function RenSessionInner({
           agenda_technique: agenda?.technique ?? "Open",
           planned_minutes: String(minutes),
           contract_choice: contract ?? "unstated",
-          quiet_mode: quiet ? "true" : "false",
+          quiet_mode: quiet || typed ? "true" : "false",
         },
       });
     } catch (caught) {
@@ -223,7 +228,16 @@ function RenSessionInner({
       );
       setStatus("error");
     }
-  }, [agenda, contract, conversation, minutes, quiet]);
+  }, [agenda, contract, conversation, minutes, quiet, typed]);
+
+  const send = useCallback(() => {
+    const text = draft.trim();
+    if (!text) return;
+    conversation.sendUserMessage(text);
+    saidByYou.current = [...saidByYou.current, text];
+    setLines((prev) => [...prev, { role: "you", text }]);
+    setDraft("");
+  }, [conversation, draft]);
 
   const stop = useCallback(() => {
     conversation.endSession();
@@ -267,7 +281,11 @@ function RenSessionInner({
           <p className="text-[17px] font-bold">
             {!live
               ? "Connecting…"
-              : conversation.isMuted
+              : typed
+                ? speaking
+                  ? "Ren is writing"
+                  : "Ren is reading. Take your time."
+                : conversation.isMuted
                 ? "Your mic is off"
                 : quiet
                   ? speaking
@@ -330,11 +348,11 @@ function RenSessionInner({
             </div>
           ) : null}
 
-          {(showTranscript || quiet) && lines.length > 0 ? (
+          {(showTranscript || quiet || typed) && lines.length > 0 ? (
             <div
               ref={transcriptRef}
               className={`w-full max-w-md space-y-3 overflow-y-auto rounded-card bg-black/20 p-4 text-left ${
-                quiet ? "max-h-80" : "max-h-56"
+                quiet || typed ? "max-h-80" : "max-h-56"
               }`}
             >
               {lines.map((line, index) => (
@@ -355,40 +373,77 @@ function RenSessionInner({
           {error ? <p className="text-[13px] text-amber">{error}</p> : null}
         </div>
 
-        <div className="flex items-center justify-center gap-4 pb-12 pt-4">
-          <button
-            onClick={() => conversation.setMuted(!conversation.isMuted)}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50"
+        {typed ? (
+          <form
+            className="flex items-center gap-2 px-5 pb-6 pt-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              send();
+            }}
           >
-            {conversation.isMuted ? "Unmute" : "Mute"}
-          </button>
-          <button
-            onClick={stop}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-danger text-[13px] font-bold text-white transition hover:opacity-90"
-          >
-            End
-          </button>
-          <button
-            onClick={() => setShowTranscript((value) => !value)}
-            aria-pressed={showTranscript}
-            disabled={quiet}
-            className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50 disabled:opacity-40"
-          >
-            {showTranscript ? "Hide" : "Words"}
-          </button>
-          <button
-            onClick={toggleQuiet}
-            aria-pressed={quiet}
-            title="Quiet mode: Ren answers in text instead of out loud"
-            className={`flex h-14 w-14 items-center justify-center rounded-full border text-[12px] font-bold transition ${
-              quiet
-                ? "border-leaf-300 bg-leaf-300 text-ink-900"
-                : "border-white/20 text-cream hover:border-white/50"
-            }`}
-          >
-            Quiet
-          </button>
-        </div>
+            <label htmlFor="ren-typed" className="sr-only">
+              Your message to Ren
+            </label>
+            <input
+              id="ren-typed"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              disabled={!live}
+              autoComplete="off"
+              placeholder={live ? "Write to Ren…" : "Connecting…"}
+              className="min-w-0 flex-1 rounded-full border border-white/20 bg-white/10 px-4 py-3 text-[15px] text-cream placeholder:text-cream/40 focus:border-leaf-300 focus:outline-none disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!live || !draft.trim()}
+              className="rounded-full bg-leaf-300 px-5 py-3 text-[14px] font-bold text-ink-900 transition hover:bg-leaf-400 disabled:opacity-40"
+            >
+              Send
+            </button>
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-full bg-danger px-4 py-3 text-[14px] font-bold text-white transition hover:opacity-90"
+            >
+              End
+            </button>
+          </form>
+        ) : (
+          <div className="flex items-center justify-center gap-4 pb-12 pt-4">
+            <button
+              onClick={() => conversation.setMuted(!conversation.isMuted)}
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50"
+            >
+              {conversation.isMuted ? "Unmute" : "Mute"}
+            </button>
+            <button
+              onClick={stop}
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-danger text-[13px] font-bold text-white transition hover:opacity-90"
+            >
+              End
+            </button>
+            <button
+              onClick={() => setShowTranscript((value) => !value)}
+              aria-pressed={showTranscript}
+              disabled={quiet}
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 text-[12px] font-bold text-cream transition hover:border-white/50 disabled:opacity-40"
+            >
+              {showTranscript ? "Hide" : "Words"}
+            </button>
+            <button
+              onClick={toggleQuiet}
+              aria-pressed={quiet}
+              title="Quiet mode: Ren answers in text instead of out loud"
+              className={`flex h-14 w-14 items-center justify-center rounded-full border text-[12px] font-bold transition ${
+                quiet
+                  ? "border-leaf-300 bg-leaf-300 text-ink-900"
+                  : "border-white/20 text-cream hover:border-white/50"
+              }`}
+            >
+              Quiet
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -451,26 +506,50 @@ function RenSessionInner({
             : "Optional. Ren will ask if you skip it."}
         </p>
 
-        <button
-          onClick={toggleQuiet}
-          aria-pressed={quiet}
-          className={`mt-4 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
-            quiet
-              ? "bg-leaf-300 text-ink-900"
-              : "border border-white/20 text-cream/70 hover:border-white/50"
-          }`}
-        >
-          {quiet ? "Quiet mode on" : "Somewhere public? Quiet mode"}
-        </button>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <button
+            onClick={toggleQuiet}
+            aria-pressed={quiet}
+            disabled={typed}
+            className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition disabled:opacity-40 ${
+              quiet
+                ? "bg-leaf-300 text-ink-900"
+                : "border border-white/20 text-cream/70 hover:border-white/50"
+            }`}
+          >
+            {quiet ? "Quiet mode on" : "Somewhere public? Quiet mode"}
+          </button>
+          <button
+            onClick={() => setTyped((value) => !value)}
+            aria-pressed={typed}
+            className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
+              typed
+                ? "bg-leaf-300 text-ink-900"
+                : "border border-white/20 text-cream/70 hover:border-white/50"
+            }`}
+          >
+            {typed ? "Typing, no mic" : "Type instead"}
+          </button>
+        </div>
         <p className="mt-2 h-4 text-[12px] text-cream/45">
-          {quiet ? "You whisper. Ren writes back instead of speaking." : ""}
+          {typed
+            ? "Same Ren, same memory. You write, Ren writes back."
+            : quiet
+              ? "You whisper. Ren writes back instead of speaking."
+              : ""}
         </p>
 
         <button
           onClick={start}
           className="mt-4 w-full max-w-xs rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
         >
-          {lines.length > 0 ? "Call Ren again" : "Call Ren"}
+          {typed
+            ? lines.length > 0
+              ? "Write to Ren again"
+              : "Write to Ren"
+            : lines.length > 0
+              ? "Call Ren again"
+              : "Call Ren"}
         </button>
       </div>
       {error ? (

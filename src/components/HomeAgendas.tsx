@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { Agenda } from "@/lib/agendas";
 
 /**
- * Home is the doorway, not the room. It shows the one line Ren would open with
- * today and a way in — the call itself, the orb and the transcript live on
- * Ren's own screen.
+ * Today is the doorway, not the room. It shows the one line Ren would open
+ * with today and a way in; the other topics, the orb and the transcript live
+ * on Ren's own screen.
  */
 export function HomeAgendas({
   agendas,
@@ -14,7 +14,6 @@ export function HomeAgendas({
   hasHistory: boolean;
 }) {
   const opener = agendas[0] ?? null;
-  const rest = agendas.slice(1, 4);
 
   return (
     <section className="overflow-hidden rounded-card bg-ink-800 text-cream">
@@ -56,21 +55,6 @@ export function HomeAgendas({
           ) : null}
         </Link>
       </div>
-
-      {rest.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto border-t border-white/10 px-5 py-3">
-          <span className="shrink-0 self-center text-[12px] text-cream/40">or</span>
-          {rest.map((agenda) => (
-            <Link
-              key={agenda.id}
-              href={`/dashboard/ren?agenda=${agenda.id}`}
-              className="shrink-0 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] font-bold text-cream/80 transition hover:border-white/50"
-            >
-              {agenda.title}
-            </Link>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }

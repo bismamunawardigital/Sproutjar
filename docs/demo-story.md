@@ -10,16 +10,16 @@ mic tested. Have `/dashboard` already open so the first frame is the product, no
 
 ## 0 · Cold open (20s) — start at the end
 
-**On screen:** Home. Plant, "You're debt-free in May 2027", the three numbers.
+**On screen:** Today. Plant, the debt-free date, the three numbers.
 
-> "This is Layla. Three credit cards, AED 39,100, and until last month she had no idea when it
-> ends. That date is the product."
+> "This is Layla. Three credit cards, AED 39,100 left of 87,645, and until she met Ren she had no
+> idea when it ends. That date is the product."
 
 Don't explain anything yet. Let the screen sit for a beat.
 
 ## 1 · Context (40s) — who this is for
 
-**On screen:** stay on Home, scroll slowly.
+**On screen:** stay on Today, scroll slowly.
 
 > "In the GCC, a third of card holders roll a balance. The advice is everywhere — snowball,
 > avalanche, cut the subscriptions. People know it. They still don't do it, because debt isn't a
@@ -35,10 +35,12 @@ Don't explain anything yet. Let the screen sit for a beat.
 
 ## 3 · Transformation, part 1 — Ren (2 min, the centrepiece)
 
-**On screen:** Home → tap an agenda card → the call goes full-screen.
+**On screen:** Today → tap the agenda card → the call goes full-screen. (The other agendas live on
+the Ren tab; one of them is the payday review gap, another appears only when interest burned
+outweighs principal repaid.)
 
-> "Sproutjar starts with a conversation. Home asks one question — what do you want to talk about —
-> and every option comes from her actual data."
+> "Sproutjar starts with a conversation. Today asks one question — what do you want to talk about —
+> and every option comes from her actual data. She can talk, or type, same room, same memory."
 
 Tap **"Where the money actually goes"** (or whichever fits) and let the call connect.
 
@@ -56,31 +58,44 @@ End the call. The close card appears with the sprout.
 > "And this is how a call ends. One small thing, in her words, not Ren's. If she misses it, that's
 > information, not a failure — there is no red, no streak to break."
 
-## 4 · Transformation, part 2 — Growth (1 min)
+## 4 · Transformation, part 2 — Plan (1 min)
 
-**On screen:** Growth → Clearing, then Building.
+**On screen:** Plan → Clearing, then Building.
+
+> "AED 6,500 a month goes to the cards. That isn't a number the app picked: it's her salary minus
+> essentials, rent, what she sends home and what she sets aside, and she can overrule it."
 
 > "Clearing shows what she owes and where to start — the detail is there if she wants it, folded
 > away if she doesn't." (Open "Which card to pay off first", show the two options, close it.)
 
-Switch to Building, add AED 500 to the buffer jar and let the jar fill animate.
+Scroll to the payday review.
 
-> "Same tab, because paying down and saving up are the same growth. And the plant on Home is fed
-> by both — one picture, not two scoreboards."
+> "On payday she answers four questions: where the debt started, anything new on a card, principal
+> repaid, interest burned. Last month she recorded AED 640 of groceries on the Emirates NBD card.
+> No red, no streak — it's a number Ren will ask about next time."
+
+Switch to Building, add AED 500 to the starter reserve and let the jar fill animate.
+
+> "Same tab, because paying down and saving up are the same growth. The reserve is small on
+> purpose, one car repair, because every dirham parked here costs 3% a month while the cards are
+> open. And when the last card clears, the same 6,500 fills the reserve, then the jars — the dates
+> are already on the screen."
 
 ## 5 · Transformation, part 3 — You (30s)
 
 **On screen:** You.
 
 > "What she's paid off, what she's tried, and the things she's said about money that turned out
-> not to be true. That's the part a budgeting app never keeps."
+> not to be true. That's the part a budgeting app never keeps. And the numbers Ren works from —
+> salary, payday, what goes to the cards — are hers to correct, right here."
 
 ## 6 · How it's built (45s) — credibility
 
 **On screen:** the PR, or the repo, briefly.
 
-> "Built with Devin. The voice is ElevenLabs over WebRTC, with six tools that read and write live
-> data — the payoff engine, the jars, the commitments. Context.dev gives Ren the debt knowledge.
+> "Built with Devin. The voice is ElevenLabs over WebRTC, with seven tools that read and write live
+> data — the payoff engine, the jars, the commitments, the transfer proposal. Context.dev reads the
+> bank's own page live for the transfer terms, with the source and time attached.
 > Convex is the live database, so everything you saw Ren say came out of the same tables the UI
 > reads. Nothing in this demo is mocked."
 
