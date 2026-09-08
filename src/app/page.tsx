@@ -113,10 +113,6 @@ const FAQ = [
     a: "Ren reads the numbers and notes you have entered, plus the goals and commitments from previous calls, before it speaks. It never starts from scratch and it never pretends to know something it does not.",
   },
   {
-    q: "Do I have to talk out loud?",
-    a: "No. You can type to Ren whenever you prefer, and quiet mode is there for public spaces. Voice is a mode, not the product.",
-  },
-  {
     q: "What happens when I click Plant the first seed?",
     a: "You answer a few quick questions, then see your first coaching agenda and start building your plan. The questions take a couple of minutes and you can change your answers later.",
   },
@@ -243,12 +239,12 @@ function ExamplePlanCard() {
       <div className="mt-5 rounded-sm bg-cream p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] font-bold text-ink-500">Monthly debt attack</p>
+            <p className="text-[12px] font-bold text-ink-500">Towards your cards each month</p>
             <p className="n text-[22px] font-extrabold text-stem-700">{formatMoney(EXAMPLE_MONTHLY_ATTACK, CURRENCY)}</p>
           </div>
           <div className="text-right">
             <p className="text-[12px] font-bold text-ink-500">Order</p>
-            <p className="text-[15px] font-bold text-ink-900">Highest rate first</p>
+            <p className="text-[15px] font-bold text-ink-900">Highest interest rate first</p>
           </div>
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
@@ -293,14 +289,15 @@ function RenCallCard() {
         </div>
         <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-stem-700">Ren</p>
         <p className="mt-2 max-w-sm text-center text-[18px] font-bold leading-snug text-ink-900 sm:text-[20px]">
-          &ldquo;Last time you wanted to get through the month without touching the ADCB card. Want to start there?&rdquo;
+          &ldquo;Last time you wanted to look at moving the ADCB balance somewhere cheaper. Shall we see what that would save you?&rdquo;
         </p>
       </div>
       <div className="mt-8 rounded-sm bg-cream p-4">
         <p className="label">Agenda</p>
-        <p className="mt-1.5 text-[15px] font-bold text-ink-900">Where things actually stand</p>
+        <p className="mt-1.5 text-[15px] font-bold text-ink-900">Cut the rent you pay on the debt</p>
         <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-          What you owe, what it is costing you, and roughly when it is over.
+          What the interest costs you each month, whether a balance transfer would lower it, and what the offer would
+          need to say before it is worth it.
         </p>
       </div>
       <p className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-ink-800 py-3.5 text-[15px] font-bold text-cream">
@@ -457,7 +454,7 @@ export default function Home() {
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Two ways to order the cards, dearest first or smallest first, with the date each one gives you",
+                "Two ways to order the cards, highest interest rate first or smallest balance first, with the date each one gives you",
                 "A card quoted at 3.25% a month shown as 39% a year, so the cost is not abstract",
                 "A bad month gets a re-plan, not a restart. The date may move, the habit stays",
                 "After the last card, the same plan turns to a reserve and then to savings jars",
