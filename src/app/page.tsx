@@ -14,12 +14,35 @@ export const metadata: Metadata = {
 
 const CURRENCY = "AED";
 
-const STARTER_QUESTIONS = [
-  "Why can I not stick to my budget?",
-  "What keeps throwing me off?",
-  "What do I actually want my money to help me achieve?",
-  "What small habit should I work on first?",
+const STARTER_OPTIONS = [
+  "I make a budget and never stick to it",
+  "Something always knocks me off track mid-month",
+  "I am not sure what I want my money to do for me",
+  "I want one small habit I can actually keep",
 ];
+
+const REN_STRENGTHS = [
+  {
+    title: "Life coaching techniques",
+    body: "Open questions, reflection and one clear commitment per call. The methods good coaches use, brought into your everyday money life.",
+    icon: "chat",
+  },
+  {
+    title: "Positive psychology",
+    body: "Ren starts from what already works for you, not from what is wrong with you. Strengths first, then the gap.",
+    icon: "sun",
+  },
+  {
+    title: "Goals in your own words",
+    body: "Ren helps you work out what you actually want your money to do, then turns it into a goal that belongs to you.",
+    icon: "target",
+  },
+  {
+    title: "Accountability that grows with you",
+    body: "Ren remembers what you said you would do, notices what got in the way, and helps you keep the plan growing.",
+    icon: "sprout",
+  },
+] as const;
 
 const EXAMPLE_CARDS = [
   { name: "Emirates NBD", balance: 18500, monthlyRate: 0.0325, minimum: 1110, focus: true },
@@ -136,6 +159,18 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
+function StrengthIcon({ icon }: { icon: (typeof REN_STRENGTHS)[number]["icon"] }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden {...common}>
+      {icon === "chat" ? <path d="M4 5h16v11H9l-5 4V5zM8 9h8M8 12h5" /> : null}
+      {icon === "sun" ? <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4M12 8a4 4 0 100 8 4 4 0 000-8z" /> : null}
+      {icon === "target" ? <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8zM12 12h.01" /> : null}
+      {icon === "sprout" ? <path d="M12 21v-8M12 13c0-4 3-7 8-7 0 4-3 7-8 7zM12 13c0-3-2.5-5.5-6-5.5 0 3.5 2.5 5.5 6 5.5" /> : null}
+    </svg>
+  );
+}
+
 function StarterCard() {
   return (
     <div className="rounded-card border border-rule bg-card p-5 shadow-sh-2 sm:p-6">
@@ -143,9 +178,9 @@ function StarterCard() {
         <p className="label">Your first agenda</p>
         <span className="chip c-neutral">Example</span>
       </div>
-      <p className="mt-3 text-[17px] font-bold text-ink-900">Where are you stuck right now?</p>
+      <p className="mt-3 text-[17px] font-bold text-ink-900">Pick the one that sounds most like you</p>
       <ul className="mt-4 space-y-2">
-        {STARTER_QUESTIONS.map((question, i) => {
+        {STARTER_OPTIONS.map((question, i) => {
           const chosen = i === 1;
           return (
             <li
@@ -171,9 +206,10 @@ function StarterCard() {
         <span className="ren-orb orb-listening mt-0.5 h-8 w-8 shrink-0 rounded-full" aria-hidden />
         <div className="min-w-0">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">Ren suggests</p>
-          <p className="mt-1 text-[15px] font-bold leading-snug">The months that went fine</p>
+          <p className="mt-1 text-[15px] font-bold leading-snug">Find what knocks the month over</p>
           <p className="mt-1 text-[13px] leading-relaxed text-cream/75">
-            It has not been like this every month. What was different back then? About ten minutes.
+            Let us walk through your last three months and spot the one thing that keeps throwing the plan off. Then we
+            plan around it, not against it. About ten minutes.
           </p>
         </div>
       </div>
@@ -211,12 +247,12 @@ function ExamplePlanCard() {
             <p className="n text-[22px] font-extrabold text-stem-700">{formatMoney(EXAMPLE_MONTHLY_ATTACK, CURRENCY)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[12px] font-bold text-ink-500">Strategy</p>
-            <p className="text-[15px] font-bold text-ink-900">Avalanche</p>
+            <p className="text-[12px] font-bold text-ink-500">Order</p>
+            <p className="text-[15px] font-bold text-ink-900">Highest rate first</p>
           </div>
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-500">
-          Pay Emirates NBD first. Debt-free in <span className="n">14</span> months.
+          Pay minimums on every card, put the rest on Emirates NBD. Debt-free in <span className="n">14</span> months.
         </p>
       </div>
       <div className="mt-5 flex items-center gap-4 rounded-sm bg-cream-2 p-4">
@@ -370,8 +406,27 @@ export default function Home() {
           </div>
         </section>
 
+        {/* What Ren brings */}
+        <section id="start" className="pt-6">
+          <SectionTitle>What Ren brings to the call.</SectionTitle>
+          <p className="mt-4 max-w-2xl text-[17px] leading-relaxed text-ink-500">
+            Not a lecture and not a spreadsheet. Ren works the way a good coach works, around the goals you choose.
+          </p>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {REN_STRENGTHS.map((item) => (
+              <li key={item.title} className="rounded-card border border-rule bg-card p-5 shadow-sh-1">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-leaf-100 text-stem-700">
+                  <StrengthIcon icon={item.icon} />
+                </span>
+                <p className="mt-4 text-[16px] font-bold leading-snug text-ink-900">{item.title}</p>
+                <p className="mt-2 text-[14px] leading-relaxed text-ink-500">{item.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* Not sure where to start? */}
-        <section id="start" className="grid items-center gap-10 pt-6 lg:grid-cols-2">
+        <section className="mt-20 grid items-center gap-10 lg:grid-cols-2">
           <div>
             <SectionTitle>Not sure where to start?</SectionTitle>
             <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
@@ -402,7 +457,7 @@ export default function Home() {
             </p>
             <ul className="mt-6 space-y-3">
               {[
-                "Avalanche or snowball, in plain words, with the date each one gives you",
+                "Two ways to order the cards, dearest first or smallest first, with the date each one gives you",
                 "A card quoted at 3.25% a month shown as 39% a year, so the cost is not abstract",
                 "A bad month gets a re-plan, not a restart. The date may move, the habit stays",
                 "After the last card, the same plan turns to a reserve and then to savings jars",
@@ -500,25 +555,51 @@ export default function Home() {
 
         {/* Trust */}
         <section className="mt-20 rounded-card border border-rule bg-card p-6 sm:p-8">
-          <h2 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[28px]">
-            Your data, explained
-          </h2>
-          <ul className="mt-5 grid gap-4 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
-            <li>
-              <span className="font-bold text-ink-900">What we ask for:</span> balances, rates, minimums, income and
-              regular outgoings. Only what the plan needs.
+          <div className="flex items-start gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-stem-700" aria-hidden>
+              <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <div>
+              <h2 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[28px]">
+                Your numbers stay yours.
+              </h2>
+              <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-ink-500">
+                Talking about debt is personal. Sproutjar only asks for what the plan needs, keeps it for you and Ren
+                alone, and never sells it or shares it with banks, advertisers or anyone else.
+              </p>
+            </div>
+          </div>
+          <ul className="mt-6 grid gap-4 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
+            <li className="flex items-start gap-3">
+              <Check className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <span className="font-bold text-ink-900">No bank login, no card numbers.</span> You enter balances, rates,
+                minimums, income and regular outgoings by hand. That is all the plan needs.
+              </span>
             </li>
-            <li>
-              <span className="font-bold text-ink-900">What we do with it:</span> store it so Ren and the dashboard read
-              the same numbers. Nothing is sold or shared.
+            <li className="flex items-start gap-3">
+              <Check className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <span className="font-bold text-ink-900">Never sold, never shared.</span> Your numbers exist so Ren and your
+                dashboard read the same plan. No one else sees them.
+              </span>
             </li>
-            <li>
-              <span className="font-bold text-ink-900">What moves money:</span> nothing. Voice can propose a change; only
-              your tap can confirm it.
+            <li className="flex items-start gap-3">
+              <Check className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <span className="font-bold text-ink-900">Nothing moves money.</span> Ren can suggest a change to the plan,
+                but only your tap confirms it, and no payment ever leaves through Sproutjar.
+              </span>
             </li>
-            <li>
-              <span className="font-bold text-ink-900">What this is:</span> coaching, not financial, legal or religious
-              advice. Ren says so when a question needs a ruling.
+            <li className="flex items-start gap-3">
+              <Check className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                <span className="font-bold text-ink-900">Coaching, not advice.</span> Ren is not a financial, legal or
+                religious adviser and says so when a question needs a ruling.
+              </span>
             </li>
           </ul>
         </section>
@@ -527,7 +608,7 @@ export default function Home() {
         <section id="case-study" className="mt-20 grid items-center gap-8 rounded-card bg-ink-800 p-6 text-cream sm:p-8 lg:grid-cols-[1fr_auto] lg:p-10">
           <div>
             <h2 className="text-[26px] font-extrabold leading-tight tracking-[-0.02em] sm:text-[30px]">
-              Built from research, not miracle claims.
+              Built from research.
             </h2>
             <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-cream/80">
               Sproutjar grew out of first-person accounts from salaried people in the GCC carrying credit-card debt, and
