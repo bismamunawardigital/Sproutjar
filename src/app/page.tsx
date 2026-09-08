@@ -106,7 +106,7 @@ const FAQ = [
   },
   {
     q: "Do I have to link my bank?",
-    a: "No. You can enter balances, rates and minimums by hand. A bank link is not live yet, and nothing moves without your tap.",
+    a: "No. You enter balances, rates and minimums by hand today. Soon you will be able to upload a card statement and let Sproutjar read the numbers for you. Either way, nothing moves without your tap.",
   },
   {
     q: "What does Ren know about me?",
@@ -239,7 +239,7 @@ function ExamplePlanCard() {
       <div className="mt-5 rounded-sm bg-cream p-4">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[12px] font-bold text-ink-500">Towards your cards each month</p>
+            <p className="text-[12px] font-bold text-ink-500">Pay towards your cards each month</p>
             <p className="n text-[22px] font-extrabold text-stem-700">{formatMoney(EXAMPLE_MONTHLY_ATTACK, CURRENCY)}</p>
           </div>
           <div className="text-right">
@@ -551,25 +551,24 @@ export default function Home() {
         </section>
 
         {/* Trust */}
-        <section className="mt-20 rounded-card border border-rule bg-card p-6 sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-leaf-100 text-stem-700" aria-hidden>
+        <section className="mt-24 rounded-card border border-rule bg-card p-8 sm:p-10 lg:p-12">
+          <div className="max-w-2xl">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-leaf-100 text-stem-700" aria-hidden>
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
-                <path d="M9 12l2 2 4-4" />
+                <rect x="4" y="10.5" width="16" height="10" rx="2.5" />
+                <path d="M8 10.5V7.5a4 4 0 018 0v3" />
+                <path d="M12 14.5v2.5" />
               </svg>
             </span>
-            <div>
-              <h2 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[28px]">
-                Your numbers stay yours.
-              </h2>
-              <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-ink-500">
-                Talking about debt is personal. Sproutjar only asks for what the plan needs, keeps it for you and Ren
-                alone, and never sells it or shares it with banks, advertisers or anyone else.
-              </p>
-            </div>
+            <h2 className="mt-6 text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink-900 sm:text-[30px]">
+              Your financial data stays yours.
+            </h2>
+            <p className="mt-4 text-[17px] leading-relaxed text-ink-500">
+              Talking about debt is personal. Sproutjar only asks for what the plan needs, keeps it for you and Ren
+              alone, and never sells it or shares it with banks, advertisers or anyone else.
+            </p>
           </div>
-          <ul className="mt-6 grid gap-4 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
+          <ul className="mt-10 grid gap-x-10 gap-y-7 text-[15px] leading-relaxed text-ink-500 sm:grid-cols-2">
             <li className="flex items-start gap-3">
               <Check className="mt-0.5 h-5 w-5 shrink-0" />
               <span>
@@ -599,6 +598,14 @@ export default function Home() {
               </span>
             </li>
           </ul>
+          <div className="mt-10 flex flex-col gap-3 rounded-sm bg-cream p-5 sm:flex-row sm:items-center sm:gap-5">
+            <span className="chip c-neutral w-fit shrink-0">Coming soon</span>
+            <p className="text-[15px] leading-relaxed text-ink-700">
+              <span className="font-bold text-ink-900">Statement reading.</span> Upload a card statement and Sproutjar will
+              pick out the balance, rate, minimum and due date for you. Still no bank login, and you check every number
+              before it goes into the plan.
+            </p>
+          </div>
         </section>
 
         {/* Evidence / case study */}
