@@ -23,7 +23,7 @@ const STARTER_QUESTIONS = [
 
 const EXAMPLE_CARDS = [
   { name: "Emirates NBD", balance: 18500, monthlyRate: 0.0325, minimum: 1110, focus: true },
-  { name: "RAKBANK", balance: 12400, monthlyRate: 0.0299, minimum: 744, focus: false },
+  { name: "ADCB", balance: 12400, monthlyRate: 0.0299, minimum: 744, focus: false },
   { name: "FAB", balance: 8200, monthlyRate: 0.035, minimum: 492, focus: false },
 ];
 const EXAMPLE_MONTHLY_ATTACK = 6500;
@@ -257,7 +257,7 @@ function RenCallCard() {
         </div>
         <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-stem-700">Ren</p>
         <p className="mt-2 max-w-sm text-center text-[18px] font-bold leading-snug text-ink-900 sm:text-[20px]">
-          &ldquo;Last time you wanted to get through the month without touching the RAKBANK card. Want to start there?&rdquo;
+          &ldquo;Last time you wanted to get through the month without touching the ADCB card. Want to start there?&rdquo;
         </p>
       </div>
       <div className="mt-8 rounded-sm bg-cream p-4">
