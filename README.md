@@ -66,7 +66,7 @@ Open http://localhost:3000 for the landing page and http://localhost:3000/dashbo
 | `ELEVENLABS_AGENT_ID` | The Ren agent |
 | `SPROUTJAR_TOOL_API_KEY` | Shared secret Ren sends as `X-API-Key` when calling the tool routes. Also signs the per-user token Ren's tools receive |
 | `SPROUTJAR_SERVER_KEY` | Set on both Next and Convex (`npx convex env set`). Proves a Convex call came from our server |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk sign-in (Google, Apple, email link). Turn the providers on in the Clerk dashboard |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk sign-in. In the Clerk dashboard turn on Google, Apple and "Email verification link", and turn Password off so nobody is asked for one |
 
 ### Who is who
 
