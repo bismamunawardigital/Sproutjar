@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { currentCaller } from "@/lib/caller";
 import { elevenLabsConfig, fetchConversationToken } from "@/lib/elevenlabs";
 import { buildSnapshot } from "@/lib/user";
+import { renUserToken } from "@/lib/ren-token";
 import { formatMoney, speakableAmount } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +12,20 @@ export const dynamic = "force-dynamic";
  * so the call opens already knowing the user's real numbers instead of asking for them.
  */
 export async function GET() {
+  const caller = await currentCaller();
   const { apiKey, agentId, configured } = elevenLabsConfig();
-  const snap = await buildSnapshot();
+  const snap = await buildSnapshot(caller);
   const currency = snap.country.currency;
 
+  const onboarding = snap.user.onboarding ?? {};
   const dynamicVariables = {
+    user_token: renUserToken(caller.userKey),
     user_name: snap.user.name,
+    first_name: snap.user.name.split(" ")[0],
+    onboarding_why: onboarding.why ?? "",
+    onboarding_pattern: onboarding.pattern ?? "",
+    onboarding_carrying: onboarding.carrying ?? "",
+    onboarding_help: onboarding.help ?? "",
     country: snap.country.name,
     currency,
     currency_spoken: snap.country.currencyWord,

@@ -64,7 +64,18 @@ Open http://localhost:3000 for the landing page and http://localhost:3000/dashbo
 | `NEXT_PUBLIC_CONVEX_URL` | Live Convex deployment every read and write goes through |
 | `ELEVENLABS_API_KEY` | Server-side only. Mints conversation tokens |
 | `ELEVENLABS_AGENT_ID` | The Ren agent |
-| `SPROUTJAR_TOOL_API_KEY` | Shared secret Ren sends as `X-API-Key` when calling the tool routes |
+| `SPROUTJAR_TOOL_API_KEY` | Shared secret Ren sends as `X-API-Key` when calling the tool routes. Also signs the per-user token Ren's tools receive |
+| `SPROUTJAR_SERVER_KEY` | Set on both Next and Convex (`npx convex env set`). Proves a Convex call came from our server |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk sign-in. In the Clerk dashboard turn on Google, Apple and "Email verification link", and turn Password off so nobody is asked for one |
+
+### Who is who
+
+Every Convex function takes a `caller` (`{ serverKey, userKey }`). `userKey` is the Clerk user id,
+or `"demo"` for Layla. `src/lib/caller.ts` resolves it from the Clerk session and the demo cookie
+(`/demo` sets it, `/demo/exit` clears it; the demo is read-only). Ren's webhook tools receive a
+`user` field carrying an HMAC-signed token (`src/lib/ren-token.ts`) sent as the `user_token`
+dynamic variable; a missing or forged token falls back to the demo. `npm run ren:sync -- --apply`
+adds that field to the ElevenLabs tool configs.
 
 ### Pointing Ren at a deployment
 

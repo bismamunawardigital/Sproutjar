@@ -3,8 +3,20 @@ import { v } from "convex/values";
 
 export default defineSchema({
   users: defineTable({
+    /** Clerk user id. Absent only on the seeded demo profile. */
+    clerkId: v.optional(v.string()),
     name: v.string(),
     email: v.string(),
+    /** The four first-screen answers: why, pattern, carrying, help. */
+    onboarding: v.optional(
+      v.object({
+        why: v.optional(v.string()),
+        pattern: v.optional(v.string()),
+        carrying: v.optional(v.string()),
+        help: v.optional(v.string()),
+      }),
+    ),
+    onboardedAt: v.optional(v.number()),
     country: v.string(),
     monthlyIncome: v.number(),
     monthlyEssentials: v.number(),
@@ -36,7 +48,9 @@ export default defineSchema({
     goodDecision: v.string(),
     /** High-water mark for the stem. The plant is never allowed to fall below it. */
     stemPeak: v.number(),
-  }).index("by_email", ["email"]),
+  })
+    .index("by_email", ["email"])
+    .index("by_clerkId", ["clerkId"]),
 
   debts: defineTable({
     userId: v.id("users"),

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Nunito, Space_Grotesk } from "next/font/google";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -22,8 +24,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${nunito.variable} ${spaceGrotesk.variable} antialiased`}>{children}</body>
-    </html>
+    <ClerkProvider appearance={clerkAppearance} signInUrl="/sign-in" signUpUrl="/sign-in" signInFallbackRedirectUrl="/onboarding" signUpFallbackRedirectUrl="/onboarding">
+      <html lang="en">
+        <body className={`${nunito.variable} ${spaceGrotesk.variable} antialiased`}>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

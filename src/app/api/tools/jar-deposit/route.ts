@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { callerFromRenToken, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
@@ -10,6 +11,7 @@ import { countryProfile, formatMoney } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
+  user: z.string().optional(),
   amount: z.coerce.number().positive(),
   jar_name: z.string().optional(),
   note: z.string().default(""),
@@ -23,20 +25,24 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
   }
+  const caller = callerFromRenToken(parsed.data.user);
+  if (isDemo(caller)) return NextResponse.json({ error: "This is the demo. Nothing is saved for it." }, { status: 403 });
 
-  const target = await convexClient().query(api.sproutjar.jarByName, { needle: parsed.data.jar_name });
+  const target = await convexClient().query(api.sproutjar.jarByName, {
+    caller, needle: parsed.data.jar_name });
   if (!target) {
     return NextResponse.json({ error: "No jars exist yet." }, { status: 404 });
   }
 
   const updated = await convexClient().mutation(api.sproutjar.depositToJar, {
+    caller,
     jarId: target._id,
     amount: parsed.data.amount,
     note: parsed.data.note,
   });
   if (!updated) return NextResponse.json({ error: "No jars exist yet." }, { status: 404 });
 
-  const user = await currentUser();
+  const user = await currentUser(caller);
   const currency = countryProfile(user.country).currency;
   const progress = jarProgress({
     id: updated._id,

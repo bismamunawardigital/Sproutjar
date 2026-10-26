@@ -114,6 +114,7 @@ const review = {
 
 async function main() {
   const result = await convex.mutation(api.sproutjar.seed, {
+    caller: { serverKey: process.env.SPROUTJAR_SERVER_KEY ?? "", userKey: "demo" },
     profile,
     debts,
     jars,

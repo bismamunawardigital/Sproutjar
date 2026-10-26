@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { currentCaller, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -23,12 +24,15 @@ const patchSchema = z.object({
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const { id } = await params;
   const parsed = patchSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
   const debt = await convexClient().mutation(api.sproutjar.updateDebt, {
+    caller,
     id: id as Id<"debts">,
     ...parsed.data,
   });
@@ -37,8 +41,11 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const { id } = await params;
-  const removed = await convexClient().mutation(api.sproutjar.removeDebt, { id: id as Id<"debts"> });
+  const removed = await convexClient().mutation(api.sproutjar.removeDebt, {
+    caller, id: id as Id<"debts"> });
   if (!removed) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ deleted: true });
 }
