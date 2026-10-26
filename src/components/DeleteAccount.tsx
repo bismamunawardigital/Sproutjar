@@ -21,6 +21,8 @@ export function DeleteAccount() {
       return;
     }
     await signOut().catch(() => undefined);
+    // Full page load on purpose: the signed-out person must not re-render the dashboard layout.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/");
   }
 
