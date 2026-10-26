@@ -9,16 +9,19 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "ren:sync": "tsx --env-file=.env.local scripts/elevenlabs-sync.ts",
     "convex": "convex dev"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.21",
     "@elevenlabs/react": "^1.13.0",
     "clsx": "^2.1.1",
     "convex": "^1.31.0",
     "lucide-react": "^0.469.0",
     "next": "^16.3.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.1.10",
+    "react-dom": "^19.1.10",
     "zod": "^3.25.76"
   },
   "devDependencies": {

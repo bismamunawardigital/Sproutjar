@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { callerFromRenToken } from "@/lib/caller";
 import { assertToolKey } from "@/lib/tool-auth";
 import { buildSnapshot } from "@/lib/user";
 import { buildPayoffPlan, monthsOfLifeBack, type Strategy } from "@/lib/debt-engine";
@@ -12,9 +13,10 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const denied = assertToolKey(request);
   if (denied) return denied;
+  const caller = callerFromRenToken(new URL(request.url).searchParams.get("user"));
 
   const params = new URL(request.url).searchParams;
-  const snap = await buildSnapshot();
+  const snap = await buildSnapshot(caller);
   const currency = snap.country.currency;
 
   const debts = snap.debts.map((d) => ({

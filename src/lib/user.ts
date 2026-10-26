@@ -1,5 +1,6 @@
 import { api } from "../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
+import { currentCaller, type Caller } from "@/lib/caller";
 import { daysUntilPayday, debtAttackFor, isPaydayWindow } from "@/lib/cash-flow";
 import {
   buildPayoffPlan,
@@ -67,12 +68,9 @@ function afterDebtHorizon(
 
 export type Snapshot = Awaited<ReturnType<typeof buildSnapshot>>;
 
-/**
- * The hackathon build runs single-tenant: every request resolves to the demo
- * profile. Swapping this for a session lookup is the only change auth requires.
- */
-export async function currentUser() {
-  const live = await convexClient().query(api.sproutjar.snapshot, {});
+/** The signed-in person's row, or Layla's when they are looking at the demo. */
+export async function currentUser(caller?: Caller) {
+  const live = await convexClient().query(api.sproutjar.snapshot, { caller: caller ?? (await currentCaller()) });
   return live.user;
 }
 
@@ -81,8 +79,8 @@ export async function currentUser() {
  * and Ren's tools all derive from this, so they can never disagree about what
  * someone owes.
  */
-export async function buildSnapshot() {
-  const live = await convexClient().query(api.sproutjar.snapshot, {});
+export async function buildSnapshot(caller?: Caller) {
+  const live = await convexClient().query(api.sproutjar.snapshot, { caller: caller ?? (await currentCaller()) });
   const user = live.user;
 
   const debtRows = live.debts;

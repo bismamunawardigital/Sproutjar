@@ -26,6 +26,7 @@ export function StatementImport({
   const [text, setText] = useState("");
   const [reading, setReading] = useState<StatementReading | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [reading_, setReadingFile] = useState(false);
 
   function read(source: string) {
     const result = readStatement(source);
@@ -35,10 +36,26 @@ export function StatementImport({
   async function onFile(file: File | undefined) {
     if (!file) return;
     setFileError(null);
-    if (file.type === "application/pdf") {
-      setFileError(
-        "PDFs cannot be read here yet. Open it, select all, copy, and paste the text below instead.",
-      );
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setReadingFile(true);
+      try {
+        const body = new FormData();
+        body.append("file", file);
+        const response = await fetch("/api/statement/pdf", { method: "POST", body });
+        const data = (await response.json()) as { text?: string; scanned?: boolean; error?: string };
+        if (!response.ok || data.error) {
+          setFileError(data.error ?? "Could not read that PDF.");
+          return;
+        }
+        if (data.scanned || !data.text) {
+          setFileError("That PDF is a scan with no text in it. Open it in your bank app, select all, copy and paste the text here instead.");
+          return;
+        }
+        setText(data.text);
+        read(data.text);
+      } finally {
+        setReadingFile(false);
+      }
       return;
     }
     const content = await file.text();
@@ -66,9 +83,9 @@ export function StatementImport({
         <div>
           <p className="text-[15px] font-bold text-ink-900">{title}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-            Linking your bank account directly isn&rsquo;t available yet. Until it is, the statement is
-            the source: paste its text or drop the file and Sproutjar reads the balance, the minimum,
-            the interest, and the dates off it. Nothing leaves your device before you confirm.
+            Paste the statement text or upload the PDF your bank emails you. Sproutjar reads the
+            balance, the minimum, the interest and the dates off it, shows them back, and saves
+            nothing until you confirm.
           </p>
         </div>
         <button
@@ -100,10 +117,11 @@ export function StatementImport({
           Read it
         </button>
         <label className="cursor-pointer text-[13px] font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem">
-          or choose a .txt / .csv file
+          {reading_ ? "Reading the PDF" : "or upload the PDF"}
           <input
             type="file"
-            accept=".txt,.csv,text/plain,text/csv,application/pdf"
+            accept=".pdf,.txt,.csv,application/pdf,text/plain,text/csv"
+            disabled={reading_}
             className="sr-only"
             onChange={(e) => onFile(e.target.files?.[0])}
           />
