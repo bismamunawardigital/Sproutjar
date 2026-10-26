@@ -420,7 +420,7 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
       <section className="rounded-card border border-rule bg-card p-6 text-center">
         <Plant state={SEED} className="mx-auto h-56 w-40" />
         <p className="label mt-4">Day one</p>
-        <h1 className="mt-2 text-[21px] font-bold leading-snug text-ink-900">This is your plant, {firstName}.</h1>
+        <h1 className="mt-2 break-words text-[21px] font-bold leading-snug text-ink-900">This is your plant, {firstName}.</h1>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
           It grows as the cards go down and the jar fills up. One picture for both. Nothing else to set up today.
         </p>

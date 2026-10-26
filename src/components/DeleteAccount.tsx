@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 
 /** Two taps, then everything about this person is gone: cards, jars, calls, sign-in. */
 export function DeleteAccount() {
-  const router = useRouter();
   const { signOut } = useClerk();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -22,7 +20,8 @@ export function DeleteAccount() {
       setBusy(false);
       return;
     }
-    await signOut({ redirectUrl: "/" }).catch(() => router.push("/"));
+    await signOut().catch(() => undefined);
+    window.location.assign("/");
   }
 
   if (!confirming) {

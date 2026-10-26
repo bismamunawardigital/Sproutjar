@@ -1,5 +1,6 @@
 import { auth, clerkClient, currentUser as clerkUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
 import { readRenUserToken } from "@/lib/ren-token";
@@ -40,7 +41,8 @@ export async function currentCaller(): Promise<Caller> {
  */
 export async function ensureCallerUser(caller: Caller) {
   if (isDemo(caller)) return convexClient().mutation(api.sproutjar.ensureUser, { caller, name: "", email: "" });
-  const person = await clerkUser();
+  const person = await clerkUser().catch(() => null);
+  if (!person) redirect("/");
   const name = person?.firstName ?? person?.username ?? "";
   const email = person?.primaryEmailAddress?.emailAddress ?? "";
   return convexClient().mutation(api.sproutjar.ensureUser, { caller, name, email });

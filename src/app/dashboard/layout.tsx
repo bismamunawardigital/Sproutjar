@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <Link href="/">
             <Logo />
           </Link>
-          <p className="text-[13px] font-bold text-ink-400">{user.name}</p>
+          <p className="max-w-[55%] truncate text-[13px] font-bold text-ink-400">{user.name}</p>
         </div>
         {demo ? (
           <div className="bg-ink-800 text-cream">
