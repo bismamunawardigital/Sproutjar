@@ -259,7 +259,7 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
           <h1 className="text-[21px] font-bold leading-snug text-ink-900">First, what should Ren call you?</h1>
           <label className="mt-5 block text-[12px] font-bold text-ink-500">
             First name
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Layla" autoFocus className={input} />
+            <input value={name} onChange={(e) => setName(e.target.value.slice(0, 40))} maxLength={40} placeholder="Layla" autoFocus className={input} />
           </label>
           <label className="mt-4 block text-[12px] font-bold text-ink-500">
             Where you live

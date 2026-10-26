@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 import { DeleteAccount } from "@/components/DeleteAccount";
 
@@ -9,13 +8,13 @@ export function AccountActions({ demo }: { demo: boolean }) {
       <p className="label">Account</p>
       <div className="mt-3 flex flex-col gap-3 text-[14px]">
         {demo ? (
-          <Link href="/demo/exit" className="font-bold text-stem-700 underline underline-offset-2">
+          <a href="/demo/exit" className="font-bold text-stem-700 underline underline-offset-2">
             Back to my own numbers
-          </Link>
+          </a>
         ) : (
-          <Link href="/demo" className="font-bold text-stem-700 underline underline-offset-2">
+          <a href="/demo" className="font-bold text-stem-700 underline underline-offset-2">
             See a demo (Layla, 3 cards, 14 weeks in)
-          </Link>
+          </a>
         )}
         <SignOutButton redirectUrl="/">
           <button className="text-left font-bold text-ink-500 underline underline-offset-2">Sign out</button>

@@ -22,7 +22,14 @@ export async function POST(request: Request) {
   const caller = await currentCaller();
   if (isDemo(caller)) return NextResponse.json({ error: "The demo is already set up." }, { status: 403 });
   const parsed = schema.safeParse(await request.json().catch(() => ({})));
-  if (!parsed.success) return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
+  if (!parsed.success) {
+    const field = String(parsed.error.issues[0]?.path[0] ?? "");
+    const error =
+      field === "name"
+        ? "That name is a bit long. Keep it under 40 characters."
+        : "Something did not save. Go back a step and try again.";
+    return NextResponse.json({ error, issues: parsed.error.issues }, { status: 400 });
+  }
   const user = await convexClient().mutation(api.sproutjar.completeOnboarding, { caller, ...parsed.data });
   return NextResponse.json({ user });
 }

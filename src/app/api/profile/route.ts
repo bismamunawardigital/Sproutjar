@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const money = z.coerce.number().nonnegative().optional();
 
 const profileSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().trim().min(1).max(40).optional(),
   country: z.enum(Object.keys(COUNTRIES) as [string, ...string[]]).optional(),
   monthlyIncome: money,
   monthlyEssentials: money,
