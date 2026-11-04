@@ -208,14 +208,30 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
   }
 
   async function saveMoney() {
-    const clean = (value: string) => Number(value.replace(/[^0-9.]/g, ""));
-    const income = clean(money.income);
-    const essentials = clean(money.essentials);
-    const payday = Number(money.payday);
+    const parseAmount = (value: string) => {
+      const trimmed = value.replace(/[,\s]/g, "").replace(/^(AED|SAR|QAR|KWD|BHD|OMR|USD|GBP|EUR|INR|PKR)/i, "");
+      if (trimmed === "") return 0;
+      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : NaN;
+    };
+    const income = parseAmount(money.income);
+    const essentials = parseAmount(money.essentials);
+    const payday = money.payday === "" ? 0 : Number(money.payday);
+    if (Number.isNaN(income) || Number.isNaN(essentials)) {
+      setError("Just the number, like 12000. No minus signs or letters.");
+      return;
+    }
+    if (payday > 31 || (money.payday !== "" && payday < 1)) {
+      setError("Payday is a day of the month, 1 to 31.");
+      return;
+    }
+    if (income > 0 && essentials > income) {
+      setError("Must-pays are higher than what comes in. Double-check the two numbers.");
+      return;
+    }
     const fields: Record<string, number> = {};
     if (income > 0) fields.monthlyIncome = income;
     if (essentials > 0) fields.monthlyEssentials = essentials;
-    if (payday >= 1 && payday <= 31) fields.payday = payday;
+    if (payday >= 1) fields.payday = payday;
     if (Object.keys(fields).length === 0) {
       next();
       return;
@@ -429,11 +445,11 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
           <div className="mt-5 space-y-3">
             <label className="block text-[12px] font-bold text-ink-500">
               Take-home a month ({currency})
-              <input value={money.income} onChange={(e) => setMoney({ ...money, income: e.target.value })} inputMode="decimal" placeholder="12000" autoFocus className={input} />
+              <input value={money.income} onChange={(e) => { setError(null); setMoney({ ...money, income: e.target.value }); }} inputMode="decimal" placeholder="12000" autoFocus className={input} />
             </label>
             <label className="block text-[12px] font-bold text-ink-500">
               Rent, bills, food, the must-pays ({currency})
-              <input value={money.essentials} onChange={(e) => setMoney({ ...money, essentials: e.target.value })} inputMode="decimal" placeholder="8500" className={input} />
+              <input value={money.essentials} onChange={(e) => { setError(null); setMoney({ ...money, essentials: e.target.value }); }} inputMode="decimal" placeholder="8500" className={input} />
             </label>
             <label className="block text-[12px] font-bold text-ink-500">
               Day of the month salary lands
