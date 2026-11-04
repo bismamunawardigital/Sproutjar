@@ -433,7 +433,10 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
   }
 
   if (step === "money") {
-    const clean = (value: string) => Number(value.replace(/[^0-9.]/g, ""));
+    const clean = (value: string) => {
+      const trimmed = value.replace(/[,\s]/g, "");
+      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : 0;
+    };
     const room = clean(money.income) - clean(money.essentials);
     const showRoom = clean(money.income) > 0 && clean(money.essentials) > 0;
     return (

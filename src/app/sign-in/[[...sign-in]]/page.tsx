@@ -29,6 +29,7 @@ export default function SignInPage() {
           Coaching, not financial advice. Nothing connects to your bank. By signing in you agree to the{" "}
           <Link href="/terms" className="underline underline-offset-2">terms</Link> and{" "}
           <Link href="/privacy" className="underline underline-offset-2">privacy policy</Link>.
+          Stuck? <Link href="/help" className="underline underline-offset-2">Help</Link>.
         </p>
       </main>
     </div>
