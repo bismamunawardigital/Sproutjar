@@ -106,6 +106,7 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
   const [card, setCard] = useState<Card>(EMPTY_CARD);
   const [cardSaved, setCardSaved] = useState<string | null>(null);
   const [money, setMoney] = useState({ income: "", essentials: "", payday: "" });
+  const [beliefSaved, setBeliefSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,7 +159,10 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     try {
       await post("/api/onboarding", { name: name.trim() || undefined, country, answers });
       const belief = BELIEF_FROM[answers.pattern ?? ""];
-      if (belief) await post("/api/beliefs", { text: belief });
+      if (belief && !beliefSaved) {
+        await post("/api/beliefs", { text: belief });
+        setBeliefSaved(true);
+      }
       next();
     } catch (caught) {
       setError((caught as Error).message);
