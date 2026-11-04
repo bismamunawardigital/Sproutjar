@@ -290,6 +290,52 @@ export const logBalance = mutation({
 });
 
 /**
+ * "I paid this": one payment, the day it happens. The balance drops by the
+ * amount, interest is left for the payday review to reconcile.
+ */
+export const logPayment = mutation({
+  args: { caller: callerArg, debtId: v.id("debts"), amount: v.number(), source: v.string() },
+  handler: async (ctx, { caller, debtId, amount, source }) => {
+    const user = await callerUser(ctx, caller);
+    const debt = await ctx.db.get(debtId);
+    if (!debt || debt.userId !== user._id) return null;
+    const balance = Math.max(0, Math.round((debt.balance - amount) * 100) / 100);
+    await ctx.db.patch(debtId, { balance });
+    await ctx.db.insert("balanceEntries", {
+      userId: user._id,
+      debtId,
+      balance,
+      amountPaid: amount,
+      principalCleared: debt.balance - balance,
+      interestCharged: 0,
+      newBorrowing: 0,
+      source,
+      loggedAt: Date.now(),
+    });
+    return ctx.db.get(debtId);
+  },
+});
+
+/** Finds an open card by a loose name, the way someone says it out loud. */
+export const debtByName = query({
+  args: { caller: callerArg, needle: v.optional(v.string()) },
+  handler: async (ctx, { caller, needle }) => {
+    const user = await callerUser(ctx, caller);
+    const debts = (
+      await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
+    ).filter((debt) => debt.balance > 0);
+    if (!needle) return debts.length === 1 ? debts[0] : null;
+    const lowered = needle.toLowerCase();
+    return (
+      debts.find((debt) => debt.name.toLowerCase() === lowered) ??
+      debts.find((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())) ??
+      debts.find((debt) => debt.issuer.toLowerCase().includes(lowered)) ??
+      null
+    );
+  },
+});
+
+/**
  * The review ritual. One reading per card: what was paid, what new went on it,
  * and what it now stands at. Interest is whatever the balance moved that the
  * payment and the new borrowing do not explain, so the four numbers reconcile

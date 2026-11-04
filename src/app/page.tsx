@@ -680,7 +680,18 @@ export default function Home() {
               Plant the first seed
             </Link>
           </div>
-          <p className="text-[12px] text-ink-300">Coaching, not advice.</p>
+          <div className="flex items-center gap-4 text-[12px] text-ink-300">
+            <Link href="/privacy" className="transition hover:text-ink-700">
+              Privacy
+            </Link>
+            <Link href="/terms" className="transition hover:text-ink-700">
+              Terms
+            </Link>
+            <Link href="/help" className="transition hover:text-ink-700">
+              Help
+            </Link>
+            <span>Coaching, not advice.</span>
+          </div>
         </div>
       </footer>
     </div>

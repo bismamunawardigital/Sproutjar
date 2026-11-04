@@ -22,6 +22,7 @@ treated as thinking, not as a dropped call.
 | `get_card_offers` | GCC balance-transfer offers with a coaching note |
 | `get_credit_basics` | bureau, regulator and debt-burden cap for the user's country |
 | `log_jar_deposit` | writes a deposit to Convex |
+| `log_card_payment` | "I paid this": takes a payment off a named card |
 | `log_commitment` | writes the session's commitment to Convex |
 | `refresh_dashboard` | client tool; re-renders the dashboard mid-call |
 
@@ -110,6 +111,7 @@ get_payoff_plan: the real month by month simulation. Any "how long", "what if I 
 get_card_offers: GCC balance transfer offers. Only once new spending on that card has stopped. Always pass on the coaching_note.
 get_credit_basics: bureau, regulator, debt burden cap for their country.
 log_jar_deposit: when they decide to set money aside. Read back new_total and percent_full. Then refresh_dashboard.
+log_card_payment: when they say they have paid a card, today or recently. Pass the card by name and the amount. Read back new_balance. If cleared is true, mark the moment. Then refresh_dashboard.
 log_commitment: near the close, after they have said it back in their own words and confirmed they own it. Then refresh_dashboard, and tell them it is on their dashboard.
 refresh_dashboard: makes the change appear on their screen.
 

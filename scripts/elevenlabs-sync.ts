@@ -1,5 +1,6 @@
 /**
- * Teaches Ren's webhook tools who is calling. Each Sproutjar tool gets a
+ * Teaches Ren's webhook tools who is calling, and adds any tool Ren is
+ * missing (today: log_card_payment, the "I paid this" tool). Each Sproutjar tool gets a
  * `user` field filled from the {{user_token}} dynamic variable the app sends
  * when a call starts; the routes verify it and look up that person's numbers.
  * Without it the tools fall back to the demo profile, so nothing breaks before
@@ -43,9 +44,51 @@ const userProperty: Property = {
   allowed_values_dynamic_variable: "",
 };
 
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sproutjar.vercel.app").replace(/\/$/, "");
+
+/** Tools Ren should have. Added if no tool with that name exists yet. */
+const wantedTools = [
+  {
+    type: "webhook",
+    name: "log_card_payment",
+    description:
+      'Use when the person says they have paid a card ("I paid 2,000 to the Visa"). Takes the amount off that card\'s balance the same minute and keeps it in their history. Pass the card by name and the amount as a number. Read back new_balance.',
+    response_timeout_secs: 20,
+    api_schema: {
+      url: `${appUrl}/api/tools/log-payment`,
+      method: "POST",
+      request_headers: { "X-API-Key": process.env.SPROUTJAR_TOOL_API_KEY ?? "" },
+      request_body_schema: {
+        type: "object",
+        required: ["amount"],
+        properties: {
+          user: userProperty,
+          amount: { type: "number", description: "How much they paid, as a plain number." },
+          card_name: { type: "string", description: "The card as they said it, e.g. 'Emirates NBD Visa'." },
+        },
+      },
+    },
+  },
+];
+
 async function main() {
   const list = (await (await fetch(`${API}/convai/tools`, { headers })).json()) as { tools: Tool[] };
   const ours = list.tools.filter((t) => t.tool_config.api_schema?.url.includes("/api/tools/"));
+  const created: string[] = [];
+
+  for (const wanted of wantedTools) {
+    if (ours.some((t) => t.tool_config.name === wanted.name)) {
+      console.log(`${wanted.name}: exists`);
+      continue;
+    }
+    console.log(`${wanted.name}: create, pointing at ${wanted.api_schema.url}`);
+    if (!apply) continue;
+    if (!process.env.SPROUTJAR_TOOL_API_KEY) throw new Error("SPROUTJAR_TOOL_API_KEY is required to create tools.");
+    const response = await fetch(`${API}/convai/tools`, { method: "POST", headers, body: JSON.stringify({ tool_config: wanted }) });
+    if (!response.ok) throw new Error(`${wanted.name}: ${response.status} ${await response.text()}`);
+    const made = (await response.json()) as { id: string };
+    created.push(made.id);
+  }
 
   for (const tool of ours) {
     const schema = tool.tool_config.api_schema!;
@@ -67,8 +110,23 @@ async function main() {
   }
 
   const agent = (await (await fetch(`${API}/convai/agents/${agentId}`, { headers })).json()) as {
-    conversation_config: { agent: { dynamic_variables?: { dynamic_variable_placeholders: Record<string, string> } } };
+    conversation_config: {
+      agent: {
+        prompt?: { tool_ids?: string[] };
+        dynamic_variables?: { dynamic_variable_placeholders: Record<string, string> };
+      };
+    };
   };
+  if (created.length) {
+    const toolIds = [...(agent.conversation_config.agent.prompt?.tool_ids ?? []), ...created];
+    console.log(`agent: attach ${created.length} new tool(s)`);
+    const response = await fetch(`${API}/convai/agents/${agentId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ conversation_config: { agent: { prompt: { tool_ids: toolIds } } } }),
+    });
+    if (!response.ok) throw new Error(`agent tools: ${response.status} ${await response.text()}`);
+  }
   const placeholders = agent.conversation_config.agent.dynamic_variables?.dynamic_variable_placeholders ?? {};
   const wanted = {
     user_token: "",

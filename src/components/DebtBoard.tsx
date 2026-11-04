@@ -125,6 +125,9 @@ export function DebtBoard({
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payError, setPayError] = useState<string | null>(null);
   const openCards = debts.filter((debt) => debt.balance > 0);
   const settled = debts.filter((debt) => debt.balance <= 0);
 
@@ -175,6 +178,37 @@ export function DebtBoard({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ balance: 0 }),
     });
+    router.refresh();
+  }
+
+  function startPaying(debt: DebtRow) {
+    setAsking(null);
+    setPayError(null);
+    setPayAmount(String(Math.min(debt.minimumPayment, debt.balance) || ""));
+    setPaying(debt.id);
+  }
+
+  async function logPayment(event: React.FormEvent, debt: DebtRow) {
+    event.preventDefault();
+    const amount = Number(payAmount.replace(/[^0-9.]/g, ""));
+    if (!(amount > 0)) {
+      setPayError("How much went to it?");
+      return;
+    }
+    setBusy(true);
+    setPayError(null);
+    const response = await fetch(`/api/debts/${debt.id}/payments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount }),
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setPayError(data.error ?? "That did not save. Try again.");
+      return;
+    }
+    setPaying(null);
     router.refresh();
   }
 
@@ -435,15 +469,56 @@ export function DebtBoard({
                         {editing === debt.id ? "Close" : "Edit"}
                       </button>
                       <button
+                        onClick={() => (paying === debt.id ? setPaying(null) : startPaying(debt))}
+                        aria-expanded={paying === debt.id}
+                        className="rounded-full bg-stem-600 px-3 py-1 text-[12px] font-bold text-white transition hover:bg-stem-700"
+                      >
+                        I paid this
+                      </button>
+                      <button
                         onClick={() => setAsking(debt.id)}
                         className="rounded-full border border-rule px-3 py-1 text-[12px] font-bold text-ink-500 transition hover:border-stem hover:text-stem-700"
                       >
-                        Mark settled
+                        Settled
                       </button>
                     </div>
                   )}
                 </div>
               </div>
+              {paying === debt.id ? (
+                <form onSubmit={(event) => logPayment(event, debt)} className="mt-4 rounded-sm bg-cream p-4">
+                  <label className="block text-[12px] font-bold text-ink-500">
+                    How much did you pay to {debt.name}? ({currency})
+                    <input
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      inputMode="decimal"
+                      autoFocus
+                      className={input}
+                    />
+                  </label>
+                  <p className="mt-2 text-[12px] text-ink-300">
+                    Comes straight off the balance. Interest gets squared up at your payday review.
+                  </p>
+                  {payError ? <p className="mt-2 text-[13px] text-root">{payError}</p> : null}
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+                    >
+                      {busy ? "Saving" : "Log it"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaying(null)}
+                      className="text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : null}
               {editing === debt.id ? editor : null}
             </div>
           );
