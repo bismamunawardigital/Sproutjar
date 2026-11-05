@@ -37,8 +37,9 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
     } else if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       setError(data.error ?? "That did not save. Try again.");
+    } else {
+      setCustom((prev) => ({ ...prev, [jarId]: "" }));
     }
-    setCustom((prev) => ({ ...prev, [jarId]: "" }));
     setPending(null);
     router.refresh();
   }
