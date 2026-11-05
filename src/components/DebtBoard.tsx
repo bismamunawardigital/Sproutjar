@@ -201,8 +201,12 @@ export function DebtBoard({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount }),
-    });
+    }).catch(() => null);
     setBusy(false);
+    if (!response) {
+      setPayError("Could not reach Sproutjar. Check your connection and try again.");
+      return;
+    }
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       setPayError(data.error ?? "That did not save. Try again.");

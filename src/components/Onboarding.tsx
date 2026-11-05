@@ -126,6 +126,8 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+    }).catch(() => {
+      throw new Error("Could not reach Sproutjar. Check your connection and try again.");
     });
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };

@@ -6,13 +6,18 @@ import { formatMoney } from "@/lib/money";
 
 export type { StatementReading };
 
-/** Pasting or dropping the PDF file itself gives its binary guts, not the statement text. */
+/**
+ * Pasting or dropping the PDF file itself gives its binary guts, not the statement
+ * text. Binary read as text shows up as control characters, the replacement
+ * character and a dense sprinkling of Latin-1 symbols and accented letters, none
+ * of which a Gulf statement in English or Arabic has in any quantity.
+ */
 function looksLikeRawFile(source: string) {
   if (/^\s*%PDF-/.test(source)) return true;
-  const tokens = source.slice(0, 4000).split(/\s+/).filter(Boolean);
-  if (tokens.length < 8) return false;
-  const readable = tokens.filter((t) => /^[A-Za-z0-9.,:;()%/*'"£$€+-]+$|^[\u0600-\u06FF.,]+$/.test(t)).length;
-  return readable / tokens.length < 0.6;
+  const sample = source.slice(0, 4000);
+  if (sample.length < 40) return false;
+  const odd = sample.match(/[\x00-\x08\x0E-\x1F\x7F-\x9F\u00A4-\u00A9\u00AC-\u00AF\u00B4\u00B8\u00C0-\u00FF\uFFFD]/g)?.length ?? 0;
+  return odd / sample.length > 0.08;
 }
 
 /**
@@ -37,9 +42,9 @@ export function StatementImport({
   const [fileError, setFileError] = useState<string | null>(null);
   const [reading_, setReadingFile] = useState(false);
 
-  function read(source: string) {
+  function read(source: string, { pasted = true } = {}) {
     setFileError(null);
-    if (looksLikeRawFile(source)) {
+    if (pasted && looksLikeRawFile(source)) {
       setReading(null);
       setFileError(
         "That looks like the PDF file itself rather than the words on it. Use \"or upload the PDF\" below, or open the statement, select the text on the page, copy and paste that.",
@@ -68,7 +73,7 @@ export function StatementImport({
           return;
         }
         setText(data.text);
-        read(data.text);
+        read(data.text, { pasted: false });
       } catch {
         setFileError("The upload did not go through. Check your connection and try again, or paste the statement text.");
       } finally {
