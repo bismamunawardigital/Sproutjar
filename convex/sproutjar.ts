@@ -392,17 +392,19 @@ export const recordReview = mutation({
     const previous = (
       await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
-    // `paid` is what was handed over, `reduction` what actually came off the
-    // card (an overpayment on a small balance stops at zero).
+    // `paid` is money actually handed over. `reduction` is everything that came
+    // off the card since the last review, hand corrections included, so the
+    // opening figure is what the card stood at before any of it (an overpayment
+    // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
     for (const entry of await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
-      if (!isPaymentSource(entry.source) || entry.loggedAt <= previous) continue;
+      if (entry.source === "review" || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
-        paid: sum.paid + entry.amountPaid,
+        paid: sum.paid + (isPaymentSource(entry.source) ? entry.amountPaid : 0),
         reduction: sum.reduction + entry.principalCleared,
       });
     }
