@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
-import { buildPayoffPlan, isPaymentSource, type DebtInput } from "../src/lib/debt-engine";
+import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
@@ -395,7 +395,8 @@ export const recordReview = mutation({
       await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
     // Only money actually paid is added back. A hand correction redefines what
-    // the card stood at, so it is neither a payment nor interest here. `paid` is
+    // the card stood at, so it is neither a payment nor interest here (older
+    // Settled rows that carry an amount still count). `paid` is
     // what was handed over, `reduction` what came off the card (an overpayment
     // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
@@ -403,7 +404,7 @@ export const recordReview = mutation({
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
-      if (!isPaymentSource(entry.source) || entry.loggedAt <= previous) continue;
+      if (!isPaymentEntry(entry) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
         paid: sum.paid + entry.amountPaid,
