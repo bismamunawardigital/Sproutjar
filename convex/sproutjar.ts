@@ -970,7 +970,7 @@ export const seed = mutation({
           principalCleared,
           interestCharged,
           newBorrowing,
-          source: lump > 0 ? "windfall" : "self_report",
+          source: lump > 0 ? "windfall" : "payment",
           loggedAt: weekAt(week),
         });
         weekly[week].balance += balance;
