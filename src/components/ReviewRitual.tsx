@@ -29,6 +29,13 @@ type Entry = { paid: string; newBorrowing: string; balance: string };
  * reading, one line in the person's own words, and the date recomputed. No
  * score, no streak: the numbers are the feedback.
  */
+/** An empty date means the plan does not close yet (payments below the minimums). */
+function dateLine(before: string, after: string): string {
+  if (!after) return "No debt-free date yet: what goes to the cards is under the minimums.";
+  if (!before) return `Debt-free date is now ${after}.`;
+  return before === after ? `Debt-free date holds at ${after}.` : `Debt-free date was ${before}, now ${after}.`;
+}
+
 export function ReviewRitual({
   reviews,
   cards,
@@ -141,10 +148,7 @@ export function ReviewRitual({
         <div className="mt-4 rounded-sm bg-cream px-4 py-3">
           <p className="text-[15px] font-bold text-ink-900">Saved.</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-            {result.before === result.after
-              ? `Debt-free date holds at ${result.after}.`
-              : `Debt-free date was ${result.before}, now ${result.after}.`}{" "}
-            Ren has these numbers for next time.
+            {dateLine(result.before, result.after)} Ren has these numbers for next time.
           </p>
         </div>
       ) : null}
@@ -299,13 +303,7 @@ export function ReviewRitual({
           {last.reflection ? (
             <p className="mt-3 text-[14px] leading-relaxed text-ink-700">&ldquo;{last.reflection}&rdquo;</p>
           ) : null}
-          <p className="mt-2 text-[12px] text-ink-400">
-            Debt-free date{" "}
-            {last.debtFreeBefore === last.debtFreeAfter
-              ? `held at ${last.debtFreeAfter}`
-              : `moved from ${last.debtFreeBefore} to ${last.debtFreeAfter}`}
-            .
-          </p>
+          <p className="mt-2 text-[12px] text-ink-400">{dateLine(last.debtFreeBefore, last.debtFreeAfter)}</p>
         </div>
       ) : (
         <p className="mt-4 text-[13px] leading-relaxed text-ink-400">
