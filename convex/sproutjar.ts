@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, type DebtInput } from "../src/lib/debt-engine";
+import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -86,6 +87,14 @@ export const ensureUser = mutation({
       goodDecision: "",
       stemPeak: 0,
     });
+    // The cushion jar exists from day one, so the first deposit has somewhere to go.
+    await ctx.db.insert("jars", {
+      userId: id,
+      name: "Cushion",
+      purpose: "emergency",
+      target: STARTER_RESERVE_DEFAULT,
+      saved: 0,
+    });
     return (await ctx.db.get(id))!;
   },
 });
@@ -119,8 +128,14 @@ export const completeOnboarding = mutation({
 export const deleteAccount = mutation({
   args: { caller: callerArg },
   handler: async (ctx, { caller }) => {
-    const user = await callerUser(ctx, caller);
+    assertServer(caller);
     if (caller.userKey === "demo") throw new Error("The demo profile stays.");
+    // Nothing left to delete is a success, so a retry after a half-finished delete goes through.
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", caller.userKey))
+      .unique();
+    if (!user) return null;
     const rows = await rowsFor(ctx, user._id);
     for (const jar of rows.jars) {
       const deposits = await ctx.db.query("deposits").withIndex("by_jar", (q) => q.eq("jarId", jar._id)).collect();
@@ -300,7 +315,8 @@ export const logPayment = mutation({
     const user = await callerUser(ctx, caller);
     const debt = await ctx.db.get(debtId);
     if (!debt || debt.userId !== user._id) return null;
-    const balance = Math.max(0, Math.round((debt.balance - amount) * 100) / 100);
+    // Three decimals, for KWD, BHD and OMR; a cents currency is unaffected.
+    const balance = Math.max(0, Math.round((debt.balance - amount) * 1000) / 1000);
     await ctx.db.patch(debtId, { balance });
     await ctx.db.insert("balanceEntries", {
       userId: user._id,
@@ -327,12 +343,17 @@ export const debtByName = query({
     ).filter((debt) => debt.balance > 0);
     if (!needle) return debts.length === 1 ? debts[0] : null;
     const lowered = needle.toLowerCase();
-    return (
-      debts.find((debt) => debt.name.toLowerCase() === lowered) ??
-      debts.find((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())) ??
-      debts.find((debt) => debt.issuer.toLowerCase().includes(lowered)) ??
-      null
-    );
+    // Only an unambiguous match pays; two cards from the same bank make Ren ask.
+    const levels = [
+      debts.filter((debt) => debt.name.toLowerCase() === lowered),
+      debts.filter((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())),
+      debts.filter((debt) => debt.issuer.toLowerCase().includes(lowered)),
+    ];
+    for (const matches of levels) {
+      if (matches.length === 1) return matches[0];
+      if (matches.length > 1) return null;
+    }
+    return null;
   },
 });
 
@@ -364,6 +385,19 @@ export const recordReview = mutation({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
     const active = debts.filter((d) => d.status === "active");
+    // "I paid this" already took these off the balances. The statement counts
+    // them again, so they are added back to the opening figure before reconciling.
+    const previous = (
+      await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
+    ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
+    const loggedSince = new Map<Id<"debts">, number>();
+    for (const entry of await ctx.db
+      .query("balanceEntries")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()) {
+      if (entry.source === "review" || entry.loggedAt <= previous) continue;
+      loggedSince.set(entry.debtId, (loggedSince.get(entry.debtId) ?? 0) + entry.amountPaid);
+    }
     const attack = debtAttackFor(user).amount;
     const strategy = user.strategy === "avalanche" ? "avalanche" : "snowball";
     const debtFreeBefore = buildPayoffPlan(active.map(engineInput), attack, strategy).debtFreeOn;
@@ -390,12 +424,14 @@ export const recordReview = mutation({
       const paid = Math.max(0, entry.paid);
       const newBorrowing = Math.max(0, entry.newBorrowing);
       const balance = Math.max(0, entry.balance);
+      const alreadyLogged = loggedSince.get(debt._id) ?? 0;
+      const opening = debt.balance + alreadyLogged;
       // What the card would stand at if no interest had been charged.
-      const expected = debt.balance - paid + newBorrowing;
+      const expected = opening - paid + newBorrowing;
       const interestCharged = Math.max(0, balance - expected);
       const principalRepaid = Math.max(0, paid - interestCharged);
 
-      totals.openingDebt += debt.balance;
+      totals.openingDebt += opening;
       totals.closingDebt += balance;
       totals.paid += paid;
       totals.principalRepaid += principalRepaid;
@@ -411,8 +447,9 @@ export const recordReview = mutation({
         userId: user._id,
         debtId: debt._id,
         balance,
-        amountPaid: paid,
-        principalCleared: principalRepaid,
+        // Only the part not already logged as a payment, so history counts it once.
+        amountPaid: Math.max(0, paid - alreadyLogged),
+        principalCleared: principalRepaid - alreadyLogged,
         interestCharged,
         newBorrowing,
         reviewId,

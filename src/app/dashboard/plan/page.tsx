@@ -120,7 +120,7 @@ export default async function PlanPage() {
         debtFreeOn={plan.debtFreeOn}
         payday={snap.payday}
         cards={snap.debts
-          .filter((d) => d.balance > 0)
+          .filter((d) => d.balance > 0 || d.paidSinceReview > 0)
           .map((d) => ({ id: d.id, name: d.name, balance: d.balance, minimumPayment: d.minimumPayment }))}
         reviews={snap.reviews.map((r) => ({
           id: r.id,
@@ -285,7 +285,7 @@ export default async function PlanPage() {
               </ol>
             </section>
           ) : null}
-          <JarBoard jars={snap.jars} currency={currency} />
+          <JarBoard jars={snap.jars} currency={currency} starterTarget={snap.starterTarget} />
         </div>
       }
     />
