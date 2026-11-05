@@ -43,7 +43,8 @@ export function totalBalance(debts: DebtInput[]): number {
 }
 
 export function totalMinimums(debts: DebtInput[]): number {
-  return debts.reduce((sum, d) => sum + d.minimumPayment, 0);
+  // A card at zero has no minimum, however the bank still lists one.
+  return debts.filter((d) => d.balance > 0.005).reduce((sum, d) => sum + d.minimumPayment, 0);
 }
 
 function orderDebts(debts: DebtInput[], strategy: Strategy): DebtInput[] {

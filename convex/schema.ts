@@ -84,6 +84,8 @@ export default defineSchema({
     interestCharged: v.number(),
     /** Anything new that went on the card since the last reading. */
     newBorrowing: v.optional(v.number()),
+    /** Review rows only: the full payment figure on the statement, logged payments included. */
+    statementPaid: v.optional(v.number()),
     reviewId: v.optional(v.id("reviews")),
     source: v.string(),
     loggedAt: v.number(),

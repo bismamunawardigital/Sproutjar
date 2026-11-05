@@ -155,13 +155,23 @@ export async function buildSnapshot(caller?: Caller) {
       const reviewed = [...live.balanceEntries]
         .reverse()
         .find((e) => e.debtId === d._id && e.source === "review");
+      const paidSinceReview = live.balanceEntries
+        .filter(
+          (e) =>
+            e.debtId === d._id &&
+            e.source !== "review" &&
+            e.loggedAt > (lastReview?.completedAt.getTime() ?? 0),
+        )
+        .reduce((sum, e) => sum + e.amountPaid, 0);
       return {
         ...d,
         id: d._id,
+        /** "I paid this" amounts not yet confirmed by a statement review. */
+        paidSinceReview,
         lastReviewed: reviewed
           ? {
               at: new Date(reviewed.loggedAt),
-              paid: reviewed.amountPaid,
+              paid: reviewed.statementPaid ?? reviewed.amountPaid,
               interestCharged: reviewed.interestCharged,
               newBorrowing: reviewed.newBorrowing ?? 0,
             }
@@ -243,7 +253,7 @@ export async function buildSnapshot(caller?: Caller) {
     minimumsOnly,
     totals: {
       debt: debts.reduce((s, d) => s + d.balance, 0),
-      minimums: debts.reduce((s, d) => s + d.minimumPayment, 0),
+      minimums: debts.filter((d) => d.balance > 0.005).reduce((s, d) => s + d.minimumPayment, 0),
       saved: jarRows.reduce((s, j) => s + j.saved, 0),
     },
   };
