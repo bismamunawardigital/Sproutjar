@@ -246,7 +246,7 @@ export const updateDebt = mutation({
     await ctx.db.patch(id, patch);
     if (fields.balance !== undefined && fields.balance !== debt.balance) {
       // A hand correction is not money paid. principalCleared carries the signed
-      // change so an edit down and back up nets to nothing at the next review.
+      // change so the history nets out; the review does not read these rows.
       await ctx.db.insert("balanceEntries", {
         userId: user._id,
         debtId: id,
@@ -394,19 +394,19 @@ export const recordReview = mutation({
     const previous = (
       await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
-    // `paid` is money actually handed over. `reduction` is everything that came
-    // off the card since the last review, hand corrections included, so the
-    // opening figure is what the card stood at before any of it (an overpayment
+    // Only money actually paid is added back. A hand correction redefines what
+    // the card stood at, so it is neither a payment nor interest here. `paid` is
+    // what was handed over, `reduction` what came off the card (an overpayment
     // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
     for (const entry of await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
-      if (entry.source === "review" || entry.loggedAt <= previous) continue;
+      if (!isPaymentSource(entry.source) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
-        paid: sum.paid + (isPaymentSource(entry.source) ? entry.amountPaid : 0),
+        paid: sum.paid + entry.amountPaid,
         reduction: sum.reduction + entry.principalCleared,
       });
     }
