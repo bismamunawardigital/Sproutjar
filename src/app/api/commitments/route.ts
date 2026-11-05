@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { currentCaller, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -24,25 +25,31 @@ const updateSchema = z.object({
 });
 
 export async function GET() {
-  const snap = await buildSnapshot();
+  const caller = await currentCaller();
+  const snap = await buildSnapshot(caller);
   return NextResponse.json(snap.recentCommitments);
 }
 
 export async function POST(request: Request) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const parsed = createSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid commitment", issues: parsed.error.issues }, { status: 400 });
   }
-  const id = await convexClient().mutation(api.sproutjar.addCommitment, parsed.data);
+  const id = await convexClient().mutation(api.sproutjar.addCommitment, { caller, ...parsed.data });
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const parsed = updateSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid update", issues: parsed.error.issues }, { status: 400 });
   }
   const id = await convexClient().mutation(api.sproutjar.setCommitmentStatus, {
+    caller,
     id: parsed.data.id as Id<"commitments">,
     status: parsed.data.status,
     reflection: parsed.data.reflection,

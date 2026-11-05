@@ -7,6 +7,20 @@ import { buildPayoffPlan, type DebtInput } from "../src/lib/debt-engine";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
 
+/**
+ * Who a request is for. The Next server resolves the signed-in person (or the
+ * shared Layla demo) and sends it along; serverKey proves the call came from
+ * our own server rather than straight at the deployment URL.
+ */
+export const callerArg = v.object({ serverKey: v.string(), userKey: v.string() });
+type Caller = { serverKey: string; userKey: string };
+
+function assertServer(caller: { serverKey: string }) {
+  const expected = process.env.SPROUTJAR_SERVER_KEY;
+  if (!expected) throw new Error("SPROUTJAR_SERVER_KEY is not set on this Convex deployment.");
+  if (caller.serverKey !== expected) throw new Error("Not from the Sproutjar server.");
+}
+
 function engineInput(debt: Doc<"debts">): DebtInput {
   return {
     id: debt._id,
@@ -18,28 +32,20 @@ function engineInput(debt: Doc<"debts">): DebtInput {
   };
 }
 
-async function demoUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_email", (q) => q.eq("email", DEMO_EMAIL))
-    .unique();
-  if (!user) throw new Error("Sproutjar has no user yet. Run the seed mutation.");
+async function callerUser(ctx: QueryCtx | MutationCtx, caller: Caller): Promise<Doc<"users">> {
+  assertServer(caller);
+  const user =
+    caller.userKey === "demo"
+      ? await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", DEMO_EMAIL)).unique()
+      : await ctx.db.query("users").withIndex("by_clerkId", (q) => q.eq("clerkId", caller.userKey)).unique();
+  if (!user) throw new Error("No Sproutjar profile for this person yet.");
   return user;
 }
 
-/**
- * Everything the dashboard and Ren need, in one live read. Subscribing to this
- * is what makes a jar deposit Ren logs mid-call appear on screen without a
- * refresh.
- */
-export const snapshot = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await demoUser(ctx);
-    const mine = user._id;
-
-    const [debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews] =
-      await Promise.all([
+/** Everything a person owns, for the snapshot and for deleting an account. */
+async function rowsFor(ctx: QueryCtx | MutationCtx, mine: Id<"users">) {
+  const [debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews] =
+    await Promise.all([
       ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("jars").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("commitments").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
@@ -49,6 +55,94 @@ export const snapshot = query({
       ctx.db.query("proposals").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
       ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", mine)).collect(),
     ]);
+  return { debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews };
+}
+
+/**
+ * First sign-in creates the row; every later one returns it. Name and email
+ * come from the identity provider and are only filled in where still blank.
+ */
+export const ensureUser = mutation({
+  args: { caller: callerArg, name: v.string(), email: v.string() },
+  handler: async (ctx, { caller, name, email }) => {
+    assertServer(caller);
+    if (caller.userKey === "demo") return callerUser(ctx, caller);
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", caller.userKey))
+      .unique();
+    if (existing) return existing;
+    const id = await ctx.db.insert("users", {
+      clerkId: caller.userKey,
+      name: name || "there",
+      email,
+      country: "AE",
+      monthlyIncome: 0,
+      monthlyEssentials: 0,
+      strategy: "snowball",
+      weeksActive: 0,
+      upbringing: "",
+      moneyPurpose: "",
+      goodDecision: "",
+      stemPeak: 0,
+    });
+    return (await ctx.db.get(id))!;
+  },
+});
+
+/** The answers from the first screens, kept so Ren can open the first call already knowing them. */
+export const completeOnboarding = mutation({
+  args: {
+    caller: callerArg,
+    name: v.optional(v.string()),
+    country: v.optional(v.string()),
+    answers: v.object({
+      why: v.optional(v.string()),
+      pattern: v.optional(v.string()),
+      carrying: v.optional(v.string()),
+      help: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, { caller, name, country, answers }) => {
+    const user = await callerUser(ctx, caller);
+    await ctx.db.patch(user._id, {
+      ...(name ? { name } : {}),
+      ...(country ? { country } : {}),
+      onboarding: answers,
+      onboardedAt: user.onboardedAt ?? Date.now(),
+    });
+    return ctx.db.get(user._id);
+  },
+});
+
+/** Removes the person and every row that hangs off them. The demo cannot be deleted this way. */
+export const deleteAccount = mutation({
+  args: { caller: callerArg },
+  handler: async (ctx, { caller }) => {
+    const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo") throw new Error("The demo profile stays.");
+    const rows = await rowsFor(ctx, user._id);
+    for (const jar of rows.jars) {
+      const deposits = await ctx.db.query("deposits").withIndex("by_jar", (q) => q.eq("jarId", jar._id)).collect();
+      await Promise.all(deposits.map((d) => ctx.db.delete(d._id)));
+    }
+    for (const list of Object.values(rows)) await Promise.all(list.map((row) => ctx.db.delete(row._id)));
+    await ctx.db.delete(user._id);
+    return user._id;
+  },
+});
+
+/**
+ * Everything the dashboard and Ren need, in one live read. Subscribing to this
+ * is what makes a jar deposit Ren logs mid-call appear on screen without a
+ * refresh.
+ */
+export const snapshot = query({
+  args: { caller: callerArg},
+  handler: async (ctx, { caller }) => {
+    const user = await callerUser(ctx, caller);
+    const { debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews } =
+      await rowsFor(ctx, user._id);
 
     return {
       user,
@@ -73,9 +167,9 @@ export const snapshot = query({
  * card someone had been hiding cannot cost them stem they earned.
  */
 export const recordStemPeak = mutation({
-  args: { stemPct: v.number() },
-  handler: async (ctx, { stemPct }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, stemPct: v.number() },
+  handler: async (ctx, { caller, stemPct }) => {
+    const user = await callerUser(ctx, caller);
     if (stemPct <= user.stemPeak) return user.stemPeak;
     await ctx.db.patch(user._id, { stemPeak: stemPct });
     return stemPct;
@@ -91,6 +185,7 @@ const debtDetailArgs = {
 
 export const addDebt = mutation({
   args: {
+    caller: callerArg,
     name: v.string(),
     issuer: v.string(),
     kind: v.string(),
@@ -100,8 +195,8 @@ export const addDebt = mutation({
     isIslamic: v.boolean(),
     ...debtDetailArgs,
   },
-  handler: async (ctx, args) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, ...args }) => {
+    const user = await callerUser(ctx, caller);
     return ctx.db.insert("debts", {
       ...args,
       userId: user._id,
@@ -116,6 +211,7 @@ export const addDebt = mutation({
 
 export const updateDebt = mutation({
   args: {
+    caller: callerArg,
     id: v.id("debts"),
     name: v.optional(v.string()),
     issuer: v.optional(v.string()),
@@ -126,8 +222,8 @@ export const updateDebt = mutation({
     isIslamic: v.optional(v.boolean()),
     ...debtDetailArgs,
   },
-  handler: async (ctx, { id, ...fields }) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, id, ...fields }) => {
+    const user = await callerUser(ctx, caller);
     const debt = await ctx.db.get(id);
     if (!debt || debt.userId !== user._id) return null;
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
@@ -150,9 +246,9 @@ export const updateDebt = mutation({
 });
 
 export const removeDebt = mutation({
-  args: { id: v.id("debts") },
-  handler: async (ctx, { id }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, id: v.id("debts") },
+  handler: async (ctx, { caller, id }) => {
+    const user = await callerUser(ctx, caller);
     const debt = await ctx.db.get(id);
     if (!debt || debt.userId !== user._id) return null;
     const entries = await ctx.db
@@ -167,6 +263,7 @@ export const removeDebt = mutation({
 
 export const logBalance = mutation({
   args: {
+    caller: callerArg,
     debtId: v.id("debts"),
     balance: v.number(),
     amountPaid: v.number(),
@@ -174,8 +271,8 @@ export const logBalance = mutation({
     newBorrowing: v.optional(v.number()),
     source: v.string(),
   },
-  handler: async (ctx, args) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, ...args }) => {
+    const user = await callerUser(ctx, caller);
     const debt = await ctx.db.get(args.debtId);
     if (!debt || debt.userId !== user._id) throw new Error("No such debt.");
     await ctx.db.patch(args.debtId, { balance: args.balance });
@@ -194,6 +291,52 @@ export const logBalance = mutation({
 });
 
 /**
+ * "I paid this": one payment, the day it happens. The balance drops by the
+ * amount, interest is left for the payday review to reconcile.
+ */
+export const logPayment = mutation({
+  args: { caller: callerArg, debtId: v.id("debts"), amount: v.number(), source: v.string() },
+  handler: async (ctx, { caller, debtId, amount, source }) => {
+    const user = await callerUser(ctx, caller);
+    const debt = await ctx.db.get(debtId);
+    if (!debt || debt.userId !== user._id) return null;
+    const balance = Math.max(0, Math.round((debt.balance - amount) * 100) / 100);
+    await ctx.db.patch(debtId, { balance });
+    await ctx.db.insert("balanceEntries", {
+      userId: user._id,
+      debtId,
+      balance,
+      amountPaid: amount,
+      principalCleared: debt.balance - balance,
+      interestCharged: 0,
+      newBorrowing: 0,
+      source,
+      loggedAt: Date.now(),
+    });
+    return ctx.db.get(debtId);
+  },
+});
+
+/** Finds an open card by a loose name, the way someone says it out loud. */
+export const debtByName = query({
+  args: { caller: callerArg, needle: v.optional(v.string()) },
+  handler: async (ctx, { caller, needle }) => {
+    const user = await callerUser(ctx, caller);
+    const debts = (
+      await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
+    ).filter((debt) => debt.balance > 0);
+    if (!needle) return debts.length === 1 ? debts[0] : null;
+    const lowered = needle.toLowerCase();
+    return (
+      debts.find((debt) => debt.name.toLowerCase() === lowered) ??
+      debts.find((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())) ??
+      debts.find((debt) => debt.issuer.toLowerCase().includes(lowered)) ??
+      null
+    );
+  },
+});
+
+/**
  * The review ritual. One reading per card: what was paid, what new went on it,
  * and what it now stands at. Interest is whatever the balance moved that the
  * payment and the new borrowing do not explain, so the four numbers reconcile
@@ -201,6 +344,7 @@ export const logBalance = mutation({
  */
 export const recordReview = mutation({
   args: {
+    caller: callerArg,
     cadence: v.string(),
     reflection: v.string(),
     entries: v.array(
@@ -212,8 +356,8 @@ export const recordReview = mutation({
       }),
     ),
   },
-  handler: async (ctx, args) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, ...args }) => {
+    const user = await callerUser(ctx, caller);
     const now = Date.now();
     const debts = await ctx.db
       .query("debts")
@@ -292,6 +436,7 @@ export const recordReview = mutation({
 
 export const updateProfile = mutation({
   args: {
+    caller: callerArg,
     name: v.optional(v.string()),
     country: v.optional(v.string()),
     monthlyIncome: v.optional(v.number()),
@@ -309,8 +454,8 @@ export const updateProfile = mutation({
     upbringing: v.optional(v.string()),
     strategy: v.optional(v.string()),
   },
-  handler: async (ctx, fields) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, ...fields }) => {
+    const user = await callerUser(ctx, caller);
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
     await ctx.db.patch(user._id, patch);
     return ctx.db.get(user._id);
@@ -319,36 +464,36 @@ export const updateProfile = mutation({
 
 /** Recorded once the person has read what Ren does and does not do. */
 export const acceptContract = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg},
+  handler: async (ctx, { caller }) => {
+    const user = await callerUser(ctx, caller);
     if (!user.contractedAt) await ctx.db.patch(user._id, { contractedAt: Date.now() });
     return user._id;
   },
 });
 
 export const setStrategy = mutation({
-  args: { strategy: v.string() },
-  handler: async (ctx, { strategy }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, strategy: v.string() },
+  handler: async (ctx, { caller, strategy }) => {
+    const user = await callerUser(ctx, caller);
     await ctx.db.patch(user._id, { strategy });
     return strategy;
   },
 });
 
 export const addJar = mutation({
-  args: { name: v.string(), purpose: v.string(), target: v.number(), saved: v.number() },
-  handler: async (ctx, args) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, name: v.string(), purpose: v.string(), target: v.number(), saved: v.number() },
+  handler: async (ctx, { caller, ...args }) => {
+    const user = await callerUser(ctx, caller);
     const id = await ctx.db.insert("jars", { ...args, userId: user._id });
     return ctx.db.get(id);
   },
 });
 
 export const removeJar = mutation({
-  args: { id: v.id("jars") },
-  handler: async (ctx, { id }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, id: v.id("jars") },
+  handler: async (ctx, { caller, id }) => {
+    const user = await callerUser(ctx, caller);
     const jar = await ctx.db.get(id);
     if (!jar || jar.userId !== user._id) return null;
     const deposits = await ctx.db
@@ -362,9 +507,9 @@ export const removeJar = mutation({
 });
 
 export const depositToJar = mutation({
-  args: { jarId: v.id("jars"), amount: v.number(), note: v.string() },
-  handler: async (ctx, { jarId, amount, note }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, jarId: v.id("jars"), amount: v.number(), note: v.string() },
+  handler: async (ctx, { caller, jarId, amount, note }) => {
+    const user = await callerUser(ctx, caller);
     const jar = await ctx.db.get(jarId);
     if (!jar || jar.userId !== user._id) return null;
     const saved = Math.max(0, jar.saved + amount);
@@ -375,9 +520,9 @@ export const depositToJar = mutation({
 });
 
 export const jarByName = query({
-  args: { needle: v.optional(v.string()) },
-  handler: async (ctx, { needle }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, needle: v.optional(v.string()) },
+  handler: async (ctx, { caller, needle }) => {
+    const user = await callerUser(ctx, caller);
     const jars = await ctx.db
       .query("jars")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -390,6 +535,7 @@ export const jarByName = query({
 
 export const addCommitment = mutation({
   args: {
+    caller: callerArg,
     wish: v.string(),
     outcome: v.string(),
     obstacle: v.string(),
@@ -398,8 +544,8 @@ export const addCommitment = mutation({
     ownershipConfirmed: v.boolean(),
     days: v.number(),
   },
-  handler: async (ctx, { days, ...rest }) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, days, ...rest }) => {
+    const user = await callerUser(ctx, caller);
     return ctx.db.insert("commitments", {
       ...rest,
       userId: user._id,
@@ -412,9 +558,9 @@ export const addCommitment = mutation({
 });
 
 export const setCommitmentStatus = mutation({
-  args: { id: v.id("commitments"), status: v.string(), reflection: v.string() },
-  handler: async (ctx, { id, status, reflection }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, id: v.id("commitments"), status: v.string(), reflection: v.string() },
+  handler: async (ctx, { caller, id, status, reflection }) => {
+    const user = await callerUser(ctx, caller);
     const commitment = await ctx.db.get(id);
     if (!commitment || commitment.userId !== user._id) return null;
     await ctx.db.patch(id, { status, reflection });
@@ -428,6 +574,7 @@ export const setCommitmentStatus = mutation({
  */
 export const proposeBalanceMove = mutation({
   args: {
+    caller: callerArg,
     fromDebtId: v.id("debts"),
     toIssuer: v.string(),
     toName: v.string(),
@@ -446,8 +593,8 @@ export const proposeBalanceMove = mutation({
     publishedFee: v.optional(v.string()),
     publishedEarlySettlementFee: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, ...args }) => {
+    const user = await callerUser(ctx, caller);
     const debt = await ctx.db.get(args.fromDebtId);
     if (!debt || debt.userId !== user._id) return null;
     return ctx.db.insert("proposals", {
@@ -465,9 +612,9 @@ export const proposeBalanceMove = mutation({
  * by the same amount as its balance, so a transfer never reads as money paid off.
  */
 export const applyProposal = mutation({
-  args: { id: v.id("proposals") },
-  handler: async (ctx, { id }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, id: v.id("proposals") },
+  handler: async (ctx, { caller, id }) => {
+    const user = await callerUser(ctx, caller);
     const proposal = await ctx.db.get(id);
     if (!proposal || proposal.userId !== user._id || proposal.status !== "pending") return null;
     const from = await ctx.db.get(proposal.fromDebtId);
@@ -511,9 +658,9 @@ export const applyProposal = mutation({
 });
 
 export const discardProposal = mutation({
-  args: { id: v.id("proposals") },
-  handler: async (ctx, { id }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, id: v.id("proposals") },
+  handler: async (ctx, { caller, id }) => {
+    const user = await callerUser(ctx, caller);
     const proposal = await ctx.db.get(id);
     if (!proposal || proposal.userId !== user._id) return null;
     await ctx.db.patch(id, { status: "discarded" });
@@ -522,9 +669,14 @@ export const discardProposal = mutation({
 });
 
 export const nameBelief = mutation({
-  args: { text: v.string() },
-  handler: async (ctx, { text }) => {
-    const user = await demoUser(ctx);
+  args: { caller: callerArg, text: v.string(), replaces: v.optional(v.string()) },
+  handler: async (ctx, { caller, text, replaces }) => {
+    const user = await callerUser(ctx, caller);
+    const previousId = replaces ? ctx.db.normalizeId("beliefs", replaces) : null;
+    if (previousId) {
+      const previous = await ctx.db.get(previousId);
+      if (previous && previous.userId === user._id) await ctx.db.delete(previousId);
+    }
     return ctx.db.insert("beliefs", {
       userId: user._id,
       text,
@@ -536,6 +688,7 @@ export const nameBelief = mutation({
 
 export const startSession = mutation({
   args: {
+    caller: callerArg,
     agenda: v.string(),
     agendaReason: v.string(),
     technique: v.string(),
@@ -543,8 +696,8 @@ export const startSession = mutation({
     contractChoice: v.string(),
     mode: v.optional(v.string()),
   },
-  handler: async (ctx, { mode, ...args }) => {
-    const user = await demoUser(ctx);
+  handler: async (ctx, { caller, mode, ...args }) => {
+    const user = await callerUser(ctx, caller);
     return ctx.db.insert("sessions", {
       ...args,
       userId: user._id,
@@ -557,8 +710,11 @@ export const startSession = mutation({
 });
 
 export const endSession = mutation({
-  args: { id: v.id("sessions"), summary: v.string(), closingReflection: v.string() },
-  handler: async (ctx, { id, summary, closingReflection }) => {
+  args: { caller: callerArg, id: v.id("sessions"), summary: v.string(), closingReflection: v.string() },
+  handler: async (ctx, { caller, id, summary, closingReflection }) => {
+    const user = await callerUser(ctx, caller);
+    const session = await ctx.db.get(id);
+    if (!session || session.userId !== user._id) return null;
     await ctx.db.patch(id, { summary, closingReflection, endedAt: Date.now() });
     return id;
   },
@@ -602,6 +758,7 @@ const HISTORY_OFFSET_DAYS = 2;
  */
 export const seed = mutation({
   args: {
+    caller: callerArg,
     profile: v.object({
       monthlyIncome: v.number(),
       monthlyEssentials: v.number(),
@@ -674,7 +831,8 @@ export const seed = mutation({
       daysAgo: v.number(),
     }),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { caller, ...args }) => {
+    assertServer(caller);
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
     const weekAt = (week: number) => now - ((HISTORY_WEEKS - week) * 7 + HISTORY_OFFSET_DAYS) * day;

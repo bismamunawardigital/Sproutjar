@@ -7,6 +7,20 @@ import { formatMoney } from "@/lib/money";
 export type { StatementReading };
 
 /**
+ * Pasting or dropping the PDF file itself gives its binary guts, not the statement
+ * text. Binary read as text shows up as control characters, the replacement
+ * character and a dense sprinkling of Latin-1 symbols and accented letters, none
+ * of which a Gulf statement in English or Arabic has in any quantity.
+ */
+function looksLikeRawFile(source: string) {
+  if (/^\s*%PDF-/.test(source)) return true;
+  const sample = source.slice(0, 4000);
+  if (sample.length < 40) return false;
+  const odd = sample.match(/[\x00-\x08\x0E-\x1F\x7F-\x9F\u00A4-\u00A9\u00AC-\u00AF\u00B4\u00B8\u00C0-\u00FF\uFFFD]/g)?.length ?? 0;
+  return odd / sample.length > 0.08;
+}
+
+/**
  * The honest version of "connect your bank": live linking through CBUAE open
  * finance needs a licensed provider we do not have yet, so the statement itself
  * is the source. Paste its text or drop the file; every figure it finds is shown
@@ -26,19 +40,45 @@ export function StatementImport({
   const [text, setText] = useState("");
   const [reading, setReading] = useState<StatementReading | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [reading_, setReadingFile] = useState(false);
 
-  function read(source: string) {
-    const result = readStatement(source);
-    setReading(result);
+  function read(source: string, { pasted = true } = {}) {
+    setFileError(null);
+    if (pasted && looksLikeRawFile(source)) {
+      setReading(null);
+      setFileError(
+        "That looks like the PDF file itself rather than the words on it. Use \"or upload the PDF\" below, or open the statement, select the text on the page, copy and paste that.",
+      );
+      return;
+    }
+    setReading(readStatement(source));
   }
 
   async function onFile(file: File | undefined) {
     if (!file) return;
     setFileError(null);
-    if (file.type === "application/pdf") {
-      setFileError(
-        "PDFs cannot be read here yet. Open it, select all, copy, and paste the text below instead.",
-      );
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      setReadingFile(true);
+      try {
+        const body = new FormData();
+        body.append("file", file);
+        const response = await fetch("/api/statement/pdf", { method: "POST", body });
+        const data = (await response.json().catch(() => ({}))) as { text?: string; scanned?: boolean; error?: string };
+        if (!response.ok || data.error) {
+          setFileError(data.error ?? "Could not read that PDF. Paste the statement text instead.");
+          return;
+        }
+        if (data.scanned || !data.text) {
+          setFileError("That PDF is a scan with no text in it. Open it in your bank app, select all, copy and paste the text here instead.");
+          return;
+        }
+        setText(data.text);
+        read(data.text, { pasted: false });
+      } catch {
+        setFileError("The upload did not go through. Check your connection and try again, or paste the statement text.");
+      } finally {
+        setReadingFile(false);
+      }
       return;
     }
     const content = await file.text();
@@ -66,9 +106,9 @@ export function StatementImport({
         <div>
           <p className="text-[15px] font-bold text-ink-900">{title}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-            Linking your bank account directly isn&rsquo;t available yet. Until it is, the statement is
-            the source: paste its text or drop the file and Sproutjar reads the balance, the minimum,
-            the interest, and the dates off it. Nothing leaves your device before you confirm.
+            Paste the statement text or upload the PDF your bank emails you. Sproutjar reads the
+            balance, the minimum, the interest and the dates off it, shows them back, and saves
+            nothing until you confirm.
           </p>
         </div>
         <button
@@ -100,10 +140,11 @@ export function StatementImport({
           Read it
         </button>
         <label className="cursor-pointer text-[13px] font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem">
-          or choose a .txt / .csv file
+          {reading_ ? "Reading the PDF" : "or upload the PDF"}
           <input
             type="file"
-            accept=".txt,.csv,text/plain,text/csv,application/pdf"
+            accept=".pdf,.txt,.csv,application/pdf,text/plain,text/csv"
+            disabled={reading_}
             className="sr-only"
             onChange={(e) => onFile(e.target.files?.[0])}
           />
@@ -134,7 +175,7 @@ export function StatementImport({
                 ))}
               </dl>
               <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
-                Check these against the page. Anything wrong or missing you can fix on the next step.
+                Check these against the page. Anything wrong or missing you can change later on the Plan tab.
               </p>
               <button
                 type="button"
