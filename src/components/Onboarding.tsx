@@ -230,10 +230,6 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
       setError("Payday is a day of the month, 1 to 31.");
       return;
     }
-    if (income > 0 && essentials > income) {
-      setError("Must-pays are higher than what comes in. Double-check the two numbers.");
-      return;
-    }
     const fields: Record<string, number> = {};
     if (income > 0) fields.monthlyIncome = income;
     if (essentials > 0) fields.monthlyEssentials = essentials;

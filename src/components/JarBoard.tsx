@@ -17,7 +17,15 @@ export type JarRow = {
   stage: "seed" | "sprout" | "sapling" | "grown";
 };
 
-export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string }) {
+export function JarBoard({
+  jars,
+  currency,
+  starterTarget,
+}: {
+  jars: JarRow[];
+  currency: string;
+  starterTarget: number;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [custom, setCustom] = useState<Record<string, string>>({});
@@ -44,6 +52,24 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
     router.refresh();
   }
 
+  async function startJar() {
+    setPending("new");
+    setError(null);
+    const response = await fetch("/api/jars", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Cushion", purpose: "emergency", target: starterTarget }),
+    }).catch(() => null);
+    if (!response) {
+      setError("Could not reach Sproutjar. Check your connection and try again.");
+    } else if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(data.error ?? "That did not save. Try again.");
+    }
+    setPending(null);
+    router.refresh();
+  }
+
   async function removeJar(jarId: string, name: string) {
     if (!window.confirm(`Remove ${name}? What's in it stays yours, only the jar goes.`))
       return;
@@ -64,6 +90,26 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
       {error && (
         <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900">{error}</p>
       )}
+
+      {jars.length === 0 ? (
+        <div className="mt-4 flex items-center gap-4 rounded-sm bg-cream px-4 py-4">
+          <Jar pct={0} stage="seed" className="w-14 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-bold text-ink-900">No jar yet</p>
+            <p className="mt-0.5 text-[13px] text-ink-400">
+              Start with a cushion of <span className="n">{formatMoney(starterTarget, currency)}</span>.
+              You can change the amount later.
+            </p>
+            <button
+              onClick={startJar}
+              disabled={pending === "new"}
+              className="mt-3 rounded-full bg-stem-600 px-4 py-1.5 text-[13px] font-bold text-white transition hover:bg-stem-700 disabled:opacity-40"
+            >
+              Start the jar
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-4 divide-y divide-rule">
         {jars.map((jar) => (
