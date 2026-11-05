@@ -6,6 +6,15 @@ import { formatMoney } from "@/lib/money";
 
 export type { StatementReading };
 
+/** Pasting or dropping the PDF file itself gives its binary guts, not the statement text. */
+function looksLikeRawFile(source: string) {
+  if (/^\s*%PDF-/.test(source)) return true;
+  const tokens = source.slice(0, 4000).split(/\s+/).filter(Boolean);
+  if (tokens.length < 8) return false;
+  const readable = tokens.filter((t) => /^[A-Za-z0-9.,:;()%/*'"£$€+-]+$|^[\u0600-\u06FF.,]+$/.test(t)).length;
+  return readable / tokens.length < 0.6;
+}
+
 /**
  * The honest version of "connect your bank": live linking through CBUAE open
  * finance needs a licensed provider we do not have yet, so the statement itself
@@ -29,8 +38,15 @@ export function StatementImport({
   const [reading_, setReadingFile] = useState(false);
 
   function read(source: string) {
-    const result = readStatement(source);
-    setReading(result);
+    setFileError(null);
+    if (looksLikeRawFile(source)) {
+      setReading(null);
+      setFileError(
+        "That looks like the PDF file itself rather than the words on it. Use \"or upload the PDF\" below, or open the statement, select the text on the page, copy and paste that.",
+      );
+      return;
+    }
+    setReading(readStatement(source));
   }
 
   async function onFile(file: File | undefined) {
@@ -42,9 +58,9 @@ export function StatementImport({
         const body = new FormData();
         body.append("file", file);
         const response = await fetch("/api/statement/pdf", { method: "POST", body });
-        const data = (await response.json()) as { text?: string; scanned?: boolean; error?: string };
+        const data = (await response.json().catch(() => ({}))) as { text?: string; scanned?: boolean; error?: string };
         if (!response.ok || data.error) {
-          setFileError(data.error ?? "Could not read that PDF.");
+          setFileError(data.error ?? "Could not read that PDF. Paste the statement text instead.");
           return;
         }
         if (data.scanned || !data.text) {
@@ -53,6 +69,8 @@ export function StatementImport({
         }
         setText(data.text);
         read(data.text);
+      } catch {
+        setFileError("The upload did not go through. Check your connection and try again, or paste the statement text.");
       } finally {
         setReadingFile(false);
       }
