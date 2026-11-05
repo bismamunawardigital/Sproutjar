@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
-import { buildPayoffPlan, type DebtInput } from "../src/lib/debt-engine";
+import { buildPayoffPlan, isPaymentSource, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
@@ -245,12 +245,14 @@ export const updateDebt = mutation({
     if (fields.estimatedFields !== undefined) patch.isEstimated = fields.estimatedFields !== "";
     await ctx.db.patch(id, patch);
     if (fields.balance !== undefined && fields.balance !== debt.balance) {
+      // A hand correction is neither money paid nor principal cleared; it only
+      // records that the figure changed. The review maths does not read it.
       await ctx.db.insert("balanceEntries", {
         userId: user._id,
         debtId: id,
         balance: fields.balance,
-        amountPaid: Math.max(0, debt.balance - fields.balance),
-        principalCleared: Math.max(0, debt.balance - fields.balance),
+        amountPaid: 0,
+        principalCleared: 0,
         interestCharged: 0,
         source: "self_report",
         loggedAt: Date.now(),
@@ -343,17 +345,19 @@ export const debtByName = query({
     ).filter((debt) => debt.balance > 0);
     if (!needle) return debts.length === 1 ? debts[0] : null;
     const lowered = needle.toLowerCase();
-    // Only an unambiguous match pays; two cards from the same bank make Ren ask.
-    const levels = [
-      debts.filter((debt) => debt.name.toLowerCase() === lowered),
-      debts.filter((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())),
-      debts.filter((debt) => debt.issuer.toLowerCase().includes(lowered)),
-    ];
-    for (const matches of levels) {
-      if (matches.length === 1) return matches[0];
-      if (matches.length > 1) return null;
-    }
-    return null;
+    // Only an unambiguous match pays. A card named in full always wins; a bank
+    // name shared by two cards makes Ren ask, even if only one card carries it.
+    const exact = debts.filter((debt) => debt.name.toLowerCase() === lowered);
+    if (exact.length === 1) return exact[0];
+    if (exact.length > 1) return null;
+    const sameBank = debts.filter((debt) => debt.issuer.toLowerCase().includes(lowered));
+    if (sameBank.length > 1) return null;
+    const partial = debts.filter(
+      (debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase()),
+    );
+    if (partial.length === 1) return partial[0];
+    if (partial.length > 1) return null;
+    return sameBank[0] ?? null;
   },
 });
 
@@ -390,14 +394,16 @@ export const recordReview = mutation({
     const previous = (
       await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
-    // `paid` is what was handed over, `reduction` what actually came off the
-    // card (an overpayment on a small balance stops at zero).
+    // Only money actually paid is added back. A hand correction redefines what
+    // the card stood at, so it is neither a payment nor interest here. `paid` is
+    // what was handed over, `reduction` what came off the card (an overpayment
+    // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
     for (const entry of await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
-      if (entry.source === "review" || entry.loggedAt <= previous) continue;
+      if (!isPaymentSource(entry.source) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
         paid: sum.paid + entry.amountPaid,
@@ -457,7 +463,9 @@ export const recordReview = mutation({
         // History counts each dirham once: only what the logged payments had not
         // already covered. The full statement figure sits in statementPaid.
         amountPaid: Math.max(0, paid - logged.paid),
-        principalCleared: Math.max(0, principalRepaid - logged.reduction),
+        // Signed on purpose: a logged payment counted as all principal, and the
+        // interest found here takes some of that back so the history sums right.
+        principalCleared: principalRepaid - logged.reduction,
         statementPaid: paid,
         interestCharged,
         newBorrowing,

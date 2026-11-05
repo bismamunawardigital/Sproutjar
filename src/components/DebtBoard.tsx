@@ -171,13 +171,21 @@ export function DebtBoard({
     setEditing("new");
   }
 
-  async function settleDebt(id: string) {
+  /** "Cleared it" is a payment of what was left, so the review and the history see it as one. */
+  async function settleDebt(debt: DebtRow) {
     setAsking(null);
-    await fetch(`/api/debts/${id}`, {
-      method: "PATCH",
+    const response = await fetch(`/api/debts/${debt.id}/payments`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ balance: 0 }),
-    });
+      body: JSON.stringify({ amount: debt.balance }),
+    }).catch(() => null);
+    if (!response?.ok) {
+      const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
+      setPayError(data.error ?? "That did not save. Check your connection and try again.");
+      setPayAmount(String(debt.balance));
+      setPaying(debt.id);
+      return;
+    }
     router.refresh();
   }
 
@@ -451,7 +459,7 @@ export function DebtBoard({
                     <div className="mt-1.5 flex items-center justify-end gap-2">
                       <span className="text-[12px] text-ink-400">Cleared it?</span>
                       <button
-                        onClick={() => settleDebt(debt.id)}
+                        onClick={() => settleDebt(debt)}
                         className="rounded-full bg-stem-600 px-3 py-1 text-[12px] font-bold text-white transition hover:bg-stem-700"
                       >
                         Yes
