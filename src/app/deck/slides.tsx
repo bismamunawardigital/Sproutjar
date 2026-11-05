@@ -18,7 +18,7 @@ export const deckSlides: ReactNode[] = [
     <path d="M84 52 C 84 30 100 16 124 14 C 126 38 106 54 84 52 Z" fill="#92D3A3" />
     <path d="M76 84 C 76 62 60 48 36 46 C 34 70 54 86 76 84 Z" fill="#F2EDE4" />
   </svg>
-  <div className="foot" style={{ color: "#7E8A84" }}>Bisma Munawar · Dubai, United Arab Emirates · sproutjar.vercel.app</div>
+  <div className="foot" style={{ color: "#7E8A84" }}>Bisma Munawar · Dubai, United Arab Emirates · sproutjar.app</div>
   <div className="pageno"></div>
 </section>,
 
@@ -32,7 +32,7 @@ export const deckSlides: ReactNode[] = [
     <div className="card"><div className="k">Grace period if you pay most, not all</div><div className="v root n">0 days</div><p>Interest runs from the transaction date unless 100% is paid by the due date. People paying nearly everything believe they are being responsible, and are not.</p></div>
     <div className="card"><div className="k">Who people can say the number to</div><div className="v root n">Nobody</div><p>Debt is not discussed with family, friends or colleagues anywhere in the Gulf. It isn&rsquo;t shame that keeps people stuck, but it is shame that keeps them silent.</p></div>
   </div>
-  <div className="foot">Sources: published schedules of charges from Emirates NBD, Citibank UAE, QNB, Commercial Bank, Doha Bank and QIB; Saudi issuer terms; 25 first person UAE accounts; CBUAE Consumer Protection Regulation. Full sourcing at sproutjar.vercel.app/case-study.</div>
+  <div className="foot">Sources: published schedules of charges from Emirates NBD, Citibank UAE, QNB, Commercial Bank, Doha Bank and QIB; Saudi issuer terms; 25 first person UAE accounts; CBUAE Consumer Protection Regulation. Full sourcing at sproutjar.app/case-study.</div>
   <div className="pageno"></div>
 </section>,
 
@@ -211,7 +211,7 @@ export const deckSlides: ReactNode[] = [
     <div className="card"><div className="k">Revenue</div><div className="v n">0</div><p>Pre-revenue.</p></div>
     <div className="card"><div className="k">Next</div><div className="v green n">10+ paying</div><p>Paying, run concierge if needed, to test the price and whether the coaching holds.</p></div>
   </div>
-  <div className="foot">sproutjar.vercel.app · sproutjar.vercel.app/case-study · github.com/bismamunawardigital/Sproutjar</div>
+  <div className="foot">sproutjar.app · sproutjar.app/case-study · github.com/bismamunawardigital/Sproutjar</div>
   <div className="pageno"></div>
 </section>,
 
@@ -259,7 +259,7 @@ export const deckSlides: ReactNode[] = [
     </div>
     <div style={{ paddingTop: "24px" }}>
       <div className="card"><div className="k">Built with</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>Next.js and Convex for the app and live data. ElevenLabs for Ren&rsquo;s voice. Context.dev for live, source-backed bank terms. Vercel. Devin and Claude for the build, a PR per change.</p></div>
-      <div className="card" style={{ marginTop: "16px" }}><div className="k">Contact</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>bismamunawardigital@gmail.com<br />Dubai, United Arab Emirates · sproutjar.vercel.app</p></div>
+      <div className="card" style={{ marginTop: "16px" }}><div className="k">Contact</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>bismamunawardigital@gmail.com<br />Dubai, United Arab Emirates · sproutjar.app</p></div>
     </div>
   </div>
   <div className="pageno"></div>
@@ -279,7 +279,7 @@ export const deckSlides: ReactNode[] = [
   </div>
   <div className="card" style={{ marginTop: "22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px", padding: "18px 24px" }}>
     <div><div className="k">Full case study</div><p style={{ fontSize: "15px", color: "var(--ink-700)", marginTop: "4px" }}>Every figure marked as research, synthetic or seeded demo, with the sources, the Qatar card terms and the design tokens.</p></div>
-    <a href="https://sproutjar.vercel.app/case-study" style={{ flex: "none", background: "var(--pill)", color: "var(--cream)", textDecoration: "none", fontWeight: "700", fontSize: "15px", padding: "12px 20px", borderRadius: "999px" }}>sproutjar.vercel.app/case-study</a>
+    <a href="https://sproutjar.app/case-study" style={{ flex: "none", background: "var(--pill)", color: "var(--cream)", textDecoration: "none", fontWeight: "700", fontSize: "15px", padding: "12px 20px", borderRadius: "999px" }}>sproutjar.app/case-study</a>
   </div>
   <div className="pageno"></div>
 </section>,
@@ -288,7 +288,7 @@ export const deckSlides: ReactNode[] = [
   <div className="brand"><img src="/deck/icon.svg" alt="" /> sproutjar</div>
   <h1 style={{ maxWidth: "980px" }}>Progress is the principal you cleared, and a plant that never wilts.</h1>
   <p className="lede muted">The plan was never the hard part. Someone noticing you kept it is. Sproutjar is that someone, for the salaried people across the Gulf who have nobody to say the number to.</p>
-  <div className="foot"><a href="https://sproutjar.vercel.app/case-study" style={{ color: "inherit", textDecoration: "none" }}>sproutjar.vercel.app/case-study</a> · Bisma Munawar · <a href="mailto:bismamunawardigital@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>bismamunawardigital@gmail.com</a></div>
+  <div className="foot"><a href="https://sproutjar.app/case-study" style={{ color: "inherit", textDecoration: "none" }}>sproutjar.app/case-study</a> · Bisma Munawar · <a href="mailto:bismamunawardigital@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>bismamunawardigital@gmail.com</a></div>
   <div className="pageno"></div>
 </section>,
 ];
