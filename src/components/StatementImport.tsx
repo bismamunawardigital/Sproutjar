@@ -175,7 +175,7 @@ export function StatementImport({
                 ))}
               </dl>
               <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
-                Check these against the page. Anything wrong or missing you can fix on the next step.
+                Check these against the page. Anything wrong or missing you can change later on the Plan tab.
               </p>
               <button
                 type="button"
