@@ -245,12 +245,14 @@ export const updateDebt = mutation({
     if (fields.estimatedFields !== undefined) patch.isEstimated = fields.estimatedFields !== "";
     await ctx.db.patch(id, patch);
     if (fields.balance !== undefined && fields.balance !== debt.balance) {
+      // A hand correction is not money paid. principalCleared carries the signed
+      // change so an edit down and back up nets to nothing at the next review.
       await ctx.db.insert("balanceEntries", {
         userId: user._id,
         debtId: id,
         balance: fields.balance,
-        amountPaid: Math.max(0, debt.balance - fields.balance),
-        principalCleared: Math.max(0, debt.balance - fields.balance),
+        amountPaid: 0,
+        principalCleared: debt.balance - fields.balance,
         interestCharged: 0,
         source: "self_report",
         loggedAt: Date.now(),
