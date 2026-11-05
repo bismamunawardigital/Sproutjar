@@ -390,13 +390,19 @@ export const recordReview = mutation({
     const previous = (
       await ctx.db.query("reviews").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()
     ).reduce((latest, r) => Math.max(latest, r.completedAt), 0);
-    const loggedSince = new Map<Id<"debts">, number>();
+    // `paid` is what was handed over, `reduction` what actually came off the
+    // card (an overpayment on a small balance stops at zero).
+    const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
     for (const entry of await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
       if (entry.source === "review" || entry.loggedAt <= previous) continue;
-      loggedSince.set(entry.debtId, (loggedSince.get(entry.debtId) ?? 0) + entry.amountPaid);
+      const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
+      loggedSince.set(entry.debtId, {
+        paid: sum.paid + entry.amountPaid,
+        reduction: sum.reduction + entry.principalCleared,
+      });
     }
     const attack = debtAttackFor(user).amount;
     const strategy = user.strategy === "avalanche" ? "avalanche" : "snowball";
@@ -421,15 +427,16 @@ export const recordReview = mutation({
     for (const entry of args.entries) {
       const debt = active.find((d) => d._id === entry.debtId);
       if (!debt) continue;
-      const paid = Math.max(0, entry.paid);
+      const logged = loggedSince.get(debt._id) ?? { paid: 0, reduction: 0 };
+      // The statement covers the logged payments too; a blank field means "just those".
+      const paid = Math.max(0, entry.paid, logged.paid);
       const newBorrowing = Math.max(0, entry.newBorrowing);
       const balance = Math.max(0, entry.balance);
-      const alreadyLogged = loggedSince.get(debt._id) ?? 0;
-      const opening = debt.balance + alreadyLogged;
+      const opening = debt.balance + logged.reduction;
       // What the card would stand at if no interest had been charged.
-      const expected = opening - paid + newBorrowing;
+      const expected = Math.max(0, opening - paid + newBorrowing);
       const interestCharged = Math.max(0, balance - expected);
-      const principalRepaid = Math.max(0, paid - interestCharged);
+      const principalRepaid = Math.max(0, Math.min(paid, opening + newBorrowing) - interestCharged);
 
       totals.openingDebt += opening;
       totals.closingDebt += balance;
@@ -447,9 +454,10 @@ export const recordReview = mutation({
         userId: user._id,
         debtId: debt._id,
         balance,
-        // Only the part not already logged as a payment, so history counts it once.
-        amountPaid: Math.max(0, paid - alreadyLogged),
-        principalCleared: principalRepaid - alreadyLogged,
+        // The full statement figure, as Ren and the card reads it back. Principal
+        // is only the part the logged payments had not already taken off.
+        amountPaid: paid,
+        principalCleared: Math.max(0, principalRepaid - logged.reduction),
         interestCharged,
         newBorrowing,
         reviewId,
