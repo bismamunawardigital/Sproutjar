@@ -44,7 +44,7 @@ const userProperty: Property = {
   allowed_values_dynamic_variable: "",
 };
 
-const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://sproutjar.vercel.app").replace(/\/$/, "");
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.sproutjar.app").replace(/\/$/, "");
 
 /** Tools Ren should have. Added if no tool with that name exists yet. */
 const wantedTools = [
