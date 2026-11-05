@@ -7,6 +7,20 @@ import { formatMoney } from "@/lib/money";
 export type { StatementReading };
 
 /**
+ * Pasting or dropping the PDF file itself gives its binary guts, not the statement
+ * text. Binary read as text shows up as control characters, the replacement
+ * character and a dense sprinkling of Latin-1 symbols and accented letters, none
+ * of which a Gulf statement in English or Arabic has in any quantity.
+ */
+function looksLikeRawFile(source: string) {
+  if (/^\s*%PDF-/.test(source)) return true;
+  const sample = source.slice(0, 4000);
+  if (sample.length < 40) return false;
+  const odd = sample.match(/[\x00-\x08\x0E-\x1F\x7F-\x9F\u00A4-\u00A9\u00AC-\u00AF\u00B4\u00B8\u00C0-\u00FF\uFFFD]/g)?.length ?? 0;
+  return odd / sample.length > 0.08;
+}
+
+/**
  * The honest version of "connect your bank": live linking through CBUAE open
  * finance needs a licensed provider we do not have yet, so the statement itself
  * is the source. Paste its text or drop the file; every figure it finds is shown
@@ -28,9 +42,16 @@ export function StatementImport({
   const [fileError, setFileError] = useState<string | null>(null);
   const [reading_, setReadingFile] = useState(false);
 
-  function read(source: string) {
-    const result = readStatement(source);
-    setReading(result);
+  function read(source: string, { pasted = true } = {}) {
+    setFileError(null);
+    if (pasted && looksLikeRawFile(source)) {
+      setReading(null);
+      setFileError(
+        "That looks like the PDF file itself rather than the words on it. Use \"or upload the PDF\" below, or open the statement, select the text on the page, copy and paste that.",
+      );
+      return;
+    }
+    setReading(readStatement(source));
   }
 
   async function onFile(file: File | undefined) {
@@ -42,9 +63,9 @@ export function StatementImport({
         const body = new FormData();
         body.append("file", file);
         const response = await fetch("/api/statement/pdf", { method: "POST", body });
-        const data = (await response.json()) as { text?: string; scanned?: boolean; error?: string };
+        const data = (await response.json().catch(() => ({}))) as { text?: string; scanned?: boolean; error?: string };
         if (!response.ok || data.error) {
-          setFileError(data.error ?? "Could not read that PDF.");
+          setFileError(data.error ?? "Could not read that PDF. Paste the statement text instead.");
           return;
         }
         if (data.scanned || !data.text) {
@@ -52,7 +73,9 @@ export function StatementImport({
           return;
         }
         setText(data.text);
-        read(data.text);
+        read(data.text, { pasted: false });
+      } catch {
+        setFileError("The upload did not go through. Check your connection and try again, or paste the statement text.");
       } finally {
         setReadingFile(false);
       }
@@ -152,7 +175,7 @@ export function StatementImport({
                 ))}
               </dl>
               <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
-                Check these against the page. Anything wrong or missing you can fix on the next step.
+                Check these against the page. Anything wrong or missing you can change later on the Plan tab.
               </p>
               <button
                 type="button"

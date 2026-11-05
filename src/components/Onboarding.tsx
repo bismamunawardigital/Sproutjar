@@ -88,7 +88,7 @@ const BELIEF_FROM: Record<string, string> = {
   behind: "I'm behind everyone around me.",
 };
 
-const STEPS = ["you", "q1", "q2", "q3", "q4", "card", "hello", "seed"] as const;
+const STEPS = ["you", "q1", "q2", "q3", "q4", "card", "money", "hello", "seed"] as const;
 type Step = (typeof STEPS)[number];
 
 type Card = { name: string; balance: string; ratePct: string; minimum: string; dueDay: string };
@@ -105,6 +105,8 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
   const [cardMode, setCardMode] = useState<"pick" | "type" | "statement">("pick");
   const [card, setCard] = useState<Card>(EMPTY_CARD);
   const [cardSaved, setCardSaved] = useState<string | null>(null);
+  const [money, setMoney] = useState({ income: "", essentials: "", payday: "" });
+  const [savedBelief, setSavedBelief] = useState<{ id: string; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,6 +126,8 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+    }).catch(() => {
+      throw new Error("Could not reach Sproutjar. Check your connection and try again.");
     });
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
@@ -157,7 +161,10 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     try {
       await post("/api/onboarding", { name: name.trim() || undefined, country, answers });
       const belief = BELIEF_FROM[answers.pattern ?? ""];
-      if (belief) await post("/api/beliefs", { text: belief });
+      if (belief && belief !== savedBelief?.text) {
+        const saved = (await post("/api/beliefs", { text: belief, replaces: savedBelief?.id })) as { id: string };
+        setSavedBelief({ id: saved.id, text: belief });
+      }
       next();
     } catch (caught) {
       setError((caught as Error).message);
@@ -199,6 +206,47 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
       });
       setCardSaved(input.name);
       await saveAnswersAndContinue();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveMoney() {
+    const parseAmount = (value: string) => {
+      const trimmed = value.replace(/[,\s]/g, "").replace(/^(AED|SAR|QAR|KWD|BHD|OMR|USD|GBP|EUR|INR|PKR)/i, "");
+      if (trimmed === "") return 0;
+      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : NaN;
+    };
+    const income = parseAmount(money.income);
+    const essentials = parseAmount(money.essentials);
+    const payday = money.payday === "" ? 0 : Number(money.payday);
+    if (Number.isNaN(income) || Number.isNaN(essentials)) {
+      setError("Just the number, like 12000. No minus signs or letters.");
+      return;
+    }
+    if (payday > 31 || (money.payday !== "" && payday < 1)) {
+      setError("Payday is a day of the month, 1 to 31.");
+      return;
+    }
+    if (income > 0 && essentials > income) {
+      setError("Must-pays are higher than what comes in. Double-check the two numbers.");
+      return;
+    }
+    const fields: Record<string, number> = {};
+    if (income > 0) fields.monthlyIncome = income;
+    if (essentials > 0) fields.monthlyEssentials = essentials;
+    if (payday >= 1) fields.payday = payday;
+    if (Object.keys(fields).length === 0) {
+      next();
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await post("/api/profile", fields, "PATCH");
+      next();
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -386,6 +434,59 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
             Back
           </button>
         ) : null}
+      </div>
+    );
+  }
+
+  if (step === "money") {
+    const clean = (value: string) => {
+      const trimmed = value.replace(/[,\s]/g, "");
+      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : 0;
+    };
+    const room = clean(money.income) - clean(money.essentials);
+    const showRoom = clean(money.income) > 0 && clean(money.essentials) > 0;
+    return (
+      <div className="space-y-4">
+        {progress}
+        <section className="rounded-card border border-rule bg-card p-6">
+          <h1 className="text-[21px] font-bold leading-snug text-ink-900">Roughly, what comes in and what has to go out?</h1>
+          <p className="mt-1.5 text-[13px] text-ink-400">Ballpark is fine. This is how Ren works out what the cards can actually get.</p>
+          <div className="mt-5 space-y-3">
+            <label className="block text-[12px] font-bold text-ink-500">
+              Take-home a month ({currency})
+              <input value={money.income} onChange={(e) => { setError(null); setMoney({ ...money, income: e.target.value }); }} inputMode="decimal" placeholder="12000" autoFocus className={input} />
+            </label>
+            <label className="block text-[12px] font-bold text-ink-500">
+              Rent, bills, food, the must-pays ({currency})
+              <input value={money.essentials} onChange={(e) => { setError(null); setMoney({ ...money, essentials: e.target.value }); }} inputMode="decimal" placeholder="8500" className={input} />
+            </label>
+            <label className="block text-[12px] font-bold text-ink-500">
+              Day of the month salary lands
+              <input value={money.payday} onChange={(e) => setMoney({ ...money, payday: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} inputMode="numeric" placeholder="25" className={input} />
+            </label>
+          </div>
+          {showRoom ? (
+            <p className="mt-4 rounded-sm bg-cream px-4 py-3 text-[14px] leading-relaxed text-ink-700">
+              {room > 0 ? (
+                <>
+                  That leaves about <span className="n font-bold">{Math.round(room).toLocaleString()} {currency}</span> a month to work with. Ren will split it between the jar and the cards with you.
+                </>
+              ) : (
+                <>Nothing left over right now. That is worth knowing, and it is exactly what Ren is for.</>
+              )}
+            </p>
+          ) : null}
+          {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
+          <button onClick={saveMoney} disabled={busy} className={`${primary} mt-5`}>
+            {busy ? "One moment" : "Next"}
+          </button>
+          <button onClick={next} disabled={busy} className="mt-3 w-full text-[13px] font-bold text-ink-300 underline underline-offset-2">
+            Skip, I&apos;ll tell Ren
+          </button>
+        </section>
+        <button onClick={back} className="text-[13px] font-bold text-ink-300 underline underline-offset-2">
+          Back
+        </button>
       </div>
     );
   }

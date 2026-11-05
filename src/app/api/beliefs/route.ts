@@ -6,7 +6,7 @@ import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
-const beliefSchema = z.object({ text: z.string().min(1) });
+const beliefSchema = z.object({ text: z.string().min(1), replaces: z.string().optional() });
 
 export async function POST(request: Request) {
   const caller = await currentCaller();
@@ -19,5 +19,5 @@ export async function POST(request: Request) {
     );
   }
   const id = await convexClient().mutation(api.sproutjar.nameBelief, { caller, ...parsed.data });
-  return NextResponse.json({ id, ...parsed.data }, { status: 201 });
+  return NextResponse.json({ id, text: parsed.data.text }, { status: 201 });
 }

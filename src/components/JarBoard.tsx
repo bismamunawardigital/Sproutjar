@@ -31,12 +31,15 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount, note: "Added from the app" }),
-    });
-    if (!response.ok) {
+    }).catch(() => null);
+    if (!response) {
+      setError("Could not reach Sproutjar. Check your connection and try again.");
+    } else if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { error?: string };
       setError(data.error ?? "That did not save. Try again.");
+    } else {
+      setCustom((prev) => ({ ...prev, [jarId]: "" }));
     }
-    setCustom((prev) => ({ ...prev, [jarId]: "" }));
     setPending(null);
     router.refresh();
   }

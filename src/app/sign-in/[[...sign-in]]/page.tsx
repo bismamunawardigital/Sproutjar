@@ -26,7 +26,10 @@ export default function SignInPage() {
           <SignIn withSignUp fallbackRedirectUrl="/onboarding" />
         </div>
         <p className="mt-6 max-w-xs text-center text-[12px] leading-relaxed text-ink-300">
-          Coaching, not financial advice. Nothing connects to your bank.
+          Coaching, not financial advice. Nothing connects to your bank. By signing in you agree to the{" "}
+          <Link href="/terms" className="underline underline-offset-2">terms</Link> and{" "}
+          <Link href="/privacy" className="underline underline-offset-2">privacy policy</Link>.
+          Stuck? <Link href="/help" className="underline underline-offset-2">Help</Link>.
         </p>
       </main>
     </div>

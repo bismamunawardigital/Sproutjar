@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignOutButton } from "@clerk/nextjs";
 import { DeleteAccount } from "@/components/DeleteAccount";
 
@@ -20,6 +21,11 @@ export function AccountActions({ demo }: { demo: boolean }) {
           <button className="text-left font-bold text-ink-500 underline underline-offset-2">Sign out</button>
         </SignOutButton>
         {demo ? null : <DeleteAccount />}
+        <div className="flex flex-wrap gap-4 border-t border-rule pt-3 text-[13px] font-bold text-ink-400">
+          <Link href="/help" className="underline underline-offset-2 hover:text-ink-700">Help</Link>
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-ink-700">Privacy</Link>
+          <Link href="/terms" className="underline underline-offset-2 hover:text-ink-700">Terms</Link>
+        </div>
       </div>
     </section>
   );
