@@ -171,7 +171,7 @@ export async function buildSnapshot(caller?: Caller) {
         lastReviewed: reviewed
           ? {
               at: new Date(reviewed.loggedAt),
-              paid: reviewed.amountPaid,
+              paid: reviewed.statementPaid ?? reviewed.amountPaid,
               interestCharged: reviewed.interestCharged,
               newBorrowing: reviewed.newBorrowing ?? 0,
             }

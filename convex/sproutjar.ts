@@ -454,10 +454,11 @@ export const recordReview = mutation({
         userId: user._id,
         debtId: debt._id,
         balance,
-        // The full statement figure, as Ren and the card reads it back. Principal
-        // is only the part the logged payments had not already taken off.
-        amountPaid: paid,
+        // History counts each dirham once: only what the logged payments had not
+        // already covered. The full statement figure sits in statementPaid.
+        amountPaid: Math.max(0, paid - logged.paid),
         principalCleared: Math.max(0, principalRepaid - logged.reduction),
+        statementPaid: paid,
         interestCharged,
         newBorrowing,
         reviewId,
