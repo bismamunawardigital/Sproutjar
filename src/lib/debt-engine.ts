@@ -229,10 +229,13 @@ export function isPaymentSource(source: string): boolean {
 
 /**
  * Whether a balance entry is money paid. Before corrections and payments were
- * separated, "Settled" and a downward edit wrote a `self_report` row carrying
- * the cleared amount; those rows still count. A correction written since
- * carries zero and does not.
+ * separated, "Settled" wrote a `self_report` row that took the card to zero
+ * and carried the cleared amount; those rows still count. A hand edit to any
+ * other figure, then or since, is a correction and does not.
  */
-export function isPaymentEntry(entry: { source: string; amountPaid: number }): boolean {
-  return isPaymentSource(entry.source) || (entry.source === "self_report" && entry.amountPaid > 0);
+export function isPaymentEntry(entry: { source: string; amountPaid: number; balance: number }): boolean {
+  return (
+    isPaymentSource(entry.source) ||
+    (entry.source === "self_report" && entry.balance === 0 && entry.amountPaid > 0)
+  );
 }
