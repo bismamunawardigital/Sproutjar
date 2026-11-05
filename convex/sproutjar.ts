@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
-import { buildPayoffPlan, type DebtInput } from "../src/lib/debt-engine";
+import { buildPayoffPlan, isPaymentSource, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
@@ -343,17 +343,19 @@ export const debtByName = query({
     ).filter((debt) => debt.balance > 0);
     if (!needle) return debts.length === 1 ? debts[0] : null;
     const lowered = needle.toLowerCase();
-    // Only an unambiguous match pays; two cards from the same bank make Ren ask.
-    const levels = [
-      debts.filter((debt) => debt.name.toLowerCase() === lowered),
-      debts.filter((debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase())),
-      debts.filter((debt) => debt.issuer.toLowerCase().includes(lowered)),
-    ];
-    for (const matches of levels) {
-      if (matches.length === 1) return matches[0];
-      if (matches.length > 1) return null;
-    }
-    return null;
+    // Only an unambiguous match pays. A card named in full always wins; a bank
+    // name shared by two cards makes Ren ask, even if only one card carries it.
+    const exact = debts.filter((debt) => debt.name.toLowerCase() === lowered);
+    if (exact.length === 1) return exact[0];
+    if (exact.length > 1) return null;
+    const sameBank = debts.filter((debt) => debt.issuer.toLowerCase().includes(lowered));
+    if (sameBank.length > 1) return null;
+    const partial = debts.filter(
+      (debt) => debt.name.toLowerCase().includes(lowered) || lowered.includes(debt.name.toLowerCase()),
+    );
+    if (partial.length === 1) return partial[0];
+    if (partial.length > 1) return null;
+    return sameBank[0] ?? null;
   },
 });
 
@@ -397,7 +399,7 @@ export const recordReview = mutation({
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()) {
-      if (entry.source === "review" || entry.loggedAt <= previous) continue;
+      if (!isPaymentSource(entry.source) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
         paid: sum.paid + entry.amountPaid,
@@ -457,7 +459,9 @@ export const recordReview = mutation({
         // History counts each dirham once: only what the logged payments had not
         // already covered. The full statement figure sits in statementPaid.
         amountPaid: Math.max(0, paid - logged.paid),
-        principalCleared: Math.max(0, principalRepaid - logged.reduction),
+        // Signed on purpose: a logged payment counted as all principal, and the
+        // interest found here takes some of that back so the history sums right.
+        principalCleared: principalRepaid - logged.reduction,
         statementPaid: paid,
         interestCharged,
         newBorrowing,

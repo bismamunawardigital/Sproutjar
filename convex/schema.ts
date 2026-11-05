@@ -80,6 +80,7 @@ export default defineSchema({
     debtId: v.id("debts"),
     balance: v.number(),
     amountPaid: v.number(),
+    /** Can be negative on a review row: interest found at review takes back principal a logged payment had claimed. */
     principalCleared: v.number(),
     interestCharged: v.number(),
     /** Anything new that went on the card since the last reading. */
