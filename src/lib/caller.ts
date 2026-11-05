@@ -24,14 +24,15 @@ export function isDemo(caller: Caller): boolean {
 
 /**
  * Who this request is about. A signed-in person normally sees their own
- * numbers; with the demo cookie set they are looking at Layla's instead.
+ * numbers; with the demo cookie set for their own id they are looking at Layla's
+ * instead. Tying the cookie to the id means it dies with a sign-out.
  * Throws when nobody is signed in: the proxy redirects those before they land here.
  */
 export async function currentCaller(): Promise<Caller> {
   const { userId } = await auth();
   if (!userId) throw new Error("Not signed in.");
   const jar = await cookies();
-  if (jar.get(DEMO_COOKIE)?.value === "demo") return demoCaller();
+  if (jar.get(DEMO_COOKIE)?.value === userId) return demoCaller();
   return { serverKey: serverKey(), userKey: userId };
 }
 
@@ -54,7 +55,11 @@ export function callerFromRenToken(token: string | null | undefined): Caller {
   return { serverKey: serverKey(), userKey: userKey ?? "demo" };
 }
 
-/** Removes the Clerk account after Convex has forgotten the person. */
+/**
+ * Removes the sign-in first, so a failure here leaves the numbers intact and
+ * the person still able to retry. A Convex failure afterwards leaves data no
+ * identity can reach, which is the safer of the two half-states.
+ */
 export async function deleteClerkUser(userId: string) {
   const client = await clerkClient();
   await client.users.deleteUser(userId);

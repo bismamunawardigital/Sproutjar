@@ -180,6 +180,10 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     dueDay: number | null;
     statementDay?: number | null;
   }) {
+    if (cardSaved) {
+      await saveAnswersAndContinue();
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

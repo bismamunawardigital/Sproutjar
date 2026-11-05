@@ -17,7 +17,8 @@ type Caller = { serverKey: string; userKey: string };
 
 function assertServer(caller: { serverKey: string }) {
   const expected = process.env.SPROUTJAR_SERVER_KEY;
-  if (expected && caller.serverKey !== expected) throw new Error("Not from the Sproutjar server.");
+  if (!expected) throw new Error("SPROUTJAR_SERVER_KEY is not set on this Convex deployment.");
+  if (caller.serverKey !== expected) throw new Error("Not from the Sproutjar server.");
 }
 
 function engineInput(debt: Doc<"debts">): DebtInput {
