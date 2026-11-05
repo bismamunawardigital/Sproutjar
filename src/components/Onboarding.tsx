@@ -106,7 +106,7 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
   const [card, setCard] = useState<Card>(EMPTY_CARD);
   const [cardSaved, setCardSaved] = useState<string | null>(null);
   const [money, setMoney] = useState({ income: "", essentials: "", payday: "" });
-  const [beliefSaved, setBeliefSaved] = useState(false);
+  const [savedBelief, setSavedBelief] = useState<{ id: string; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -159,9 +159,9 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     try {
       await post("/api/onboarding", { name: name.trim() || undefined, country, answers });
       const belief = BELIEF_FROM[answers.pattern ?? ""];
-      if (belief && !beliefSaved) {
-        await post("/api/beliefs", { text: belief });
-        setBeliefSaved(true);
+      if (belief && belief !== savedBelief?.text) {
+        const saved = (await post("/api/beliefs", { text: belief, replaces: savedBelief?.id })) as { id: string };
+        setSavedBelief({ id: saved.id, text: belief });
       }
       next();
     } catch (caught) {

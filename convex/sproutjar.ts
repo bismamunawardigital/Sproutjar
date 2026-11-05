@@ -669,9 +669,13 @@ export const discardProposal = mutation({
 });
 
 export const nameBelief = mutation({
-  args: { caller: callerArg, text: v.string() },
-  handler: async (ctx, { caller, text }) => {
+  args: { caller: callerArg, text: v.string(), replaces: v.optional(v.id("beliefs")) },
+  handler: async (ctx, { caller, text, replaces }) => {
     const user = await callerUser(ctx, caller);
+    if (replaces) {
+      const previous = await ctx.db.get(replaces);
+      if (previous && previous.userId === user._id) await ctx.db.delete(replaces);
+    }
     return ctx.db.insert("beliefs", {
       userId: user._id,
       text,
