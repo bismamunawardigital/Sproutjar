@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { callerFromRenToken, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
@@ -8,6 +9,7 @@ import { currentUser } from "@/lib/user";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
+  user: z.string().optional(),
   wish: z.string().min(1),
   outcome: z.string().default(""),
   obstacle: z.string().default(""),
@@ -29,12 +31,15 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
   }
+  const caller = callerFromRenToken(parsed.data.user);
+  if (isDemo(caller)) return NextResponse.json({ error: "This is the demo. Nothing is saved for it." }, { status: 403 });
 
-  const user = await currentUser();
+  const user = await currentUser(caller);
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + parsed.data.days);
 
   const id = await convexClient().mutation(api.sproutjar.addCommitment, {
+    caller,
     wish: parsed.data.wish,
     outcome: parsed.data.outcome,
     obstacle: parsed.data.obstacle,

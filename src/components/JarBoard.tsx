@@ -21,22 +21,28 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
   const [custom, setCustom] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   async function deposit(jarId: string, amount: number) {
     if (!Number.isFinite(amount) || amount <= 0) return;
     setPending(jarId);
-    await fetch(`/api/jars/${jarId}/deposit`, {
+    setError(null);
+    const response = await fetch(`/api/jars/${jarId}/deposit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount, note: "Added from the app" }),
     });
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(data.error ?? "That did not save. Try again.");
+    }
     setCustom((prev) => ({ ...prev, [jarId]: "" }));
     setPending(null);
     router.refresh();
   }
 
   async function removeJar(jarId: string, name: string) {
-    if (!window.confirm(`Remove ${name}? What's in it stays yours — only the jar goes.`))
+    if (!window.confirm(`Remove ${name}? What's in it stays yours, only the jar goes.`))
       return;
     setPending(jarId);
     await fetch(`/api/jars/${jarId}`, { method: "DELETE" });
@@ -51,6 +57,10 @@ export function JarBoard({ jars, currency }: { jars: JarRow[]; currency: string 
         One month of the basics comes first. That&rsquo;s the cushion that means the next surprise
         doesn&rsquo;t go on a card.
       </p>
+
+      {error && (
+        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900">{error}</p>
+      )}
 
       <div className="mt-4 divide-y divide-rule">
         {jars.map((jar) => (

@@ -363,10 +363,10 @@ export default function Home() {
               Case study
             </Link>
             <Link
-              href="/dashboard"
+              href="/demo"
               className="rounded-full border border-ink-800 px-4 py-2 text-[13px] font-bold text-ink-800 transition hover:bg-ink-800 hover:text-cream"
             >
-              Try the live app
+              See the demo
             </Link>
           </div>
         </div>
@@ -388,7 +388,7 @@ export default function Home() {
               you.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <PrimaryCta href="/onboarding" />
+              <PrimaryCta href="/sign-in" />
               <a
                 href="#start"
                 className="inline-flex items-center rounded-full bg-cream-2 px-5 py-3 text-[15px] font-bold text-ink-800 transition hover:bg-cream-2/80"
@@ -434,7 +434,7 @@ export default function Home() {
               You are still the one growing the plant. Ren just makes sure you do not have to grow it alone.
             </p>
             <div className="mt-7">
-              <PrimaryCta href="/onboarding" />
+              <PrimaryCta href="/sign-in" />
               <p className="mt-2 text-[13px] text-ink-400">Find your starting point with Ren.</p>
             </div>
           </div>
@@ -654,12 +654,12 @@ export default function Home() {
             A few questions. Your first coaching agenda. Somewhere meaningful to begin.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <PrimaryCta href="/onboarding" />
+            <PrimaryCta href="/sign-in" />
             <Link
-              href="/dashboard"
+              href="/demo"
               className="inline-flex items-center rounded-full border border-ink-800 px-5 py-3 text-[15px] font-bold text-ink-800 transition hover:bg-ink-800 hover:text-cream"
             >
-              Try the live app
+              See the demo
             </Link>
           </div>
           <p className="mt-10 text-[17px] font-bold text-stem-700">Plant it. Water it. Grow it.</p>
@@ -673,10 +673,10 @@ export default function Home() {
             <Link href="/case-study" className="transition hover:text-ink-900">
               Case study
             </Link>
-            <Link href="/dashboard" className="transition hover:text-ink-900">
+            <Link href="/demo" className="transition hover:text-ink-900">
               Live app
             </Link>
-            <Link href="/onboarding" className="transition hover:text-ink-900">
+            <Link href="/sign-in" className="transition hover:text-ink-900">
               Plant the first seed
             </Link>
           </div>

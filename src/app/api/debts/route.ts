@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { currentCaller, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
@@ -22,11 +23,14 @@ const debtSchema = z.object({
 });
 
 export async function GET() {
-  const snap = await buildSnapshot();
+  const caller = await currentCaller();
+  const snap = await buildSnapshot(caller);
   return NextResponse.json(snap.debts);
 }
 
 export async function POST(request: Request) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const parsed = debtSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid debt", issues: parsed.error.issues }, { status: 400 });
@@ -34,9 +38,10 @@ export async function POST(request: Request) {
 
   // Bank the growth already earned before the new balance enters the maths,
   // so admitting to another card never costs someone stem.
-  const before = await buildSnapshot();
-  await convexClient().mutation(api.sproutjar.recordStemPeak, { stemPct: before.stemPct });
+  const before = await buildSnapshot(caller);
+  await convexClient().mutation(api.sproutjar.recordStemPeak, {
+    caller, stemPct: before.stemPct });
 
-  const id = await convexClient().mutation(api.sproutjar.addDebt, parsed.data);
+  const id = await convexClient().mutation(api.sproutjar.addDebt, { caller, ...parsed.data });
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { currentCaller, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -23,21 +24,25 @@ const reviewSchema = z.object({
 });
 
 export async function GET() {
-  const snap = await buildSnapshot();
+  const caller = await currentCaller();
+  const snap = await buildSnapshot(caller);
   return NextResponse.json({ reviews: snap.reviews, sinceReview: snap.sinceReview });
 }
 
 export async function POST(request: Request) {
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const parsed = reviewSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid review", issues: parsed.error.issues }, { status: 400 });
   }
   const id = await convexClient().mutation(api.sproutjar.recordReview, {
+    caller,
     cadence: parsed.data.cadence,
     reflection: parsed.data.reflection,
     entries: parsed.data.entries.map((e) => ({ ...e, debtId: e.debtId as Id<"debts"> })),
   });
-  const snap = await buildSnapshot();
+  const snap = await buildSnapshot(caller);
   const review = snap.reviews.find((r) => r.id === id) ?? null;
   return NextResponse.json({ id, review, debtFreeOn: snap.plan.debtFreeOn }, { status: 201 });
 }

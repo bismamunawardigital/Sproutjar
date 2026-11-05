@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { callerFromRenToken, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
 import type { Id } from "../../../../../convex/_generated/dataModel";
@@ -11,6 +12,7 @@ import { buildSnapshot } from "@/lib/user";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
+  user: z.string().optional(),
   from_card: z.string().min(1),
   to_bank: z.string().min(1),
   to_card: z.string().default(""),
@@ -39,9 +41,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  const caller = callerFromRenToken(parsed.data.user);
+  if (isDemo(caller)) return NextResponse.json({ error: "This is the demo. Nothing is saved for it." }, { status: 403 });
   const body = parsed.data;
 
-  const snap = await buildSnapshot();
+  const snap = await buildSnapshot(caller);
   const needle = body.from_card.toLowerCase();
   const from =
     snap.debts.find((debt) => debt.name.toLowerCase().includes(needle)) ??
@@ -85,6 +89,7 @@ export async function POST(request: Request) {
       : {};
 
   const id = await convexClient().mutation(api.sproutjar.proposeBalanceMove, {
+    caller,
     fromDebtId: from.id as Id<"debts">,
     toIssuer: body.to_bank,
     toName: body.to_card || `${body.to_bank} transfer`,
