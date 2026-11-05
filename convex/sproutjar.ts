@@ -245,14 +245,14 @@ export const updateDebt = mutation({
     if (fields.estimatedFields !== undefined) patch.isEstimated = fields.estimatedFields !== "";
     await ctx.db.patch(id, patch);
     if (fields.balance !== undefined && fields.balance !== debt.balance) {
-      // A hand correction is not money paid. principalCleared carries the signed
-      // change so the history nets out; the review does not read these rows.
+      // A hand correction is neither money paid nor principal cleared; it only
+      // records that the figure changed. The review maths does not read it.
       await ctx.db.insert("balanceEntries", {
         userId: user._id,
         debtId: id,
         balance: fields.balance,
         amountPaid: 0,
-        principalCleared: debt.balance - fields.balance,
+        principalCleared: 0,
         interestCharged: 0,
         source: "self_report",
         loggedAt: Date.now(),

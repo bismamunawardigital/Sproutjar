@@ -80,7 +80,7 @@ export default defineSchema({
     debtId: v.id("debts"),
     balance: v.number(),
     amountPaid: v.number(),
-    /** Signed. Negative on a self_report row that raised the balance, or on a review row where interest found at review takes back principal a logged payment had claimed. */
+    /** Can be negative on a review row: interest found at review takes back principal a logged payment had claimed. Zero on a self_report correction. */
     principalCleared: v.number(),
     interestCharged: v.number(),
     /** Anything new that went on the card since the last reading. */

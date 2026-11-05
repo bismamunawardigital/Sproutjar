@@ -174,11 +174,18 @@ export function DebtBoard({
   /** "Cleared it" is a payment of what was left, so the review and the history see it as one. */
   async function settleDebt(debt: DebtRow) {
     setAsking(null);
-    await fetch(`/api/debts/${debt.id}/payments`, {
+    const response = await fetch(`/api/debts/${debt.id}/payments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amount: debt.balance }),
-    });
+    }).catch(() => null);
+    if (!response?.ok) {
+      const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
+      setPayError(data.error ?? "That did not save. Check your connection and try again.");
+      setPayAmount(String(debt.balance));
+      setPaying(debt.id);
+      return;
+    }
     router.refresh();
   }
 
