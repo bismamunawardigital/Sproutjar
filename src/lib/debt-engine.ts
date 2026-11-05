@@ -226,3 +226,16 @@ export function monthsOfLifeBack(
 export function isPaymentSource(source: string): boolean {
   return source === "payment" || source === "ren";
 }
+
+/**
+ * Whether a balance entry is money paid. Before corrections and payments were
+ * separated, "Settled" wrote a `self_report` row that took the card to zero
+ * and carried the cleared amount; those rows still count. A hand edit to any
+ * other figure, then or since, is a correction and does not.
+ */
+export function isPaymentEntry(entry: { source: string; amountPaid: number; balance: number }): boolean {
+  return (
+    isPaymentSource(entry.source) ||
+    (entry.source === "self_report" && entry.balance === 0 && entry.amountPaid > 0)
+  );
+}

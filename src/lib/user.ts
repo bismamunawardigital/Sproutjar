@@ -6,7 +6,7 @@ import {
   buildPayoffPlan,
   compareStrategies,
   formatMonthYear,
-  isPaymentSource,
+  isPaymentEntry,
   minimumsOnlyOutlook,
   type DebtInput,
   type Strategy,
@@ -161,7 +161,7 @@ export async function buildSnapshot(caller?: Caller) {
           e.debtId === d._id && e.source !== "review" && e.loggedAt > (lastReview?.completedAt.getTime() ?? 0),
       );
       const paidSinceReview = sinceLastReview
-        .filter((e) => isPaymentSource(e.source))
+        .filter(isPaymentEntry)
         .reduce((sum, e) => sum + e.amountPaid, 0);
       return {
         ...d,
