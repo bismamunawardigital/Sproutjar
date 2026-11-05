@@ -120,7 +120,7 @@ export default async function PlanPage() {
         debtFreeOn={plan.debtFreeOn}
         payday={snap.payday}
         cards={snap.debts
-          .filter((d) => d.balance > 0 || d.paidSinceReview > 0)
+          .filter((d) => d.balance > 0 || d.touchedSinceReview)
           .map((d) => ({ id: d.id, name: d.name, balance: d.balance, minimumPayment: d.minimumPayment }))}
         reviews={snap.reviews.map((r) => ({
           id: r.id,

@@ -7,7 +7,7 @@ import { convexClient } from "@/lib/convex";
 
 export const dynamic = "force-dynamic";
 
-const schema = z.object({ amount: z.coerce.number().positive().max(10_000_000) });
+const schema = z.object({ amount: z.coerce.number().positive() });
 
 type Params = { params: Promise<{ id: string }> };
 

@@ -221,3 +221,8 @@ export function monthsOfLifeBack(
   if (!base.feasible || !boosted.feasible) return 0;
   return base.months - boosted.months;
 }
+
+/** Money actually handed over, as opposed to a balance correction or a review. */
+export function isPaymentSource(source: string): boolean {
+  return source === "payment" || source === "ren";
+}

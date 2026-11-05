@@ -6,6 +6,7 @@ import {
   buildPayoffPlan,
   compareStrategies,
   formatMonthYear,
+  isPaymentSource,
   minimumsOnlyOutlook,
   type DebtInput,
   type Strategy,
@@ -155,19 +156,20 @@ export async function buildSnapshot(caller?: Caller) {
       const reviewed = [...live.balanceEntries]
         .reverse()
         .find((e) => e.debtId === d._id && e.source === "review");
-      const paidSinceReview = live.balanceEntries
-        .filter(
-          (e) =>
-            e.debtId === d._id &&
-            e.source !== "review" &&
-            e.loggedAt > (lastReview?.completedAt.getTime() ?? 0),
-        )
+      const sinceLastReview = live.balanceEntries.filter(
+        (e) =>
+          e.debtId === d._id && e.source !== "review" && e.loggedAt > (lastReview?.completedAt.getTime() ?? 0),
+      );
+      const paidSinceReview = sinceLastReview
+        .filter((e) => isPaymentSource(e.source))
         .reduce((sum, e) => sum + e.amountPaid, 0);
       return {
         ...d,
         id: d._id,
         /** "I paid this" amounts not yet confirmed by a statement review. */
         paidSinceReview,
+        /** Any payment or balance edit since the last review, so a card taken to zero still gets reviewed. */
+        touchedSinceReview: sinceLastReview.length > 0,
         lastReviewed: reviewed
           ? {
               at: new Date(reviewed.loggedAt),
