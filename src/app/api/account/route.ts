@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export async function DELETE() {
   const caller = await currentCaller();
   if (isDemo(caller)) return NextResponse.json({ error: "Switch back to your own account first." }, { status: 403 });
-  await convexClient().mutation(api.sproutjar.deleteAccount, { caller });
   await deleteClerkUser(caller.userKey);
+  await convexClient().mutation(api.sproutjar.deleteAccount, { caller });
   return NextResponse.json({ deleted: true });
 }
