@@ -8,8 +8,10 @@ import { DEMO_COOKIE, GUEST_VIEW } from "@/lib/demo-cookie";
  */
 const isProtected = createRouteMatcher(["/dashboard(.*)", "/onboarding(.*)", "/demo/exit(.*)", "/api/((?!tools/).*)"]);
 const isGuestAccessible = createRouteMatcher(["/dashboard(.*)", "/api/((?!tools/|account|statement|onboarding|agent).*)"]);
+const isAgentSession = createRouteMatcher(["/api/agent/session"]);
 
 export default clerkMiddleware(async (auth, request) => {
+  if (isAgentSession(request)) return;
   if (!isProtected(request)) return;
   const guestDemo = request.cookies.get(DEMO_COOKIE)?.value === GUEST_VIEW;
   if (guestDemo && isGuestAccessible(request)) return;
