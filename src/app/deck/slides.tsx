@@ -259,7 +259,7 @@ export const deckSlides: ReactNode[] = [
     </div>
     <div style={{ paddingTop: "24px" }}>
       <div className="card"><div className="k">Built with</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>Next.js and Convex for the app and live data. ElevenLabs for Ren&rsquo;s voice. Context.dev for live, source-backed bank terms. Vercel. Devin and Claude for the build, a PR per change.</p></div>
-      <div className="card" style={{ marginTop: "16px" }}><div className="k">Contact</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>bismamunawardigital@gmail.com<br />Dubai, United Arab Emirates · sproutjar.app</p></div>
+      <div className="card" style={{ marginTop: "16px" }}><div className="k">Contact</div><p style={{ fontSize: "16px", color: "var(--ink-700)" }}>sproutjarai@gmail.com<br />Dubai, United Arab Emirates · sproutjar.app</p></div>
     </div>
   </div>
   <div className="pageno"></div>
@@ -288,7 +288,7 @@ export const deckSlides: ReactNode[] = [
   <div className="brand"><img src="/deck/icon.svg" alt="" /> sproutjar</div>
   <h1 style={{ maxWidth: "980px" }}>Progress is the principal you cleared, and a plant that never wilts.</h1>
   <p className="lede muted">The plan was never the hard part. Someone noticing you kept it is. Sproutjar is that someone, for the salaried people across the Gulf who have nobody to say the number to.</p>
-  <div className="foot"><a href="https://sproutjar.app/case-study" style={{ color: "inherit", textDecoration: "none" }}>sproutjar.app/case-study</a> · Bisma Munawar · <a href="mailto:bismamunawardigital@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>bismamunawardigital@gmail.com</a></div>
+  <div className="foot"><a href="https://sproutjar.app/case-study" style={{ color: "inherit", textDecoration: "none" }}>sproutjar.app/case-study</a> · Bisma Munawar · <a href="mailto:sproutjarai@gmail.com" style={{ color: "inherit", textDecoration: "none" }}>sproutjarai@gmail.com</a></div>
   <div className="pageno"></div>
 </section>,
 ];
