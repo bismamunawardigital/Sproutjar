@@ -12,6 +12,8 @@ const config: CapacitorConfig = {
   backgroundColor: "#f2ede4",
   server: {
     url: "https://www.sproutjar.app",
+    // Shown instead of the WebView's own error page when the site cannot load.
+    errorPath: "index.html",
     allowNavigation: ["www.sproutjar.app", "sproutjar.app", "*.clerk.accounts.dev", "accounts.google.com", "appleid.apple.com"],
   },
   android: {
