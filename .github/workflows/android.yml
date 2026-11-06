@@ -30,7 +30,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # The hosted Ubuntu image ships the Android SDK; Gradle fetches any
+      # missing platform or build-tools itself.
+      - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
 
       - run: npm ci
 
