@@ -47,7 +47,7 @@ export default function CaseStudy() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
           <Logo />
           <Link
-            href="/dashboard"
+            href="/demo"
             className="rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700"
           >
             Open the product
@@ -983,7 +983,7 @@ export default function CaseStudy() {
             <Logo />
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/dashboard"
+                href="/demo"
                 className="rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700"
               >
                 Open the product

@@ -28,8 +28,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-5 py-2 text-[12px]">
               <span>You are looking at Layla, the demo. Nothing here can be changed.</span>
               {guest ? (
-                <Link href="/sign-in" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
-                  Sign up
+                <Link
+                  href="/sign-in"
+                  className="shrink-0 rounded-full bg-leaf-300 px-3 py-1 text-[11px] font-bold text-ink-900 transition hover:bg-leaf-400"
+                >
+                  Start your own plan
                 </Link>
               ) : (
                 <a href="/demo/exit" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
