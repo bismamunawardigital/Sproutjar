@@ -33,16 +33,11 @@ type Tool = {
   };
 };
 
+// ElevenLabs accepts only one value source per property: description,
+// dynamic_variable, is_system_provided, constant_value or is_omitted.
 const userProperty: Property = {
   type: "string",
-  description: "Who this call is for. Always send it exactly as given.",
   dynamic_variable: "user_token",
-  is_system_provided: false,
-  is_omitted: false,
-  constant_value: "",
-  enum: null,
-  allowed_values: null,
-  allowed_values_dynamic_variable: "",
 };
 
 const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://www.sproutjar.app").replace(/\/$/, "");
@@ -78,8 +73,10 @@ async function main() {
   const created: string[] = [];
 
   for (const wanted of wantedTools) {
-    if (ours.some((t) => t.tool_config.name === wanted.name)) {
+    const existing = ours.find((t) => t.tool_config.name === wanted.name);
+    if (existing) {
       console.log(`${wanted.name}: exists`);
+      created.push(existing.id);
       continue;
     }
     console.log(`${wanted.name}: create, pointing at ${wanted.api_schema.url}`);
@@ -94,7 +91,12 @@ async function main() {
   for (const tool of ours) {
     const schema = tool.tool_config.api_schema!;
     const key = schema.method === "GET" ? "query_params_schema" : "request_body_schema";
-    const current = schema[key] ?? { type: "object", properties: {} as Record<string, Property>, required: [] };
+    // Query params schemas take no `type`; request bodies need `type: "object"`.
+    const current =
+      schema[key] ??
+      (key === "query_params_schema"
+        ? { properties: {} as Record<string, Property>, required: [] }
+        : { type: "object", properties: {} as Record<string, Property>, required: [] });
     const nextSchema = { ...schema };
     let changed = false;
 
@@ -135,9 +137,11 @@ async function main() {
       };
     };
   };
-  if (created.length) {
-    const toolIds = [...(agent.conversation_config.agent.prompt?.tool_ids ?? []), ...created];
-    console.log(`agent: attach ${created.length} new tool(s)`);
+  const attached = agent.conversation_config.agent.prompt?.tool_ids ?? [];
+  const unattached = created.filter((id) => !attached.includes(id));
+  if (unattached.length) {
+    const toolIds = [...attached, ...unattached];
+    console.log(`agent: attach ${unattached.length} new tool(s)`);
     const response = await fetch(`${API}/convai/agents/${agentId}`, {
       method: "PATCH",
       headers,
