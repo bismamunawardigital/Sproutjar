@@ -92,6 +92,25 @@ curl -X PATCH https://api.elevenlabs.io/v1/convai/tools/<tool_id> \
 
 and set `SPROUTJAR_TOOL_API_KEY` on the deployment to the same value the tools send.
 
+## Phone app
+
+The Android app is a Capacitor shell (`capacitor.config.ts`, `android/`) whose WebView loads
+https://www.sproutjar.app, so every change shipped to the site reaches the app with no store
+update. `capacitor/www/index.html` is only the offline fallback. The shell adds the app icon,
+splash screen, the microphone permission Ren needs and the Play signing hook.
+
+- `npm run mobile:assets` regenerates the icon and splash sets from `src/app/icon.svg`.
+- `npm run android:debug` builds an installable debug APK (needs Node 22, JDK 21 and the
+  Android SDK; set `ANDROID_HOME`).
+- `.github/workflows/android.yml` builds the debug APK for pull requests and `dev`, and a
+  signed release bundle (`.aab`) on `main` when `ANDROID_KEYSTORE_BASE64`,
+  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` exist as
+  repository secrets. Downloads are under the run's Artifacts.
+- Bump `versionCode` and `versionName` in `android/app/build.gradle` for every Play upload.
+
+Google refuses OAuth inside a WebView, so Google and Apple sign-in need a native sign-in step
+before launch; email sign-in works as is.
+
 ## Scope and safety
 
 Sproutjar coaches behaviour, mindset and planning. It is not a bank, a licensed financial advisor,
