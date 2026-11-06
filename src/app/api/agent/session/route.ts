@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { currentCaller } from "@/lib/caller";
 import { elevenLabsConfig, fetchConversationToken } from "@/lib/elevenlabs";
@@ -12,6 +13,13 @@ export const dynamic = "force-dynamic";
  * so the call opens already knowing the user's real numbers instead of asking for them.
  */
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { configured: false, signUp: true, message: "Sign up to talk to Ren. It's free." },
+      { status: 401 },
+    );
+  }
   const caller = await currentCaller();
   const { apiKey, agentId, configured } = elevenLabsConfig();
   const snap = await buildSnapshot(caller);

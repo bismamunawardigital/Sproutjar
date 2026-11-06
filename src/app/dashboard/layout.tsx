@@ -3,13 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/BottomNav";
 import { Logo } from "@/components/Logo";
-import { currentCaller, ensureCallerUser, isDemo } from "@/lib/caller";
+import { currentCaller, ensureCallerUser, isDemo, isGuestDemo } from "@/lib/caller";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const caller = await currentCaller();
   const demo = isDemo(caller);
+  const guest = await isGuestDemo();
   const user = await ensureCallerUser(caller);
   if (!demo && !user.onboardedAt) redirect("/onboarding");
 
@@ -26,9 +27,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <div className="bg-ink-800 text-cream">
             <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-5 py-2 text-[12px]">
               <span>You are looking at Layla, the demo. Nothing here can be changed.</span>
-              <a href="/demo/exit" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
-                Back to mine
-              </a>
+              {guest ? (
+                <Link href="/sign-in" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
+                  Sign up
+                </Link>
+              ) : (
+                <a href="/demo/exit" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
+                  Back to mine
+                </a>
+              )}
             </div>
           </div>
         ) : null}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentCaller } from "@/lib/caller";
+import { currentCaller, isDemo } from "@/lib/caller";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,8 @@ async function loadParser() {
  * only the words come back. Scanned PDFs have no text layer and are reported as such.
  */
 export async function POST(request: Request) {
-  await currentCaller();
+  const caller = await currentCaller();
+  if (isDemo(caller)) return NextResponse.json({ error: "The demo is read-only. Switch back to your own numbers to make changes." }, { status: 403 });
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "Attach a PDF as 'file'." }, { status: 400 });

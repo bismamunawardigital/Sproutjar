@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { Agenda } from "@/lib/agendas";
@@ -15,7 +16,8 @@ type SessionConfig =
   | {
       configured: false;
       message: string;
-      dynamicVariables: Record<string, string>;
+      dynamicVariables?: Record<string, string>;
+      signUp?: boolean;
     };
 
 type Line = { role: "ren" | "you"; text: string };
@@ -82,6 +84,7 @@ function RenSessionInner({
     "idle" | "connecting" | "live" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [signUpRequired, setSignUpRequired] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [contract, setContract] = useState<Contract | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -189,6 +192,7 @@ function RenSessionInner({
 
   const start = useCallback(async () => {
     setError(null);
+    setSignUpRequired(false);
     setElapsed(0);
     setEnded(false);
     setStatus("connecting");
@@ -196,6 +200,12 @@ function RenSessionInner({
       if (!typed) await navigator.mediaDevices.getUserMedia({ audio: true });
       const response = await fetch("/api/agent/session", { cache: "no-store" });
       const config = (await response.json()) as SessionConfig;
+      if (!config.configured && config.signUp) {
+        setError(config.message);
+        setSignUpRequired(true);
+        setStatus("error");
+        return;
+      }
       if (!config.configured) {
         setError(config.message);
         setStatus("error");
@@ -553,7 +563,17 @@ function RenSessionInner({
         </button>
       </div>
       {error ? (
-        <p className="px-6 pb-5 text-center text-[13px] text-amber">{error}</p>
+        <p className="px-6 pb-5 text-center text-[13px] text-amber">
+          {error}
+          {signUpRequired ? (
+            <>
+              {" "}
+              <Link href="/sign-in" className="font-bold underline underline-offset-2">
+                Sign up
+              </Link>
+            </>
+          ) : null}
+        </p>
       ) : null}
 
       {lines.length > 0 ? (
@@ -582,12 +602,27 @@ export function RenSession({
   agenda = null,
   minutes = 20,
   onEnded,
+  guest = false,
 }: {
   userName: string;
   agenda?: Agenda | null;
   minutes?: number;
   onEnded?: (saidByYou: string[]) => void;
+  guest?: boolean;
 }) {
+  if (guest) {
+    return (
+      <section className="rounded-card bg-ink-800 px-6 py-9 text-center text-cream shadow-sh-3">
+        <Link
+          href="/sign-in"
+          className="inline-flex rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
+        >
+          Sign up to talk to Ren
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <ConversationProvider>
       <RenSessionInner

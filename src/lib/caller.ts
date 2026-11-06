@@ -4,10 +4,11 @@ import { redirect } from "next/navigation";
 import { api } from "../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
 import { readRenUserToken } from "@/lib/ren-token";
+import { DEMO_COOKIE, GUEST_VIEW } from "@/lib/demo-cookie";
 
 export type Caller = { serverKey: string; userKey: string };
 
-export const DEMO_COOKIE = "sproutjar_view";
+export { DEMO_COOKIE, GUEST_VIEW } from "@/lib/demo-cookie";
 
 function serverKey(): string {
   return process.env.SPROUTJAR_SERVER_KEY ?? "";
@@ -24,16 +25,26 @@ export function isDemo(caller: Caller): boolean {
 
 /**
  * Who this request is about. A signed-in person normally sees their own
- * numbers; with the demo cookie set for their own id they are looking at Layla's
- * instead. Tying the cookie to the id means it dies with a sign-out.
- * Throws when nobody is signed in: the proxy redirects those before they land here.
+ * numbers; the demo cookie switches them to Layla's, or lets a signed-out guest
+ * view the demo. Throws when there is neither a signed-in user nor a guest demo.
  */
 export async function currentCaller(): Promise<Caller> {
   const { userId } = await auth();
-  if (!userId) throw new Error("Not signed in.");
   const jar = await cookies();
-  if (jar.get(DEMO_COOKIE)?.value === userId) return demoCaller();
+  const demoView = jar.get(DEMO_COOKIE)?.value;
+  if (!userId) {
+    if (demoView === GUEST_VIEW) return demoCaller();
+    throw new Error("Not signed in.");
+  }
+  if (demoView === userId) return demoCaller();
   return { serverKey: serverKey(), userKey: userId };
+}
+
+export async function isGuestDemo(): Promise<boolean> {
+  const { userId } = await auth();
+  if (userId) return false;
+  const jar = await cookies();
+  return jar.get(DEMO_COOKIE)?.value === GUEST_VIEW;
 }
 
 /**
