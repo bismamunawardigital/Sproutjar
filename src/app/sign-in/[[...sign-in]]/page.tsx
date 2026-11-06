@@ -20,7 +20,7 @@ export default function SignInPage() {
           Your numbers stay yours.
         </h1>
         <p className="mt-2 max-w-xs text-center text-[14px] leading-relaxed text-ink-400">
-          Sign in so Ren remembers you between calls. No passwords: Google, Apple, or a link to your email.
+          Sign in so Ren remembers you between calls. No passwords: Google, Apple, or a code sent to your email.
         </p>
         <div className="mt-6 w-full">
           <SignIn withSignUp fallbackRedirectUrl="/onboarding" />

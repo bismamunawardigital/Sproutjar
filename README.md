@@ -109,7 +109,7 @@ splash screen, the microphone permission Ren needs and the Play signing hook.
 - Bump `versionCode` and `versionName` in `android/app/build.gradle` for every Play upload.
 
 Google refuses OAuth inside a WebView, so Google and Apple sign-in need a native sign-in step
-before launch; email sign-in works as is.
+before launch; email sign-in (a code typed in the app) works as is.
 
 ## Scope and safety
 
