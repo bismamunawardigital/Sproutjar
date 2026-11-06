@@ -4,7 +4,7 @@ import { RenContract } from "@/components/RenContract";
 import { SessionLog } from "@/components/SessionLog";
 import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
-import { currentCaller, isDemo } from "@/lib/caller";
+import { currentCaller, isDemo, isGuestDemo } from "@/lib/caller";
 import { AccountActions } from "@/components/AccountActions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ function ordinal(day: number): string {
 export default async function YouPage() {
   const caller = await currentCaller();
   const demo = isDemo(caller);
+  const guest = await isGuestDemo();
   const snap = await buildSnapshot(caller);
   const currency = snap.country.currency;
   const weeks = snap.user.weeksActive;
@@ -226,7 +227,7 @@ export default async function YouPage() {
 
       <RenContract contracted compact />
 
-      <AccountActions demo={demo} />
+      <AccountActions demo={demo} guest={guest} />
 
       <p className="px-1 text-[12px] leading-relaxed text-ink-300">
         Sproutjar is coaching, not financial, legal or religious advice. For anything that needs a

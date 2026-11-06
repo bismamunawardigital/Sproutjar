@@ -19,6 +19,7 @@ export function SessionDeck({
   commitment = null,
   nextAgenda = null,
   contracted,
+  guest,
 }: {
   userName: string;
   initialAgenda?: Agenda | null;
@@ -26,6 +27,7 @@ export function SessionDeck({
   commitment?: { wish: string; trigger: string } | null;
   nextAgenda?: { id: string; title: string } | null;
   contracted: boolean;
+  guest: boolean;
 }) {
   const [ended, setEnded] = useState(false);
   const [saidByYou, setSaidByYou] = useState<string[]>([]);
@@ -36,6 +38,7 @@ export function SessionDeck({
       {contracted ? null : <RenContract contracted={false} />}
 
       <RenSession
+        guest={guest}
         userName={userName}
         agenda={initialAgenda}
         minutes={initialAgenda?.minutes ?? 20}

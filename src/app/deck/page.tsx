@@ -38,7 +38,7 @@ export default function DeckPage() {
               <span className="hidden sm:inline">Download PDF</span>
             </a>
             <Link
-              href="/dashboard"
+              href="/demo"
               className="whitespace-nowrap rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700"
             >
               Try the live app
