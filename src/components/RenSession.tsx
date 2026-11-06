@@ -172,9 +172,11 @@ function RenSessionInner({
 
   // Quiet mode: Ren's voice goes silent and its words come up as text instead.
   useEffect(() => {
-    if (!live) return;
-    void conversation.setVolume({ volume: quiet ? 0 : 1 });
-  }, [quiet, live, conversation]);
+    if (!live || typed) return;
+    try {
+      conversation.setVolume({ volume: quiet ? 0 : 1 });
+    } catch {}
+  }, [quiet, live, typed, conversation]);
 
   const toggleQuiet = useCallback(() => {
     setQuiet((value) => {
