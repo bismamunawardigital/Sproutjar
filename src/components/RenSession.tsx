@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { Agenda } from "@/lib/agendas";
+import { RenSample } from "@/components/RenSample";
 
 type SessionConfig =
   | {
@@ -614,12 +615,13 @@ export function RenSession({
 }) {
   if (guest) {
     return (
-      <section className="rounded-card bg-ink-800 px-6 py-9 text-center text-cream shadow-sh-3">
+      <section className="rounded-card bg-ink-800 px-6 py-6 text-center text-cream shadow-sh-3">
+        <RenSample />
         <Link
           href="/sign-in"
-          className="inline-flex rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
+          className="mt-5 inline-flex rounded-full bg-leaf-300 px-8 py-4 text-[17px] font-bold text-ink-900 transition hover:bg-leaf-400"
         >
-          Sign up to talk to Ren
+          Start your own plan with Ren
         </Link>
       </section>
     );
