@@ -18,3 +18,16 @@ export async function fetchConversationToken(agentId: string, apiKey: string): P
   const data = (await response.json()) as { token: string };
   return data.token;
 }
+
+/** Signed WebSocket URL, minted server side so the API key never reaches the browser. */
+export async function fetchSignedUrl(agentId: string, apiKey: string): Promise<string> {
+  const response = await fetch(
+    `${API_BASE}/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`,
+    { headers: { "xi-api-key": apiKey }, cache: "no-store" },
+  );
+  if (!response.ok) {
+    throw new Error(`ElevenLabs returned ${response.status}: ${await response.text()}`);
+  }
+  const data = (await response.json()) as { signed_url: string };
+  return data.signed_url;
+}
