@@ -1,6 +1,7 @@
 import { SessionDeck } from "@/components/SessionDeck";
 import { SessionImpact } from "@/components/SessionImpact";
 import { agendasFor } from "@/lib/session-agendas";
+import { isGuestDemo } from "@/lib/caller";
 import { buildSnapshot } from "@/lib/user";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export default async function RenPage({
 }: {
   searchParams: Promise<{ agenda?: string }>;
 }) {
-  const [snap, params] = await Promise.all([buildSnapshot(), searchParams]);
+  const [snap, params, guest] = await Promise.all([buildSnapshot(), searchParams, isGuestDemo()]);
   const agendas = agendasFor(snap);
   const picked = agendas.find((agenda) => agenda.id === params.agenda) ?? null;
   const suggested = agendas.find((agenda) => agenda.id !== picked?.id) ?? null;
@@ -30,6 +31,7 @@ export default async function RenPage({
   return (
     <>
       <SessionDeck
+        guest={guest}
         userName={snap.user.name}
         initialAgenda={picked}
         agendas={agendas}

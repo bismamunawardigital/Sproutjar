@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 
 type SessionConfig =
   | { configured: true; conversationToken: string; agentId: string; dynamicVariables: Record<string, string> }
-  | { configured: false; message: string; dynamicVariables: Record<string, string> };
+  | { configured: false; message: string; dynamicVariables?: Record<string, string>; signUp?: boolean };
 
 const WAVE_BARS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 const HARD_STOP_SECONDS = 40;
@@ -19,6 +20,7 @@ const HARD_STOP_SECONDS = 40;
 function RenHelloInner({ onDone, answers }: { onDone: () => void; answers: Record<string, string> }) {
   const [status, setStatus] = useState<"idle" | "connecting" | "live" | "ended" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [signUpRequired, setSignUpRequired] = useState(false);
   const [said, setSaid] = useState<string>("");
   const renTurns = useRef(0);
   const closing = useRef(false);
@@ -52,11 +54,18 @@ function RenHelloInner({ onDone, answers }: { onDone: () => void; answers: Recor
 
   const start = useCallback(async () => {
     setError(null);
+    setSignUpRequired(false);
     setStatus("connecting");
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       const response = await fetch("/api/agent/session", { cache: "no-store" });
       const config = (await response.json()) as SessionConfig;
+      if (!config.configured && config.signUp) {
+        setError(config.message);
+        setSignUpRequired(true);
+        setStatus("error");
+        return;
+      }
       if (!config.configured) {
         setError(config.message);
         setStatus("error");
@@ -124,7 +133,19 @@ function RenHelloInner({ onDone, answers }: { onDone: () => void; answers: Recor
 
   return (
     <div className="space-y-4">
-      {error ? <p className="rounded-sm border border-root/30 bg-root/5 px-3 py-2 text-[13px] text-root">{error}</p> : null}
+      {error ? (
+        <p className="rounded-sm border border-root/30 bg-root/5 px-3 py-2 text-[13px] text-root">
+          {error}
+          {signUpRequired ? (
+            <>
+              {" "}
+              <Link href="/sign-in" className="font-bold underline underline-offset-2">
+                Sign up
+              </Link>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       <button onClick={start} className="w-full rounded-full bg-stem-600 px-5 py-3.5 text-[16px] font-bold text-white transition hover:bg-stem-700">
         Say hello to Ren
       </button>
