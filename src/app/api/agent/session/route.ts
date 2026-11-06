@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { currentCaller } from "@/lib/caller";
-import { elevenLabsConfig, fetchConversationToken } from "@/lib/elevenlabs";
+import { elevenLabsConfig, fetchConversationToken, fetchSignedUrl } from "@/lib/elevenlabs";
 import { buildSnapshot } from "@/lib/user";
 import { renUserToken } from "@/lib/ren-token";
 import { formatMoney, speakableAmount } from "@/lib/money";
@@ -9,10 +9,10 @@ import { formatMoney, speakableAmount } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 /**
- * Hands the browser a short-lived WebRTC token plus the dynamic variables Ren needs,
- * so the call opens already knowing the user's real numbers instead of asking for them.
+ * Hands the browser a WebRTC token for voice or a signed WebSocket URL for typed
+ * sessions, plus the dynamic variables Ren needs to know the user's real numbers.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json(
@@ -20,6 +20,7 @@ export async function GET() {
       { status: 401 },
     );
   }
+  const text = new URL(request.url).searchParams.get("mode") === "text";
   const caller = await currentCaller();
   const { apiKey, agentId, configured } = elevenLabsConfig();
   const snap = await buildSnapshot(caller);
@@ -73,6 +74,10 @@ export async function GET() {
   }
 
   try {
+    if (text) {
+      const signedUrl = await fetchSignedUrl(agentId!, apiKey!);
+      return NextResponse.json({ configured: true, signedUrl, agentId, dynamicVariables });
+    }
     const conversationToken = await fetchConversationToken(agentId!, apiKey!);
     return NextResponse.json({ configured: true, conversationToken, agentId, dynamicVariables });
   } catch (error) {

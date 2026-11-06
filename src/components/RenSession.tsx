@@ -10,7 +10,8 @@ import { RenSample } from "@/components/RenSample";
 type SessionConfig =
   | {
       configured: true;
-      conversationToken: string;
+      conversationToken?: string;
+      signedUrl?: string;
       agentId: string;
       dynamicVariables: Record<string, string>;
     }
@@ -201,7 +202,7 @@ function RenSessionInner({
     setStatus("connecting");
     try {
       if (!typed) await navigator.mediaDevices.getUserMedia({ audio: true });
-      const response = await fetch("/api/agent/session", { cache: "no-store" });
+      const response = await fetch(`/api/agent/session${typed ? "?mode=text" : ""}`, { cache: "no-store" });
       const config = (await response.json()) as SessionConfig;
       if (!config.configured && config.signUp) {
         setError(config.message);
@@ -217,22 +218,42 @@ function RenSessionInner({
       setLines([]);
       setGlance(null);
       saidByYou.current = [];
-      conversation.startSession({
-        conversationToken: config.conversationToken,
-        connectionType: "webrtc",
-        textOnly: typed,
-        dynamicVariables: {
-          ...config.dynamicVariables,
-          agenda_title: agenda?.title ?? "Open",
-          agenda_reason:
-            agenda?.reason ??
-            "They haven't picked an agenda. Ask where to start.",
-          agenda_technique: agenda?.technique ?? "Open",
-          planned_minutes: String(minutes),
-          contract_choice: contract ?? "unstated",
-          quiet_mode: quiet || typed ? "true" : "false",
-        },
-      });
+      const dynamicVariables = {
+        ...config.dynamicVariables,
+        agenda_title: agenda?.title ?? "Open",
+        agenda_reason:
+          agenda?.reason ??
+          "They haven't picked an agenda. Ask where to start.",
+        agenda_technique: agenda?.technique ?? "Open",
+        planned_minutes: String(minutes),
+        contract_choice: contract ?? "unstated",
+        quiet_mode: quiet || typed ? "true" : "false",
+      };
+      if (typed) {
+        if (!config.signedUrl) {
+          setError("Could not start the session.");
+          setStatus("error");
+          return;
+        }
+        conversation.startSession({
+          signedUrl: config.signedUrl,
+          connectionType: "websocket",
+          textOnly: true,
+          dynamicVariables,
+        });
+      } else {
+        if (!config.conversationToken) {
+          setError("Could not start the session.");
+          setStatus("error");
+          return;
+        }
+        conversation.startSession({
+          conversationToken: config.conversationToken,
+          connectionType: "webrtc",
+          textOnly: false,
+          dynamicVariables,
+        });
+      }
     } catch (caught) {
       setError(
         caught instanceof Error

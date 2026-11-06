@@ -3,6 +3,7 @@
  * missing (today: log_card_payment, the "I paid this" tool). Each Sproutjar tool gets a
  * `user` field filled from the {{user_token}} dynamic variable the app sends
  * when a call starts; the routes verify it and look up that person's numbers.
+ * Existing Sproutjar tool URLs are also repointed to the current app URL.
  * Without it the tools fall back to the demo profile, so nothing breaks before
  * this runs, and nothing breaks for calls that started before it ran.
  *
@@ -94,17 +95,34 @@ async function main() {
     const schema = tool.tool_config.api_schema!;
     const key = schema.method === "GET" ? "query_params_schema" : "request_body_schema";
     const current = schema[key] ?? { type: "object", properties: {} as Record<string, Property>, required: [] };
+    const nextSchema = { ...schema };
+    let changed = false;
+
+    const currentUrl = new URL(schema.url);
+    if (currentUrl.origin !== new URL(appUrl).origin) {
+      const nextUrl = `${appUrl}${currentUrl.pathname}${currentUrl.search}`;
+      console.log(`${tool.tool_config.name}: repoint ${schema.url} -> ${nextUrl}`);
+      nextSchema.url = nextUrl;
+      changed = true;
+    }
+
     if (current.properties.user) {
       console.log(`${tool.tool_config.name}: already sends user`);
+    } else {
+      nextSchema[key] = { ...current, properties: { ...current.properties, user: userProperty } };
+      console.log(`${tool.tool_config.name}: add user to ${key}`);
+      changed = true;
+    }
+
+    if (!changed) {
+      console.log(`${tool.tool_config.name}: ok`);
       continue;
     }
-    const next = { ...current, properties: { ...current.properties, user: userProperty } };
-    console.log(`${tool.tool_config.name}: add user to ${key}`);
     if (!apply) continue;
     const response = await fetch(`${API}/convai/tools/${tool.id}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ tool_config: { ...tool.tool_config, api_schema: { ...schema, [key]: next } } }),
+      body: JSON.stringify({ tool_config: { ...tool.tool_config, api_schema: nextSchema } }),
     });
     if (!response.ok) throw new Error(`${tool.tool_config.name}: ${response.status} ${await response.text()}`);
   }
