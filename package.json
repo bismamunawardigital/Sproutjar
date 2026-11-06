@@ -10,9 +10,15 @@
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "ren:sync": "tsx --env-file=.env.local scripts/elevenlabs-sync.ts",
-    "convex": "convex dev"
+    "convex": "convex dev",
+    "mobile:assets": "node scripts/mobile-assets.mjs && npx -y @capacitor/assets@4 generate --android --iconBackgroundColor '#22302a' --iconBackgroundColorDark '#22302a' --splashBackgroundColor '#f2ede4' --splashBackgroundColorDark '#22302a'",
+    "android:sync": "cap sync android",
+    "android:debug": "cap sync android && cd android && ./gradlew assembleDebug",
+    "android:release": "cap sync android && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
     "@clerk/nextjs": "^7.9.21",
     "@elevenlabs/react": "^1.13.0",
     "clsx": "^2.1.1",
@@ -25,6 +31,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
