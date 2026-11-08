@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
+import { ModuleKind, ScriptTarget, transpileModule } from "typescript";
+import { z } from "zod";
 import { renderToStaticMarkup } from "react-dom/server";
 import PublicDeletionPage from "../app/delete-public/page";
 import manifest from "../app/manifest";
@@ -41,6 +43,44 @@ import { renAgendasFor } from "./session-agendas";
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
 const completedTalk: RenTalkRecord = { conversationId: "conv_layla", agenda: "A small step", agendaReason: "Looking back", technique: "If-then planning", plannedMinutes: 20, contractChoice: "plan", mode: "voice", startedAt: 1, endedAt: 1000 };
+
+test("Ren's commitment tool rejects unconfirmed steps before resolving a person or writing", async () => {
+  const source = await readFile(new URL("../app/api/tools/log-commitment/route.ts", import.meta.url), "utf8");
+  const compiled = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS, target: ScriptTarget.ES2022 } }).outputText;
+  let reads = 0;
+  const writes: Record<string, unknown>[] = [];
+  const exports: { POST?: (request: Request) => Promise<Response> } = {};
+  const json = (body: unknown, init?: ResponseInit) => new Response(JSON.stringify(body), { ...init, headers: { "Content-Type": "application/json" } });
+  vm.runInNewContext(compiled, { exports, require(name: string) {
+    switch (name) {
+      case "next/server": return { NextResponse: { json } };
+      case "zod": return { z };
+      case "../../../../../convex/_generated/api": return { api: { sproutjar: { addCommitment: "addCommitment" } } };
+      case "@/lib/tool-auth": return { assertToolKey: (request: Request) => request.headers.get("x-api-key") === "fixture-key" ? null : json({ error: "Unauthorized" }, { status: 401 }) };
+      case "@/lib/caller": return { callerFromRenToken: (user: string) => { reads++; return { userKey: user }; }, isDemo: (caller: { userKey: string }) => caller.userKey === "demo" };
+      case "@/lib/user": return { currentUser: async () => { reads++; return { name: "Layla" }; } };
+      case "@/lib/convex": return { convexClient: () => ({ mutation: async (_fn: unknown, args: Record<string, unknown>) => { writes.push(args); return "step"; } }) };
+      default: throw new Error(`Unexpected import: ${name}`);
+    }
+  } });
+  const post = (body: unknown, authorized = true) => exports.POST!(new Request("http://localhost/api/tools/log-commitment", { method: "POST", headers: { "Content-Type": "application/json", ...(authorized ? { "x-api-key": "fixture-key" } : {}) }, body: JSON.stringify(body) }));
+  for (const body of [{ wish: "Open the statement", ownership_confirmed: false }, { wish: "Open the statement" }]) {
+    const response = await post(body);
+    assert.equal(response.status, 422);
+    assert.match((await response.json()).error, /Nothing saved.*confirm.*ownership_confirmed: true/);
+  }
+  assert.equal((await post({})).status, 400);
+  assert.equal((await post({ wish: "Open it", ownership_confirmed: true }, false)).status, 401);
+  assert.equal(reads, 0);
+  assert.equal(writes.length, 0);
+  assert.equal((await post({ wish: "Open it", ownership_confirmed: true, user: "demo" })).status, 403);
+  assert.equal(writes.length, 0);
+  const confirmed = await post({ wish: "Open the statement", ownership_confirmed: true, user: "layla" });
+  assert.equal(confirmed.status, 200);
+  assert.equal((await confirmed.json()).saved, true);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].ownershipConfirmed, true);
+});
 
 test("a completed talk is recorded before its explicitly kept step is linked", async () => {
   const requests: { url: string; body: Record<string, unknown> }[] = [];

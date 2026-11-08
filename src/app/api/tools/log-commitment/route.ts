@@ -31,6 +31,9 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
   }
+  if (!parsed.data.ownership_confirmed) {
+    return NextResponse.json({ error: "Nothing saved. Ask the person to confirm this is their step. Retry with ownership_confirmed: true only if they agree." }, { status: 422 });
+  }
   const caller = callerFromRenToken(parsed.data.user);
   if (isDemo(caller)) return NextResponse.json({ error: "This is the demo. Nothing is saved for it." }, { status: 403 });
 
