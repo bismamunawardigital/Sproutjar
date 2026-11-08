@@ -19,7 +19,7 @@ import type { MutationCtx } from "../../convex/_generated/server";
 import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
 import { buildPayoffPlan } from "./debt-engine";
 import { readStatement } from "./statement";
-import { CHECKIN_ANSWERS, todayHasDate, todayPayments } from "./today";
+import { CHECKIN_ANSWERS, paymentPresets, todayHasDate, todayPayments } from "./today";
 import { plantState } from "./plant";
 import { TodayHero } from "../components/TodayHero";
 import { HomeAgendas } from "../components/HomeAgendas";
@@ -51,6 +51,14 @@ test("other openers omit zero-rounded payday, new borrowing and interest amounts
   assert.deepEqual(positive.map((agenda) => agenda.id), ["payday", "the-bleed"]);
   assert.match(positive[0].reason, /AED 500/);
   assert.match(positive[1].reason, /AED 20/);
+});
+
+test("payment prefill and plan preset retain the displayed payment including forecast interest", () => {
+  assert.deepEqual(paymentPresets({ amount: 103, balance: 100, minimumPayment: 20 }), [
+    { label: "The plan", value: "103" }, { label: "The minimum", value: "20" }, { label: "All of it", value: "100" },
+  ]);
+  assert.equal(paymentPresets({ amount: 50.25, balance: 100, minimumPayment: 20 })[0].value, "50.25");
+  assert.equal(paymentPresets({ amount: 0, balance: 0, minimumPayment: 20 })[0].value, "0");
 });
 
 test("Today payments follow the live strategy, capped minimums and reserve budget", () => {

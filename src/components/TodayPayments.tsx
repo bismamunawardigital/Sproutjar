@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { formatMoneyShort } from "@/lib/money";
+import { paymentPresets } from "@/lib/today";
 
 export type TodayPaymentRow = {
   id: string;
@@ -69,7 +70,7 @@ export function TodayPayments({ rows, currency, readOnly }: { rows: TodayPayment
               </div>
               <div className="shrink-0 text-right">
                 <p className="n text-[16px] font-bold">{money(row.amount)}</p>
-                <button className={`${button} mt-2 ${row.focus ? "border-ink-800 bg-ink-800 text-cream" : ""}`} disabled={busy || readOnly} onClick={() => { setSelected(row.id); setAmount(String(Math.round(Math.min(row.amount, row.balance) * 100) / 100)); setError(null); }}>I paid this</button>
+                <button className={`${button} mt-2 ${row.focus ? "border-ink-800 bg-ink-800 text-cream" : ""}`} disabled={busy || readOnly} onClick={() => { setSelected(row.id); setAmount(paymentPresets(row)[0].value); setError(null); }}>I paid this</button>
               </div>
             </div>
             {selected === row.id ? (
@@ -77,7 +78,7 @@ export function TodayPayments({ rows, currency, readOnly }: { rows: TodayPayment
                 <h4 className="text-[16px] font-bold">How much did you pay to {row.name}?</h4>
                 <p className="text-[13px] leading-relaxed text-ink-400">This only records it. You make the payment with your bank.</p>
                 <label className="block text-[13px] font-bold">Amount ({currency})<input autoFocus inputMode="decimal" type="number" min="0.01" step="any" required value={amount} disabled={busy} onChange={(event) => setAmount(event.target.value)} className="mt-2 min-h-11 w-full rounded-sm border border-rule bg-card px-3 py-2" /></label>
-                <div className="flex flex-wrap gap-2">{[["The plan", Math.min(row.amount, row.balance)], ["The minimum", Math.min(row.minimumPayment, row.balance)], ["All of it", row.balance]].map(([label, value]) => <button className={button} type="button" key={label} disabled={busy} onClick={() => setAmount(String(Math.round(Number(value) * 100) / 100))}>{label}</button>)}</div>
+                <div className="flex flex-wrap gap-2">{paymentPresets(row).map(({ label, value }) => <button className={button} type="button" key={label} disabled={busy} onClick={() => setAmount(value)}>{label}</button>)}</div>
                 {Number(amount) >= row.balance ? <p role="status" className="text-[13px] font-bold">This clears the card.</p> : null}
                 {error ? <p role="alert" className="text-[13px] text-ink-800">{error}</p> : null}
                 <div className="grid grid-cols-2 gap-2"><button className={`${button} border-ink-800 bg-ink-800 text-cream`} disabled={busy}>{busy ? "Saving" : "Log it"}</button><button type="button" className={button} disabled={busy} onClick={() => setSelected(null)}>Cancel</button></div>

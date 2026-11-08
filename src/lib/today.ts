@@ -19,6 +19,14 @@ export function todayHasDate(plan: { feasible: boolean; months: number }) {
   return plan.feasible && plan.months > 0 && plan.months < 600;
 }
 
+export function paymentPresets(row: { amount: number; balance: number; minimumPayment: number }) {
+  return [
+    { label: "The plan", amount: row.amount },
+    { label: "The minimum", amount: Math.min(row.minimumPayment, row.balance) },
+    { label: "All of it", amount: row.balance },
+  ].map((preset) => ({ label: preset.label, value: String(Math.round(preset.amount * 100) / 100) }));
+}
+
 export const CHECKIN_ANSWERS = {
   kept: { button: "Done", heading: "What made this week work", description: "What made this week work, and what got in the way before.", agenda: "months-it-didnt" },
   partial: { button: "Partly", heading: "Next call, with a smaller step", description: "What the part you did tells you, and how to make next week easier.", agenda: "last-plan" },
