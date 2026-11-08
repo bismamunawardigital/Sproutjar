@@ -51,7 +51,7 @@ test("proposal fees retain currency precision without adding decimals to headlin
 
 test("Ren balance history describes rises, falls and unchanged balances without alarm", () => {
   const talk = { id: "talk", agenda: "What changed", mode: "voice", startedAt: new Date("2026-11-02"), summary: "", wish: null, status: null };
-  const render = (total: number) => renderToStaticMarkup(<SessionImpact history={[{ at: new Date("2026-11-01"), total: 1000 }, { at: new Date("2026-11-08"), total }]} talks={[talk]} currency="AED" />);
+  const render = (total: number, currency = "AED") => renderToStaticMarkup(<SessionImpact history={[{ at: new Date("2026-11-01"), total: 1000 }, { at: new Date("2026-11-08"), total }]} talks={[talk]} currency={currency} />);
   assert.match(render(1500), /Recorded balance increased/);
   assert.match(render(1500), />AED 500<\/p>/);
   assert.doesNotMatch(render(1500), /Cleared|text-danger/);
@@ -59,6 +59,8 @@ test("Ren balance history describes rises, falls and unchanged balances without 
   assert.match(render(500), />AED 500<\/p>/);
   assert.match(render(1000), /Recorded balance unchanged/);
   assert.doesNotMatch(render(1000), /Cleared/);
+  for (const total of [1000.3, 999.7]) assert.match(render(total, "KWD"), />KWD 0\.300<\/p>/);
+  for (const total of [1000.25, 999.75]) assert.match(render(total), />AED 0\.25<\/p>/);
   assert.doesNotMatch(renderToStaticMarkup(<SessionImpact history={[]} talks={[talk]} currency="AED" />), /Recorded balance increased/);
 });
 

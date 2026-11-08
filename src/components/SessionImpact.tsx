@@ -1,4 +1,4 @@
-import { formatMoneyShort as formatMoney } from "@/lib/money";
+import { formatMoney as formatExactMoney, formatMoneyShort as formatMoney } from "@/lib/money";
 import type { HistoryPoint } from "@/lib/user";
 
 type Talk = { id: string; agenda: string; mode: string; startedAt: Date; summary: string; wish: string | null; status: string | null };
@@ -29,6 +29,7 @@ function HistoryChart({ history, talks, currency }: { history: HistoryPoint[]; t
   if (history.length < 2) return null;
   const first = history[0], last = history[history.length - 1];
   const change = last.total - first.total;
+  const amount = Math.abs(change) > 0 && Math.abs(change) < 1 ? formatExactMoney(Math.abs(change), currency) : formatMoney(Math.abs(change), currency);
   const heading = change > 0 ? "Recorded balance increased" : change < 0 ? "Cleared while coaching with Ren" : "Recorded balance unchanged";
   const highest = Math.max(...history.map((point) => point.total));
   const lowest = Math.min(...history.map((point) => point.total));
@@ -41,5 +42,5 @@ function HistoryChart({ history, talks, currency }: { history: HistoryPoint[]; t
     const nearest = history.reduce((best, point) => Math.abs(point.at.getTime() - talk.startedAt.getTime()) < Math.abs(best.at.getTime() - talk.startedAt.getTime()) ? point : best);
     return { id: talk.id, cx: x(talk.startedAt), cy: y(nearest.total) };
   });
-  return <section className="rounded-card border border-rule bg-card p-5"><p className="label">{heading}</p><p className={`n mt-2 text-[30px] font-bold ${change < 0 ? "text-stem-700" : "text-ink-900"}`}>{formatMoney(Math.abs(change), currency)}</p><p className="mt-1 text-[13px] text-ink-400">across {talks.length} conversation{talks.length === 1 ? "" : "s"}.</p><svg viewBox={`0 0 ${W} ${H}`} className="mt-4 h-24 w-full" role="img" aria-label={`Recorded balance from ${formatMoney(first.total, currency)} to ${formatMoney(last.total, currency)}. Each dot marks a talk.`}><polyline points={line} fill="none" stroke="var(--color-stem-600)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />{marks.map((mark) => <circle key={mark.id} cx={mark.cx} cy={mark.cy} r="3.5" fill="var(--color-stem-600)" />)}</svg><div className="flex justify-between text-[12px] text-ink-400"><span>{formatMoney(first.total, currency)}</span><span>{formatMoney(last.total, currency)}</span></div></section>;
+  return <section className="rounded-card border border-rule bg-card p-5"><p className="label">{heading}</p><p className={`n mt-2 text-[30px] font-bold ${change < 0 ? "text-stem-700" : "text-ink-900"}`}>{amount}</p><p className="mt-1 text-[13px] text-ink-400">across {talks.length} conversation{talks.length === 1 ? "" : "s"}.</p><svg viewBox={`0 0 ${W} ${H}`} className="mt-4 h-24 w-full" role="img" aria-label={`Recorded balance from ${formatMoney(first.total, currency)} to ${formatMoney(last.total, currency)}. Each dot marks a talk.`}><polyline points={line} fill="none" stroke="var(--color-stem-600)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />{marks.map((mark) => <circle key={mark.id} cx={mark.cx} cy={mark.cy} r="3.5" fill="var(--color-stem-600)" />)}</svg><div className="flex justify-between text-[12px] text-ink-400"><span>{formatMoney(first.total, currency)}</span><span>{formatMoney(last.total, currency)}</span></div></section>;
 }
