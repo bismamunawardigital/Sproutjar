@@ -8,6 +8,7 @@ import { COUNTRIES } from "@/lib/money";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
+  complete: z.boolean().default(false),
   name: z.string().trim().min(1).max(40).optional(),
   country: z.enum(Object.keys(COUNTRIES) as [string, ...string[]]).optional(),
   answers: z.object({

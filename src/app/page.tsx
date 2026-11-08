@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { HeroPlant } from "@/components/HeroPlant";
@@ -6,11 +6,10 @@ import { Logo } from "@/components/Logo";
 import { Plant } from "@/components/Plant";
 import { formatMoney, formatRate } from "@/lib/money";
 
-export const metadata: Metadata = {
-  title: "Sproutjar: grow out of debt habits into savings habits",
-  description:
-    "A positive-psychology financial wellness coach you can call. Sproutjar starts with a realistic payoff plan for credit-card debt in the Gulf, then Ren helps you keep the habit when life gets messy.",
-};
+export const metadata = pageMetadata(
+  "Sproutjar: grow out of debt habits into savings habits",
+  "A positive-psychology financial wellness coach you can call. Sproutjar starts with a realistic payoff plan for credit-card debt in the Gulf, then Ren helps you keep the habit when life gets messy.",
+);
 
 const CURRENCY = "AED";
 
@@ -102,7 +101,7 @@ const FAQ = [
   },
   {
     q: "Which countries is it for?",
-    a: "The Gulf and wider GCC: UAE, Saudi Arabia, Qatar, Kuwait, Bahrain and Oman. Card terms, rate conventions and regulatory caps are checked against where you live.",
+    a: "The Gulf and wider GCC. Card terms, rate conventions and regulatory caps are checked against where you live.",
   },
   {
     q: "Do I have to link my bank?",
@@ -204,8 +203,8 @@ function StarterCard() {
           <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">Ren suggests</p>
           <p className="mt-1 text-[15px] font-bold leading-snug">Find what knocks the month over</p>
           <p className="mt-1 text-[13px] leading-relaxed text-cream/75">
-            Let us walk through your last three months and spot the one thing that keeps throwing the plan off. Then we
-            plan around it, not against it. About ten minutes.
+            Look through your last three months with Ren and spot the one thing that keeps throwing the plan off.
+            Make a plan around it, not against it. About ten minutes.
           </p>
         </div>
       </div>
@@ -289,7 +288,7 @@ function RenCallCard() {
         </div>
         <p className="mt-6 text-[11px] font-extrabold uppercase tracking-[0.14em] text-stem-700">Ren</p>
         <p className="mt-2 max-w-sm text-center text-[18px] font-bold leading-snug text-ink-900 sm:text-[20px]">
-          &ldquo;Last time you wanted to look at moving the ADCB balance somewhere cheaper. Shall we see what that would save you?&rdquo;
+          &ldquo;Last time you wanted to look at moving the ADCB balance somewhere cheaper. Want to see what that would save you?&rdquo;
         </p>
       </div>
       <div className="mt-8 rounded-sm bg-cream p-4">

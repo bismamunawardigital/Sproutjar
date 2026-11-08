@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { DeckViewer } from "./DeckViewer";
@@ -6,9 +7,7 @@ import { deckSlides } from "./slides";
 import "./deck.css";
 
 export const metadata: Metadata = {
-  title: "Sproutjar: pitch deck",
-  description:
-    "The Sproutjar pitch deck: a voice coach for salaried people clearing credit card debt across the GCC, the research behind it, the product live today, and the business model.",
+  ...pageMetadata("Sproutjar: pitch deck", "The Sproutjar pitch deck: a voice coach for salaried people clearing credit card debt across the GCC, the research behind it, the product live today, and the business model."),
   robots: { index: false, follow: false },
 };
 

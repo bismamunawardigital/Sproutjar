@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:launch": "tsx --test src/lib/launch.test.tsx",
+    "web:assets": "node scripts/web-assets.mjs",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "ren:sync": "tsx --env-file=.env.local scripts/elevenlabs-sync.ts",
     "convex": "convex dev",

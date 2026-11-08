@@ -127,7 +127,7 @@ export function JarBoard({
               </p>
               <p className="mt-0.5 text-[13px] text-stem-700">
                 {jar.remaining <= 0
-                  ? "This one is full — nicely done."
+                  ? "This one is full. Nicely done."
                   : jar.monthsToFull !== null
                     ? `Full in ${jar.monthsToFull} month${jar.monthsToFull === 1 ? "" : "s"} if you keep this up.`
                     : `${formatMoney(jar.remaining, currency)} more fills it.`}

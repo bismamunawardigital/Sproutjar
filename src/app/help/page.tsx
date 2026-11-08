@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import { LegalPage } from "@/components/LegalPage";
 import { SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Help · Sproutjar" };
+export const metadata = pageMetadata("Help · Sproutjar");
 
 export default function HelpPage() {
   return (
@@ -48,7 +48,7 @@ export default function HelpPage() {
           title: "Still stuck",
           body: (
             <p>
-              Email <a href={`mailto:${SUPPORT_EMAIL}`} className="font-bold text-stem-700 underline underline-offset-2">{SUPPORT_EMAIL}</a>. Say what you were doing and what you saw. We reply within a couple of days.
+              Email <a href={`mailto:${SUPPORT_EMAIL}`} className="font-bold text-stem-700 underline underline-offset-2">{SUPPORT_EMAIL}</a>. Say what you were doing and what you saw. A person replies within a couple of days.
             </p>
           ),
         },

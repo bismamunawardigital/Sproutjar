@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
 import { Logo } from "@/components/Logo";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata("Sign in · Sproutjar");
 
 export const dynamic = "force-dynamic";
 

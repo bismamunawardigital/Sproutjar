@@ -103,6 +103,7 @@ export const ensureUser = mutation({
 export const completeOnboarding = mutation({
   args: {
     caller: callerArg,
+    complete: v.optional(v.boolean()),
     name: v.optional(v.string()),
     country: v.optional(v.string()),
     answers: v.object({
@@ -112,13 +113,13 @@ export const completeOnboarding = mutation({
       help: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, { caller, name, country, answers }) => {
+  handler: async (ctx, { caller, complete, name, country, answers }) => {
     const user = await callerUser(ctx, caller);
     await ctx.db.patch(user._id, {
       ...(name ? { name } : {}),
       ...(country ? { country } : {}),
       onboarding: answers,
-      onboardedAt: user.onboardedAt ?? Date.now(),
+      ...(complete ? { onboardedAt: user.onboardedAt ?? Date.now() } : {}),
     });
     return ctx.db.get(user._id);
   },

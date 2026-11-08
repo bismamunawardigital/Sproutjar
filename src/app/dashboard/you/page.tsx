@@ -6,6 +6,9 @@ import { formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
 import { currentCaller, isDemo, isGuestDemo } from "@/lib/caller";
 import { AccountActions } from "@/components/AccountActions";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata("You · Sproutjar");
 
 export const dynamic = "force-dynamic";
 

@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
+import Link from "next/link";
 import { LegalPage } from "@/components/LegalPage";
 import { SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Privacy · Sproutjar" };
+export const metadata = pageMetadata("Privacy · Sproutjar");
 
 export default function PrivacyPage() {
   return (
@@ -56,6 +57,7 @@ export default function PrivacyPage() {
           body: (
             <p>
               Open the You tab and tap &quot;Delete my account&quot;. Your cards, jars, sessions and sign-in are removed straight away. ElevenLabs call transcripts are removed within 30 days on request.
+              {" "}<Link href="/delete-public" className="font-bold text-stem-700 underline underline-offset-2">Delete your account without the app, or if you cannot sign in.</Link>
             </p>
           ),
         },
