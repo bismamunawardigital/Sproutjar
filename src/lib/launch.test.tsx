@@ -49,6 +49,19 @@ test("proposal fees retain currency precision without adding decimals to headlin
   assert.doesNotMatch(render(0, "KWD"), /fee up front/);
 });
 
+test("Ren balance history describes rises, falls and unchanged balances without alarm", () => {
+  const talk = { id: "talk", agenda: "What changed", mode: "voice", startedAt: new Date("2026-11-02"), summary: "", wish: null, status: null };
+  const render = (total: number) => renderToStaticMarkup(<SessionImpact history={[{ at: new Date("2026-11-01"), total: 1000 }, { at: new Date("2026-11-08"), total }]} talks={[talk]} currency="AED" />);
+  assert.match(render(1500), /Recorded balance increased/);
+  assert.match(render(1500), />AED 500<\/p>/);
+  assert.doesNotMatch(render(1500), /Cleared|text-danger/);
+  assert.match(render(500), /Cleared while coaching with Ren/);
+  assert.match(render(500), />AED 500<\/p>/);
+  assert.match(render(1000), /Recorded balance unchanged/);
+  assert.doesNotMatch(render(1000), /Cleared/);
+  assert.doesNotMatch(renderToStaticMarkup(<SessionImpact history={[]} talks={[talk]} currency="AED" />), /Recorded balance increased/);
+});
+
 test("Ren's first four calls use set B votes, the last-answer tiebreak and a free choice", () => {
   for (let call = 0; call < 4; call++) {
     for (let option = 0; option < 4; option++) {
