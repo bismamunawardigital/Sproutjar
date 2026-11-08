@@ -10,11 +10,69 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
+import { completeOnboarding } from "../../convex/sproutjar";
+import type { FunctionArgs } from "convex/server";
+import type { api } from "../../convex/_generated/api";
+import type { MutationCtx } from "../../convex/_generated/server";
 
 test("completed onboarding routes to Today and new or incomplete accounts stay in onboarding", () => {
   assert.equal(onboardingRedirect(1700000000000), "/dashboard");
   assert.equal(onboardingRedirect(undefined), null);
   assert.equal(onboardingRedirect(0), null);
+});
+
+test("onboarding answers stay a draft until the hello is finished or skipped", async () => {
+  const runOnboarding = (completeOnboarding as unknown as {
+    _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.completeOnboarding>) => Promise<unknown>;
+  })._handler;
+  const previousKey = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "test-server-key";
+  try {
+    const user: { _id: string; name: string; country: string; onboardedAt?: number; onboarding?: Record<string, string> } = {
+      _id: "test-user", name: "Layla", country: "AE",
+    };
+    let failPatch = false;
+    let missing = false;
+    const ctx = { db: {
+      query: () => ({ withIndex: () => ({ unique: async () => missing ? null : user }) }),
+      patch: async (_id: string, fields: Record<string, unknown>) => {
+        if (failPatch) throw new Error("Could not save");
+        Object.assign(user, fields);
+      },
+      get: async () => user,
+    } } as unknown as MutationCtx;
+    const args = { caller: { serverKey: "test-server-key", userKey: "test-person" }, answers: { why: "want-plan" } };
+
+    await runOnboarding(ctx, args);
+    assert.deepEqual(user.onboarding, args.answers);
+    assert.equal(user.onboardedAt, undefined);
+    assert.equal(onboardingRedirect(user.onboardedAt), null);
+    assert.ok(!user.onboardedAt, "dashboard must still send a draft account to onboarding");
+
+    await runOnboarding(ctx, { ...args, answers: {}, complete: false });
+    assert.deepEqual(user.onboarding, {});
+    assert.equal(user.onboardedAt, undefined);
+
+    failPatch = true;
+    await assert.rejects(runOnboarding(ctx, { ...args, complete: true }), /Could not save/);
+    assert.equal(user.onboardedAt, undefined);
+    failPatch = false;
+
+    await runOnboarding(ctx, { ...args, complete: true });
+    assert.ok(user.onboardedAt);
+    assert.equal(onboardingRedirect(user.onboardedAt), "/dashboard");
+    const completedAt = user.onboardedAt;
+    await runOnboarding(ctx, { ...args, complete: true });
+    await runOnboarding(ctx, { ...args, complete: false });
+    assert.equal(user.onboardedAt, completedAt, "retries and draft saves retain the completion time");
+
+    await assert.rejects(runOnboarding(ctx, { ...args, caller: { ...args.caller, serverKey: "wrong" }, complete: true }), /Not from the Sproutjar server/);
+    missing = true;
+    await assert.rejects(runOnboarding(ctx, { ...args, complete: true }), /No Sproutjar profile/);
+  } finally {
+    if (previousKey === undefined) delete process.env.SPROUTJAR_SERVER_KEY;
+    else process.env.SPROUTJAR_SERVER_KEY = previousKey;
+  }
 });
 
 test("public deletion works without a session or a deletion request backend", () => {

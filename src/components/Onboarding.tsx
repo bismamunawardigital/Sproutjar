@@ -159,7 +159,7 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     setBusy(true);
     setError(null);
     try {
-      await post("/api/onboarding", { name: name.trim() || undefined, country, answers });
+      await post("/api/onboarding", { name: name.trim() || undefined, country, answers, complete: false });
       const belief = BELIEF_FROM[answers.pattern ?? ""];
       if (belief && belief !== savedBelief?.text) {
         const saved = (await post("/api/beliefs", { text: belief, replaces: savedBelief?.id })) as { id: string };
@@ -242,6 +242,19 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
     setError(null);
     try {
       await post("/api/profile", fields, "PATCH");
+      next();
+    } catch (caught) {
+      setError((caught as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function finishOnboarding() {
+    setBusy(true);
+    setError(null);
+    try {
+      await post("/api/onboarding", { name: name.trim() || undefined, country, answers, complete: true });
       next();
     } catch (caught) {
       setError((caught as Error).message);
@@ -499,9 +512,10 @@ export function Onboarding({ initialName, initialCountry }: { initialName: strin
           <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
             Ren already knows what you just said{cardSaved ? ` and that ${cardSaved} is on the table` : ""}. One hello, one question, then your plant.
           </p>
-          <div className="mt-6">
+          {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
+          <div className="mt-6" inert={busy} aria-busy={busy}>
             <RenHello
-              onDone={next}
+              onDone={() => void finishOnboarding()}
               answers={{
                 first_name: firstName,
                 why: labelOf("why"),
