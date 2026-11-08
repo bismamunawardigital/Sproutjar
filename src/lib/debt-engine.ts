@@ -115,6 +115,7 @@ export function buildPayoffPlan(
   const remaining = new Map(ordered.map((d) => [d.id, d.balance]));
   const interestByDebt = new Map(ordered.map((d) => [d.id, 0]));
   const milestones: PayoffMilestone[] = [];
+  const attacked: DebtInput[] = [];
   let totalInterest = 0;
   let totalPaid = 0;
   let month = 0;
@@ -149,6 +150,7 @@ export function buildPayoffPlan(
     for (const debt of focusOrder) {
       const balance = remaining.get(debt.id) ?? 0;
       const pay = Math.min(balance, budget);
+      if (pay > 0 && !attacked.some((card) => card.id === debt.id)) attacked.push(debt);
       remaining.set(debt.id, balance - pay);
       totalPaid += pay;
       budget -= pay;
@@ -177,7 +179,8 @@ export function buildPayoffPlan(
     totalInterest: Math.round(totalInterest),
     totalPaid: Math.round(totalPaid),
     monthlyBleed: Math.round(bleed),
-    order: ordered.map((d) => d.name),
+    order: [...attacked, ...ordered.filter((debt) => !attacked.some((card) => card.id === debt.id))]
+      .map((debt) => debt.name),
     milestones,
     feasible: true,
     shortfall: 0,

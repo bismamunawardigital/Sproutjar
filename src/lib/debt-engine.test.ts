@@ -84,12 +84,13 @@ test("Below-minimum and invalid budgets have no payoff totals", () => {
 
 test("Minimums precede dynamic snowball ordering and spillover", () => {
   const cards = [
-    { ...one[0], id: "a", balance: 100, minimumPayment: 0, monthlyRate: 0 },
-    { ...one[0], id: "b", balance: 200, minimumPayment: 150, monthlyRate: 0 },
+    { ...one[0], id: "a", name: "First card", balance: 100, minimumPayment: 0, monthlyRate: 0 },
+    { ...one[0], id: "b", name: "Second card", balance: 200, minimumPayment: 150, monthlyRate: 0 },
   ];
   const plan = buildPayoffPlan(cards, 200, "snowball", start);
   assert.equal(plan.milestones[0].debtId, "b");
   assert.equal(plan.milestones[0].monthCleared, 1);
+  assert.deepEqual(plan.order, ["Second card", "First card"]);
   assert.equal(plan.months, 2);
   assert.equal(plan.totalPaid, 300);
   assert.equal(cards[0].balance, 100);
