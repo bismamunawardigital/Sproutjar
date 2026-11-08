@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sproutjar · Pitch</title>
+<meta name="description" content="Sproutjar: an AI voice coach that helps people across the Gulf pay off their credit cards, one small habit at a time.">
+<meta property="og:title" content="Sproutjar · Pitch">
+<meta property="og:description" content="An AI voice coach for the card debt you don't talk about.">
+<link rel="icon" href="/deck/icon.svg">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="ported.css">
+<style>
+html,body{height:100%;margin:0;background:#e8e1d4;overflow:hidden}
+body{font-family:var(--font);color:var(--ink-900)}
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+#deck{width:1280px;height:720px;position:relative;transform-origin:center;flex:none}
+.sl{position:absolute;inset:0;background:var(--cream);border-radius:18px;overflow:hidden;padding:64px 84px;box-sizing:border-box;display:flex;flex-direction:column;opacity:0;visibility:hidden;transition:opacity .5s var(--ease-out),visibility .5s}
+.sl.on{opacity:1;visibility:visible}
+.brand{position:absolute;top:34px;left:84px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.03em}
+.pg{position:absolute;bottom:30px;right:84px;font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--ink-400)}
+.foot{position:absolute;bottom:30px;left:84px;font-size:12px;color:var(--ink-400);max-width:900px}
+.eye{font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--stem-700);margin:40px 0 14px}
+h1{font-size:60px;line-height:1.03;font-weight:800;letter-spacing:-.03em;margin:0}
+h2{font-size:42px;line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:0;max-width:1000px}
+h3{font-size:21px;font-weight:800;margin:0 0 6px}
+p{margin:0}
+.lead{font-size:20px;line-height:1.5;color:var(--ink-700);max-width:640px;margin-top:20px}
+.mute{color:var(--ink-500)}
+.row{display:flex;gap:28px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:22px;padding:24px 26px;box-shadow:var(--sh-2)}
+.big{font-size:50px;white-space:nowrap;font-weight:800;letter-spacing:-.03em;color:var(--stem-700);font-variant-numeric:tabular-nums;line-height:1.05}
+.lab{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-500);margin-bottom:8px}
+.phone{width:226px;height:489px;border-radius:34px;border:7px solid var(--deep);background:var(--deep);overflow:hidden;box-shadow:var(--sh-3);flex:none}
+.phone img{width:100%;display:block}
+.pill{display:inline-flex;align-items:center;gap:8px;background:var(--leaf-50);color:var(--stem-700);border-radius:999px;padding:8px 14px;font-weight:700;font-size:15px}
+.ph{background:var(--amber-50);color:var(--amber-900);border-radius:6px;padding:0 6px}
+/* entrance: each .a staggers in when its slide turns on */
+.a{opacity:0;transform:translateY(22px) scale(.985);transition:opacity .7s var(--ease-out),transform .9s var(--ease-spring)}
+.sl.on .a{opacity:1;transform:none}
+.sl.on .a:nth-child(2){transition-delay:.12s}.sl.on .a:nth-child(3){transition-delay:.24s}.sl.on .a:nth-child(4){transition-delay:.36s}.sl.on .a:nth-child(5){transition-delay:.48s}
+.d1{transition-delay:.15s!important}.d2{transition-delay:.35s!important}.d3{transition-delay:.55s!important}.d4{transition-delay:.75s!important}.d5{transition-delay:.95s!important}
+.pop{opacity:0;transform:scale(.6)}
+.sl.on .pop{animation:pop .7s var(--ease-spring) forwards}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+.bar{height:12px;border-radius:99px;background:var(--leaf-100);overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:var(--stem);border-radius:99px;transition:width 1.6s var(--ease-settle) .6s}
+.sl.on .bar i{width:var(--w)}
+.step{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;width:300px}
+.step .n{width:34px;height:34px;border-radius:50%;background:var(--deep);color:var(--cream);display:grid;place-items:center;font-weight:800}
+.ask li{font-size:19px;line-height:1.45;padding:12px 0;border-bottom:1px solid var(--rule);list-style:none;display:flex;gap:14px}
+.ask li b{color:var(--stem-700)}
+.ask{padding:0;margin:0}
+#progress{position:fixed;top:0;left:0;height:4px;background:var(--stem);transition:width .4s var(--ease-out);z-index:9}
+#hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--ink-500);transition:opacity .6s}
+.navb{position:fixed;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:#fdfcf8cc;color:var(--ink-900);font-size:22px;cursor:pointer;z-index:9;opacity:.0;transition:opacity .3s}
+body:hover .navb{opacity:.9}
+#prev{left:14px}#next{right:14px}
+.live-spot .live{position:relative}
+@media print{html,body{overflow:visible;background:var(--cream)}#viewport{position:static;display:block}#deck{transform:none!important;height:auto}.sl{position:relative;opacity:1;visibility:visible;border-radius:0;height:720px;break-after:page}.a,.pop{opacity:1!important;transform:none!important;animation:none!important}.bar i{width:var(--w)!important}#progress,#hint,.navb{display:none}@page{size:1280px 720px;margin:0}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="jg1"><stop stop-color="#e6f0e6"/><stop offset=".22" stop-color="#fdfcf8"/><stop offset=".8" stop-color="#fdfcf8"/><stop offset="1" stop-color="#e6f0e6"/></linearGradient><linearGradient id="jg2"><stop stop-color="#d5e6d7"/><stop offset=".26" stop-color="#fdfcf8"/><stop offset=".72" stop-color="#fdfcf8"/><stop offset="1" stop-color="#cfe2d2"/></linearGradient><linearGradient id="jl" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#dbe9dd"/><stop offset="1" stop-color="#b3cab7"/></linearGradient></defs></svg>
+<div id="progress"></div>
+<button class="navb" id="prev" aria-label="Previous slide">&#8249;</button>
+<button class="navb" id="next" aria-label="Next slide">&#8250;</button>
+<div id="viewport"><div id="deck"></div></div>
+<div id="hint">Use the arrow keys or click. Press F for full screen.</div>
+<script src="engine.js"></script>
+<script src="data.js"></script>
+<script src="core.js"></script>
+<script src="live.js"></script>
+<script>
+(function () {
+  var SJ = window.SJ, E = window.SJEngine, D = window.SJData;
+  var brand = '<div class="brand">' + SJ.logo(26) + 'sproutjar</div>';
+  var phone = function (src, cls) { return '<div class="phone ' + (cls || 'a') + '"><img src="' + src + '" alt=""></div>'; };
+  var cards = D.layla().cards;
+  var plan = E.plan({ cards: cards, monthly: 6500, order: 'rate', start: D.START });
+  var owed = cards.reduce(function (s, c) { return s + c.balance; }, 0);
+  var n = function (v) { return Math.round(v).toLocaleString('en-US'); };
+
+  var S = [];
+  S.push('<section class="sl" data-title="Sproutjar">' + brand +
+    '<div style="display:flex;align-items:center;gap:56px;flex:1">' +
+      '<div style="flex:1"><div class="eye a">TiE Women MENA · Open Pitch Night</div>' +
+      '<h1 class="a">A coach you talk to, for the card debt you don&rsquo;t talk about.</h1>' +
+      '<p class="lead a">Sproutjar helps salaried people across the Gulf pay off their credit cards, one small habit at a time, with Ren, an AI voice coach that already knows their numbers.</p>' +
+      '<p class="a" style="margin-top:28px;font-weight:700">Bisma Munawar, founder · sproutjar.app</p></div>' +
+      '<div class="a d2" style="width:300px">' + SJ.plant(.55, 2, { w: 280, anim: true, sway: true }) + '</div>' +
+    '</div></section>');
+
+  S.push('<section class="sl" data-title="The problem">' + brand + '<div class="eye a">The problem</div>' +
+    '<h2 class="a">Knowing what to do with card debt is easy. Keeping at it, month after month, on your own, is the hard part.</h2>' +
+    '<div class="row" style="margin-top:44px">' +
+      '<div class="card a d1" style="flex:1"><div class="lab">A Gulf credit card costs up to</div><div class="big"><span data-count="44">0</span>% a year</div><p class="mute" style="margin-top:8px">Quoted as 3.69% a month, so it sounds small.</p></div>' +
+      '<div class="card a d2" style="flex:1"><div class="lab">Interest-free days if you pay most, not all</div><div class="big"><span data-count="0">0</span> days</div><p class="mute" style="margin-top:8px">Interest runs from the day you spent it.</p></div>' +
+      '<div class="card a d3" style="flex:1"><div class="lab">People you can say the number to</div><div class="big">Nobody</div><p class="mute" style="margin-top:8px">Debt isn&rsquo;t talked about with family, friends or colleagues.</p></div>' +
+    '</div><div class="foot">Sources: published schedules of charges from Gulf banks, including Emirates NBD (3.25% to 3.69% a month), and 25 first-person accounts from Gulf debt threads.</div></section>');
+
+  S.push('<section class="sl" data-title="The insight">' + brand + '<div class="eye a">What the research said</div>' +
+    '<h2 class="a">What actually works is someone in your corner. Almost nobody can afford one.</h2>' +
+    '<div style="display:flex;gap:40px;align-items:center;margin-top:46px">' +
+      '<div class="card a d1" style="flex:1.3;padding:34px 36px"><div class="big" style="font-size:64px">USD <span data-count="3000">0</span></div><p style="font-size:22px;line-height:1.45;margin-top:12px">One person paid this for six sessions with a human coach, and said the accountability was <b style="color:var(--stem-700)">90% of the value</b>.</p></div>' +
+      '<div class="a d3" style="flex:1"><p style="font-size:20px;line-height:1.55;color:var(--ink-700)">So Sproutjar isn&rsquo;t another calculator. It turns paying off cards into small habits you keep, with a coach who checks in and remembers.</p></div>' +
+    '</div><div class="foot">A single first-person account from the research, and the strongest sign that people pay for accountability.</div></section>');
+
+  S.push('<section class="sl" data-title="Meet Ren">' + brand +
+    '<div style="display:flex;gap:56px;align-items:center;flex:1">' +
+      '<div style="flex:1"><div class="eye a">Meet Ren</div><h2 class="a">An AI voice coach that knows your numbers and remembers your week.</h2>' +
+      '<div class="a d2" style="display:flex;align-items:center;gap:18px;margin-top:30px"><div id="root" style="flex:none;width:84px;height:84px">' + SJ.liveSpot('speak', 84) + '</div>' + '<div><b style="font-size:19px">Ren</b><p class="mute">Always clearly an AI. Never a lecture.</p></div></div>' +
+      '<ul class="ask a d3" style="margin-top:20px"><li><b>01</b>Talk it through, out loud or in writing.</li><li><b>02</b>Every call ends with one thing to try, in your own words.</li><li style="border:0"><b>03</b>The next call opens on how it went.</li></ul></div>' +
+      '<div style="display:flex;gap:22px">' + phone('ren-call-layla.png', 'a d2') + phone('ren-end-layla.png', 'a d4') + '</div>' +
+    '</div></section>');
+
+  var step = function (p, roots, num, t, d, img, dl) { return '<div class="step a ' + dl + '">' + '<div style="height:120px;display:flex;align-items:flex-end">' + SJ.plant(p, roots, { w: 86 }) + '</div><div class="n">' + num + '</div><div><h3>' + t + '</h3><p class="mute" style="font-size:16px">' + d + '</p></div></div>'; };
+  S.push('<section class="sl" data-title="How it works">' + brand + '<div class="eye a">How it works</div>' +
+    '<h2 class="a">Plan, then small habits with Ren, and the sprout grows.</h2>' +
+    '<div style="display:flex;justify-content:space-between;margin-top:40px">' +
+      step(.15, 1, 1, 'Make a plan', 'Add your cards and what comes in. See the date you&rsquo;re debt-free.', '', 'd1') +
+      step(.45, 2, 2, 'Pick one habit', 'Something small, chosen with Ren. Cook at home on Thursday.', '', 'd2') +
+      step(.8, 3, 3, 'Check in', 'Say how it went. Any honest answer grows your sprout, even &ldquo;not this week&rdquo;.', '', 'd3') +
+    '</div><p class="a d4" style="margin-top:34px;text-align:center"><span class="pill">' + SJ.icon('heart', 18) + 'No streaks, no scores. The plant never wilts.</span></p></section>');
+
+  S.push('<section class="sl" data-title="Real numbers">' + brand +
+    '<div style="display:flex;gap:56px;align-items:center;flex:1">' +
+      '<div style="flex:1"><div class="eye a">Real numbers, not guesses</div><h2 class="a">Layla owes AED ' + n(owed) + ' on ' + cards.length + ' cards.</h2>' +
+      '<div class="row a d2" style="margin-top:30px"><div class="card" style="flex:1"><div class="lab">Paying AED 6,500 a month</div><div class="big"><span data-count="' + plan.months + '">0</span> months</div><p class="mute">to debt-free, highest interest first</p></div>' +
+      '<div class="card" style="flex:1"><div class="lab">Interest she&rsquo;ll pay</div><div class="big">AED <span data-count="' + Math.round(plan.totalInterest) + '">0</span></div><p class="mute">in total, worked out month by month</p></div></div>' +
+      '<p class="a d4" style="font-size:18px;line-height:1.5;color:var(--ink-700);margin-top:22px">If a payment can&rsquo;t beat the interest, Sproutjar says so plainly, and Ren helps find the next step.</p></div>' +
+      '<div style="display:flex;gap:22px">' + phone('today-layla.png', 'a d2') + phone('plan-layla.png', 'a d4') + '</div>' +
+    '</div><div class="foot">Layla is an invented sample. Every figure comes from the same payoff engine the app uses.</div></section>');
+
+  S.push('<section class="sl" data-title="Business model">' + brand + '<div class="eye a">Business model</div>' +
+    '<h2 class="a">A membership for the coaching, priced next to what their cards already cost.</h2>' +
+    '<div class="row" style="margin-top:40px">' +
+      '<div class="card a d1" style="flex:1"><div class="lab">Monthly</div><div class="big">$8.99</div><p class="mute">a month</p></div>' +
+      '<div class="card a d2" style="flex:1"><div class="lab">Yearly</div><div class="big">$69.99</div><p class="mute">a year, about 35% less</p></div>' +
+      '<div class="card a d3" style="flex:1"><div class="lab">Included</div><div class="big"><span data-count="45">0</span> min</div><p class="mute">of voice calls with Ren a month. Writing to Ren is free.</p></div>' +
+    '</div><div class="card a d4" style="margin-top:22px;display:flex;gap:28px;align-items:center"><div class="lab" style="margin:0;flex:none">Growth</div><p style="font-size:18px;color:var(--ink-700)">Search on card rates and rights that almost nobody publishes, and financial wellness as an employer or bank benefit, where one partnership brings hundreds of people.</p></div></section>');
+
+  S.push('<section class="sl" data-title="Where it is today">' + brand + '<div class="eye a">Where it is today</div>' +
+    '<h2 class="a">Live, built by one founder with AI agents as the engineering team.</h2>' +
+    '<div style="display:flex;gap:40px;margin-top:36px">' +
+      '<div style="flex:1"><ul class="ask a d1"><li><b>Web</b>Live at sproutjar.app, with a public demo anyone can try.</li><li><b>Android</b>Sproutjar: AI Debt Coach, in Google Play testing.</li><li style="border:0"><b>Engine</b>A payoff plan worked out at each card&rsquo;s own rate.</li></ul></div>' +
+      '<div class="card a d3" style="flex:1"><div class="lab">What I&rsquo;m asking for</div><ul class="ask"><li><b>12</b>testers for the Google Play closed test</li><li><b>1</b>intro to an employer or bank wellness team</li><li style="border:0"><b>1</b>mentor on pricing and regulation in the Gulf</li></ul></div>' +
+    '</div></section>');
+
+  S.push('<section class="sl" data-title="Thank you">' + brand +
+    '<div style="display:flex;align-items:center;gap:56px;flex:1">' +
+      '<div style="width:300px">' + SJ.growth(270) + '</div>' +
+      '<div style="flex:1"><h1 class="a d2" style="font-size:54px">The day your last card is paid, it outgrows the jar.</h1>' +
+      '<p class="lead a d3">Try the demo at <b>sproutjar.app/demo</b></p>' +
+      '<p class="a d4" style="margin-top:22px;font-weight:700">Bisma Munawar · sproutjarai@gmail.com</p></div>' +
+    '</div></section>');
+
+  var deck = document.getElementById('deck');
+  deck.innerHTML = S.join('');
+  var sl = [].slice.call(deck.querySelectorAll('.sl'));
+  sl.forEach(function (s, i) { s.insertAdjacentHTML('beforeend', '<div class="pg">' + String(i + 1).padStart(2, '0') + ' / ' + String(sl.length).padStart(2, '0') + '</div>'); });
+  var cur = -1;
+  function count(s) {
+    s.querySelectorAll('[data-count]').forEach(function (el) {
+      var to = +el.getAttribute('data-count'), t0 = performance.now(), dur = 1300;
+      (function tick(t) { var k = Math.min(1, (t - t0) / dur); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString('en-US'); if (k < 1) requestAnimationFrame(tick); })(t0);
+    });
+  }
+  function show(i) {
+    i = Math.max(0, Math.min(sl.length - 1, i)); if (i === cur) return;
+    if (cur >= 0) sl[cur].classList.remove('on');
+    cur = i; var s = sl[i];
+    var g = s.querySelector('.sj8-stage'); if (g) { g.classList.remove('play'); void g.offsetWidth; }
+    void s.offsetWidth; s.classList.add('on');
+    if (g) setTimeout(function () { g.classList.add('play'); }, 300);
+    count(s);
+    document.getElementById('progress').style.width = ((i + 1) / sl.length * 100) + '%';
+    document.title = s.getAttribute('data-title') + ' · Sproutjar pitch';
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  }
+  function fit() { var k = Math.min(innerWidth / 1280, innerHeight / 720) * .96; deck.style.transform = 'scale(' + k + ')'; }
+  addEventListener('resize', fit); fit();
+  addEventListener('keydown', function (e) {
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].indexOf(e.key) > -1) { e.preventDefault(); show(cur + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].indexOf(e.key) > -1) { e.preventDefault(); show(cur - 1); }
+    else if (e.key === 'Home') show(0); else if (e.key === 'End') show(sl.length - 1);
+    else if (e.key === 'f' || e.key === 'F') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+  });
+  document.getElementById('next').onclick = function (e) { e.stopPropagation(); show(cur + 1); };
+  document.getElementById('prev').onclick = function (e) { e.stopPropagation(); show(cur - 1); };
+  deck.addEventListener('click', function (e) { if (e.target.closest('a,button')) return; show(cur + 1); });
+  var sx = null; addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+  addEventListener('touchend', function (e) { if (sx === null) return; var dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) show(cur + (dx < 0 ? 1 : -1)); sx = null; });
+  setTimeout(function () { document.getElementById('hint').style.opacity = 0; }, 4000);
+  show((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  if (SJ.livePlace) SJ.livePlace();
+})();
+</script>
+</body>
+</html>
