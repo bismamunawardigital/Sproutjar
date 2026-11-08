@@ -18,7 +18,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <div className="min-h-screen bg-cream">
       <header className="sticky top-0 z-20 border-b border-rule bg-cream/95 backdrop-blur">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
-          <Link href="/">
+          <Link href="/" className="flex min-h-11 items-center">
             <Logo />
           </Link>
           <p className="max-w-[55%] truncate text-[13px] font-bold text-ink-400">{user.name}</p>
@@ -30,12 +30,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
               {guest ? (
                 <Link
                   href="/sign-in"
-                  className="shrink-0 rounded-full bg-leaf-300 px-3 py-1 text-[11px] font-bold text-ink-900 transition hover:bg-leaf-400"
+                  className="flex min-h-11 shrink-0 items-center rounded-full bg-leaf-300 px-3 py-2 text-[11px] font-bold text-ink-900 transition hover:bg-leaf-400"
                 >
                   Start your own plan
                 </Link>
               ) : (
-                <a href="/demo/exit" className="shrink-0 font-bold text-leaf-300 underline underline-offset-2">
+                <a href="/demo/exit" className="flex min-h-11 shrink-0 items-center font-bold text-leaf-300 underline underline-offset-2">
                   Back to mine
                 </a>
               )}

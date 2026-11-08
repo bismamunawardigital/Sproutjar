@@ -55,5 +55,6 @@ export async function PATCH(request: Request) {
     reflection: parsed.data.reflection,
   });
   if (!id) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ id, status: parsed.data.status });
+  const snap = await buildSnapshot(caller);
+  return NextResponse.json({ id, status: parsed.data.status, growth: snap.growth });
 }

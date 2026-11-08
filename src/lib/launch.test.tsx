@@ -10,7 +10,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { completeOnboarding, saveOnboardingCard } from "../../convex/sproutjar";
+import { completeOnboarding, saveOnboardingCard, setCommitmentStatus } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs } from "convex/server";
@@ -19,6 +19,164 @@ import type { MutationCtx } from "../../convex/_generated/server";
 import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
 import { buildPayoffPlan } from "./debt-engine";
 import { readStatement } from "./statement";
+import { CHECKIN_ANSWERS, openCommitmentsByDueDate, paymentPresets, todayHasDate, todayPayments } from "./today";
+import { plantState } from "./plant";
+import { TodayHero } from "../components/TodayHero";
+import { HomeAgendas } from "../components/HomeAgendas";
+import { Plant } from "../components/Plant";
+import { PaydayInvitation } from "../components/PaydayInvitation";
+import type { Snapshot } from "./user";
+import { agendasFor, requestedAgenda } from "./session-agendas";
+import { BUILDING_AGENDAS, generatedAgendas, shuffledStarters } from "./agendas";
+
+test("empty Today uses starter openers and zero jar cover is never formatted as 0.0 months", () => {
+  const empty = { horizon: "building", debts: [], runwayMonths: 0 } as unknown as Snapshot;
+  assert.deepEqual(agendasFor(empty), shuffledStarters(7));
+  const building = { ...empty, debts: [{ balance: 0 }] } as Snapshot;
+  for (const cover of [0, 0.01, 0.049, -1, NaN]) {
+    const agenda = agendasFor({ ...building, runwayMonths: cover })[0];
+    assert.equal(agenda.reason, BUILDING_AGENDAS[0].reason);
+    assert.ok(!agenda.reason.includes("0.0 months"));
+  }
+  assert.match(agendasFor({ ...building, runwayMonths: 0.25 })[0].reason, /cover 0.3 months/);
+  assert.equal(agendasFor({ ...building, runwayMonths: 3 })[0].reason, BUILDING_AGENDAS[0].reason);
+});
+
+test("other openers omit zero-rounded payday, new borrowing and interest amounts", () => {
+  const context = { name: "Layla", currency: "AED", monthlyBleed: 0, sessionsHeld: 1 };
+  for (const amount of [0, 0.01, 0.49]) {
+    assert.deepEqual(generatedAgendas({ ...context, monthlyBleed: amount, payday: { amount, source: "chosen", isWindow: true }, lastReview: { completedAt: new Date(), principalRepaid: 0, interestCharged: amount, newBorrowing: amount, reflection: "" } }), []);
+  }
+  const positive = generatedAgendas({ ...context, monthlyBleed: 20, payday: { amount: 500, source: "chosen", isWindow: true } });
+  assert.deepEqual(positive.map((agenda) => agenda.id), ["payday", "the-bleed"]);
+  assert.match(positive[0].reason, /AED 500/);
+  assert.match(positive[1].reason, /AED 20/);
+});
+
+test("payment prefill and plan preset retain the displayed payment including forecast interest", () => {
+  assert.deepEqual(paymentPresets({ amount: 103, balance: 100, minimumPayment: 20 }), [
+    { label: "The plan", value: "103" }, { label: "The minimum", value: "20" }, { label: "All of it", value: "100" },
+  ]);
+  assert.equal(paymentPresets({ amount: 50.25, balance: 100, minimumPayment: 20 })[0].value, "50.25");
+  assert.equal(paymentPresets({ amount: 0, balance: 0, minimumPayment: 20 })[0].value, "0");
+});
+
+test("Today payments follow the live strategy, capped minimums and reserve budget", () => {
+  const cards = [
+    { id: "high", name: "Layla high", issuer: "Example", balance: 1000, monthlyRate: 0.1, minimumPayment: 100 },
+    { id: "small", name: "Layla small", issuer: "Example", balance: 10, monthlyRate: 0, minimumPayment: 50 },
+    { id: "zero", name: "Layla zero", issuer: "Example", balance: 0, monthlyRate: 0, minimumPayment: 100 },
+  ];
+  const rows = todayPayments(cards, 200, "avalanche");
+  assert.deepEqual(rows.map((row) => [row.id, row.amount, row.focus]), [["high", 190, true], ["small", 10, false]]);
+  assert.equal(todayPayments(cards, 0, "avalanche")[0].amount, 140);
+  assert.equal(todayPayments(cards, 200, "snowball")[0].id, "small");
+  assert.deepEqual(todayPayments([], 200, "avalanche"), []);
+  assert.equal(todayHasDate({ feasible: false, months: 0 }), false);
+  assert.equal(todayHasDate({ feasible: true, months: 600 }), false);
+  assert.equal(todayHasDate({ feasible: true, months: 8 }), true);
+});
+
+test("the one active commitment prioritizes overdue work before newer future commitments and before the snapshot limit", () => {
+  const commitments = Array.from({ length: 6 }, (_, index) => ({ id: `future-${index}`, status: "open", dueAt: 1000 + index }));
+  commitments.push({ id: "older-overdue", status: "open", dueAt: 1 });
+  commitments.push({ id: "already-done", status: "kept", dueAt: 0 });
+  const ordered = openCommitmentsByDueDate(commitments);
+  assert.equal(ordered.slice(0, 5)[0].id, "older-overdue");
+  assert.equal(commitments[0].id, "future-0");
+  assert.ok(!ordered.some((commitment) => commitment.status !== "open"));
+  assert.deepEqual(openCommitmentsByDueDate([]), []);
+  assert.equal(openCommitmentsByDueDate([{ status: "open", dueAt: 1 }, { status: "open", dueAt: null }])[0].dueAt, null);
+});
+
+test("every honest check-in grows roots without changing or shrinking the money stem", () => {
+  const input = { openingPrincipal: 1000, currentPrincipal: 800, sessionsHeld: 6, commitmentsKept: 0, weeksActive: 4, stemPeak: 0.6 };
+  const before = plantState(input);
+  for (const status of Object.keys(CHECKIN_ANSWERS)) {
+    assert.ok(CHECKIN_ANSWERS[status as keyof typeof CHECKIN_ANSWERS].agenda);
+    const after = plantState({ ...input, checkins: 1 });
+    assert.equal(after.rootDepth, before.rootDepth + 1);
+    assert.equal(after.stemPct, before.stemPct);
+    assert.equal(after.leafPairs, before.leafPairs);
+  }
+  assert.equal(plantState({ ...input, checkins: 20 }).rootDepth, 27);
+  const crowded = renderToStaticMarkup(<Plant state={plantState({ ...input, checkins: 20 })} />);
+  assert.equal((crowded.match(/class="plant-root"/g) ?? []).length, 27);
+});
+
+test("Today review invitation reflects the actual cadence and known payday", () => {
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={null} cadence="weekly" />), /Weekly review/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={0} cadence="payday" />), /It&#x27;s payday/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={2} cadence="payday" />), /Payday is in 2 days/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={null} cadence="payday" />), /Payday review/);
+});
+
+test("check-in links resolve their actual follow-up topic even with past-session generated agendas", () => {
+  const agendas = agendasFor({ horizon: "clearing", debts: [{ balance: 1000 }], user: { name: "Layla" }, country: { currency: "AED" }, beliefs: [], recentCommitments: [], sessions: [{}], plan: { monthlyBleed: 20 }, history: [], lastReview: null, attack: { amount: 200, source: "chosen" }, payday: { isWindow: false } } as unknown as Snapshot);
+  for (const answer of Object.values(CHECKIN_ANSWERS)) {
+    assert.ok(!agendas.some((agenda) => agenda.id === answer.agenda));
+    const picked = requestedAgenda(agendas, answer.agenda);
+    assert.equal(picked?.title, answer.heading);
+    assert.equal(picked?.reason, answer.description);
+    assert.equal(picked?.minutes, answer.minutes);
+    assert.equal(requestedAgenda([], answer.agenda)?.title, answer.heading);
+  }
+  assert.equal(requestedAgenda(agendas, agendas[0].id), agendas[0]);
+  assert.equal(requestedAgenda(agendas, undefined), null);
+  assert.equal(requestedAgenda(agendas, "unknown-topic"), null);
+  assert.equal(requestedAgenda([], "__proto__"), null);
+});
+
+test("check-ins record every answer once, preserve ownership, and reject invalid or demo writes", async () => onboardingFixture(async ({ caller, user }) => {
+  const records = new Map<string, { userId: string; status: string; checkedInAt?: number }>();
+  const ctx = { db: {
+    query: () => ({ withIndex: () => ({ unique: async () => user }) }),
+    get: async (id: string) => structuredClone(records.get(id)),
+    patch: async (id: string, patch: object) => Object.assign(records.get(id)!, patch),
+  } } as unknown as MutationCtx;
+  const run = (setCommitmentStatus as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.setCommitmentStatus>) => Promise<unknown> })._handler;
+  for (const status of ["kept", "partial", "missed"] as const) {
+    records.set(status, { userId: user._id, status: "open" });
+    const args = { caller, id: status as Id<"commitments">, status, reflection: "" };
+    await run(ctx, args);
+    const saved = records.get(status)!.checkedInAt;
+    assert.ok(saved);
+    await run(ctx, args);
+    await run(ctx, { ...args, status: "open" });
+    await run(ctx, args);
+    assert.equal(records.get(status)!.checkedInAt, saved);
+  }
+  const args = { caller, id: "missing" as Id<"commitments">, status: "kept", reflection: "" };
+  assert.equal(await run(ctx, args), null);
+  records.set("foreign", { userId: "other", status: "open" });
+  assert.equal(await run(ctx, { ...args, id: "foreign" as Id<"commitments"> }), null);
+  assert.equal(records.get("foreign")!.checkedInAt, undefined);
+  await assert.rejects(run(ctx, { ...args, status: "score" }), /Choose a check-in/);
+  await assert.rejects(run(ctx, { ...args, caller: { ...caller, userKey: "demo" } }), /read-only/);
+  await assert.rejects(run(ctx, { ...args, caller: { ...caller, serverKey: "wrong" } }), /Not from/);
+}));
+
+test("Today hero labels forecasts, handles stalled, empty and debt-free states, and keeps the full AI opener", () => {
+  const snap = {
+    country: { currency: "AED" }, growth: plantState({ openingPrincipal: 1000, currentPrincipal: 800, sessionsHeld: 0, commitmentsKept: 0, weeksActive: 0, stemPeak: 0 }),
+    user: {}, horizon: "clearing", openingPrincipal: 1000, cleared: 200, attack: { amount: 200 }, totals: { debt: 800, saved: 0 }, debts: [], jars: [],
+    plan: { feasible: true, months: 5, debtFreeOn: "April 2027", monthlyBleed: 25, shortfall: 0 },
+  } as unknown as Snapshot;
+  const hero = renderToStaticMarkup(<TodayHero snap={snap} />);
+  assert.match(hero, /Estimated/);
+  assert.match(hero, /April/);
+  assert.ok(!hero.includes("AED 800.00"));
+  const stalled = renderToStaticMarkup(<TodayHero snap={{ ...snap, plan: { ...snap.plan, months: 600 } }} />);
+  assert.match(stalled, /Not possible yet/);
+  assert.ok(!stalled.includes("minimums need"));
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, totals: { ...snap.totals, debt: 0 }, openingPrincipal: 0 }} />), /One card to start/);
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, horizon: "building" }} />), /Nothing left to pay/);
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, horizon: "building", jars: [{ id: "jar", name: "A real goal", target: 1000, saved: 250, pct: 25, stage: "sprout" }] as Snapshot["jars"] }} />), /A real goal/);
+  const opener = renderToStaticMarkup(<HomeAgendas agendas={[{ id: "gap", title: "A real topic", reason: "The whole personal sentence stays visible.", minutes: 20, technique: "Looking back" }]} hasHistory />);
+  assert.match(opener, /AI voice coach/);
+  assert.match(opener, /whole personal sentence stays visible/);
+  assert.ok(!opener.includes("line-clamp"));
+});
 
 test("statement import keeps full ungrouped balances and still reads grouped amounts", () => {
   assert.equal(readStatement("Total Amount Due AED 4800. Minimum Amount Due AED 240.").balance, 4800);

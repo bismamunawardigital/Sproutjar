@@ -154,6 +154,7 @@ export default defineSchema({
     ownershipConfirmed: v.boolean(),
     reflection: v.string(),
     dueAt: v.optional(v.number()),
+    checkedInAt: v.optional(v.number()),
     /** open | kept | partial | missed */
     status: v.string(),
     createdAt: v.number(),

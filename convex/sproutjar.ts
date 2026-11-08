@@ -662,9 +662,11 @@ export const setCommitmentStatus = mutation({
   args: { caller: callerArg, id: v.id("commitments"), status: v.string(), reflection: v.string() },
   handler: async (ctx, { caller, id, status, reflection }) => {
     const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+    if (!["open", "kept", "partial", "missed"].includes(status)) throw new Error("Choose a check-in answer.");
     const commitment = await ctx.db.get(id);
     if (!commitment || commitment.userId !== user._id) return null;
-    await ctx.db.patch(id, { status, reflection });
+    await ctx.db.patch(id, { status, reflection, ...(status !== "open" && commitment.checkedInAt === undefined ? { checkedInAt: Date.now() } : {}) });
     return id;
   },
 });
@@ -871,6 +873,7 @@ export const seed = mutation({
       debtAttackSource: v.string(),
       windfallRule: v.string(),
       reviewCadence: v.string(),
+      strategy: v.optional(v.string()),
     }),
     debts: v.array(
       v.object({
@@ -963,7 +966,7 @@ export const seed = mutation({
       email: DEMO_EMAIL,
       country: "AE",
       ...args.profile,
-      strategy: "snowball",
+      strategy: args.profile.strategy ?? "snowball",
       weeksActive: HISTORY_WEEKS,
       upbringing: "Money was something the adults argued about after we went to bed.",
       moneyPurpose: "So my mother never has to ask anyone for anything.",

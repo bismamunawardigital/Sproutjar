@@ -5,18 +5,34 @@ import {
   type Agenda,
 } from "@/lib/agendas";
 import type { Snapshot } from "@/lib/user";
+import { CHECKIN_ANSWERS } from "@/lib/today";
+
+export function requestedAgenda(agendas: Agenda[], id: string | undefined): Agenda | null {
+  const existing = agendas.find((agenda) => agenda.id === id);
+  if (existing) return existing;
+  const followup = Object.values(CHECKIN_ANSWERS).find((answer) => answer.agenda === id);
+  return followup ? {
+    id: followup.agenda,
+    title: followup.heading,
+    reason: followup.description,
+    technique: "Looking back",
+    minutes: followup.minutes,
+  } : null;
+}
 
 /** The same agenda set backs the Home prompt and Ren's own screen. */
 export function agendasFor(snap: Snapshot): Agenda[] {
+  if (snap.debts.length === 0) return shuffledStarters(7);
+
   // Cards gone: the interest agenda has nothing to point at, and the work turns
   // to where the money goes instead.
   if (snap.horizon === "building") {
-    const cover = snap.runwayMonths;
+    const cover = Math.round(snap.runwayMonths * 10) / 10;
     return [
       {
         ...BUILDING_AGENDAS[0],
         reason:
-          cover < 3
+          cover > 0 && cover < 3
             ? `The card payment is free now, and the jars would cover ${cover.toFixed(1)} months. Where that money goes next is the whole question.`
             : BUILDING_AGENDAS[0].reason,
       },

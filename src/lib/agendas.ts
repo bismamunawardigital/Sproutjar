@@ -162,7 +162,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
   const review = context.lastReview ?? null;
   const money = (n: number) => `${context.currency} ${Math.round(n).toLocaleString("en-US")}`;
 
-  if (context.payday?.isWindow) {
+  if (context.payday?.isWindow && Math.round(context.payday.amount) > 0) {
     generated.push({
       id: "payday",
       title: "What goes to the cards this payday",
@@ -174,7 +174,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
     });
   }
 
-  if (review && review.newBorrowing > 0) {
+  if (review && Math.round(review.newBorrowing) > 0) {
     generated.push({
       id: "review-gap",
       title: "What went on the cards last month",
@@ -188,7 +188,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
 
   // The price of the debt is only raised when the numbers say it is the problem:
   // a month where the bank took more than the plan cleared.
-  if (review && review.interestCharged > review.principalRepaid) {
+  if (review && review.interestCharged > review.principalRepaid && Math.round(review.interestCharged) > 0) {
     generated.push({
       id: "the-price",
       title: "Whether the debt could cost less",
@@ -198,7 +198,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
       technique: "Getting clear",
       minutes: 20,
     });
-  } else {
+  } else if (Math.round(context.monthlyBleed) > 0) {
     generated.push({
       id: "the-bleed",
       title: "What the interest is really costing you",

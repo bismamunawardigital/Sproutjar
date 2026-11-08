@@ -23,7 +23,7 @@ const LEAF_SLOTS = [
   { y: 62, tilt: -36, scale: 0.72 },
 ];
 
-// One root per talk. They fan outward, so a month where the stem barely moves
+// Roots fan outward, so a month where the stem barely moves
 // still puts something into the soil.
 const ROOT_PATHS = [
   "M220 310 L220 404",
@@ -50,7 +50,11 @@ export function Plant({ state, className }: { state: PlantState; className?: str
   const pct = Math.max(0, Math.min(1, state.stemPct));
   const stemTop = SOIL_LINE - (SOIL_LINE - LID_LINE) * pct;
   const dashoffset = STEM_LENGTH * (1 - pct);
-  const rootCount = Math.max(1, Math.min(ROOT_PATHS.length, state.rootDepth));
+  const rootCount = Math.max(1, Math.floor(state.rootDepth));
+  const roots = Array.from({ length: rootCount }, (_, index) => {
+    const spread = (index * 137.508) % 160 - 80;
+    return ROOT_PATHS[index] ?? `M220 310 C ${220 + spread / 3} 340 ${220 + spread} 370 ${220 + spread} ${398 + index % 3 * 3}`;
+  });
 
   return (
     <svg
@@ -65,7 +69,7 @@ export function Plant({ state, className }: { state: PlantState; className?: str
         <rect x="86" y="132" width="268" height="300" rx="34" fill="#FDFCF8" stroke="#C8DACB" strokeWidth="3" />
         <path d="M89 308 H351 V398 C351 416 337 430 319 430 H121 C103 430 89 416 89 398 Z" fill="#B98F63" />
 
-        {ROOT_PATHS.slice(0, rootCount).map((d, index) => (
+        {roots.map((d, index) => (
           <path
             key={d}
             className="plant-root"

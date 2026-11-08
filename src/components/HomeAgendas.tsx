@@ -33,8 +33,9 @@ export function HomeAgendas({
                 ? "“Where things stand this week.”"
                 : "“Start anywhere. I have your numbers.”"}
           </p>
+          <p className="mt-2 text-[12px] text-leaf-300">Your AI voice coach</p>
           {opener ? (
-            <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-cream/60">
+            <p className="mt-2 text-[14px] leading-relaxed text-cream/90">
               {opener.reason}
             </p>
           ) : null}
