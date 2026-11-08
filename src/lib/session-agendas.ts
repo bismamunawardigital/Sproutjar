@@ -8,15 +8,17 @@ import type { Snapshot } from "@/lib/user";
 
 /** The same agenda set backs the Home prompt and Ren's own screen. */
 export function agendasFor(snap: Snapshot): Agenda[] {
+  if (snap.debts.length === 0) return shuffledStarters(7);
+
   // Cards gone: the interest agenda has nothing to point at, and the work turns
   // to where the money goes instead.
   if (snap.horizon === "building") {
-    const cover = snap.runwayMonths;
+    const cover = Math.round(snap.runwayMonths * 10) / 10;
     return [
       {
         ...BUILDING_AGENDAS[0],
         reason:
-          cover < 3
+          cover > 0 && cover < 3
             ? `The card payment is free now, and the jars would cover ${cover.toFixed(1)} months. Where that money goes next is the whole question.`
             : BUILDING_AGENDAS[0].reason,
       },

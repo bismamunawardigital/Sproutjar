@@ -26,6 +26,32 @@ import { HomeAgendas } from "../components/HomeAgendas";
 import { Plant } from "../components/Plant";
 import { PaydayInvitation } from "../components/PaydayInvitation";
 import type { Snapshot } from "./user";
+import { agendasFor } from "./session-agendas";
+import { BUILDING_AGENDAS, generatedAgendas, shuffledStarters } from "./agendas";
+
+test("empty Today uses starter openers and zero jar cover is never formatted as 0.0 months", () => {
+  const empty = { horizon: "building", debts: [], runwayMonths: 0 } as unknown as Snapshot;
+  assert.deepEqual(agendasFor(empty), shuffledStarters(7));
+  const building = { ...empty, debts: [{ balance: 0 }] } as Snapshot;
+  for (const cover of [0, 0.01, 0.049, -1, NaN]) {
+    const agenda = agendasFor({ ...building, runwayMonths: cover })[0];
+    assert.equal(agenda.reason, BUILDING_AGENDAS[0].reason);
+    assert.ok(!agenda.reason.includes("0.0 months"));
+  }
+  assert.match(agendasFor({ ...building, runwayMonths: 0.25 })[0].reason, /cover 0.3 months/);
+  assert.equal(agendasFor({ ...building, runwayMonths: 3 })[0].reason, BUILDING_AGENDAS[0].reason);
+});
+
+test("other openers omit zero-rounded payday, new borrowing and interest amounts", () => {
+  const context = { name: "Layla", currency: "AED", monthlyBleed: 0, sessionsHeld: 1 };
+  for (const amount of [0, 0.01, 0.49]) {
+    assert.deepEqual(generatedAgendas({ ...context, monthlyBleed: amount, payday: { amount, source: "chosen", isWindow: true }, lastReview: { completedAt: new Date(), principalRepaid: 0, interestCharged: amount, newBorrowing: amount, reflection: "" } }), []);
+  }
+  const positive = generatedAgendas({ ...context, monthlyBleed: 20, payday: { amount: 500, source: "chosen", isWindow: true } });
+  assert.deepEqual(positive.map((agenda) => agenda.id), ["payday", "the-bleed"]);
+  assert.match(positive[0].reason, /AED 500/);
+  assert.match(positive[1].reason, /AED 20/);
+});
 
 test("Today payments follow the live strategy, capped minimums and reserve budget", () => {
   const cards = [
