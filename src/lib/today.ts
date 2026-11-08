@@ -38,3 +38,8 @@ export type CheckinAnswer = keyof typeof CHECKIN_ANSWERS;
 export function commitmentHeading(status: string) {
   return status === "kept" ? "Done" : status === "partial" ? "Partly done" : "You left this one for another time";
 }
+
+export function openCommitmentsByDueDate<T extends { status: string; dueAt?: number | null }>(commitments: T[]) {
+  return commitments.filter((commitment) => commitment.status === "open")
+    .sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
+}

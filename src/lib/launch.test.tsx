@@ -19,7 +19,7 @@ import type { MutationCtx } from "../../convex/_generated/server";
 import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
 import { buildPayoffPlan } from "./debt-engine";
 import { readStatement } from "./statement";
-import { CHECKIN_ANSWERS, paymentPresets, todayHasDate, todayPayments } from "./today";
+import { CHECKIN_ANSWERS, openCommitmentsByDueDate, paymentPresets, todayHasDate, todayPayments } from "./today";
 import { plantState } from "./plant";
 import { TodayHero } from "../components/TodayHero";
 import { HomeAgendas } from "../components/HomeAgendas";
@@ -75,6 +75,18 @@ test("Today payments follow the live strategy, capped minimums and reserve budge
   assert.equal(todayHasDate({ feasible: false, months: 0 }), false);
   assert.equal(todayHasDate({ feasible: true, months: 600 }), false);
   assert.equal(todayHasDate({ feasible: true, months: 8 }), true);
+});
+
+test("the one active commitment prioritizes overdue work before newer future commitments and before the snapshot limit", () => {
+  const commitments = Array.from({ length: 6 }, (_, index) => ({ id: `future-${index}`, status: "open", dueAt: 1000 + index }));
+  commitments.push({ id: "older-overdue", status: "open", dueAt: 1 });
+  commitments.push({ id: "already-done", status: "kept", dueAt: 0 });
+  const ordered = openCommitmentsByDueDate(commitments);
+  assert.equal(ordered.slice(0, 5)[0].id, "older-overdue");
+  assert.equal(commitments[0].id, "future-0");
+  assert.ok(!ordered.some((commitment) => commitment.status !== "open"));
+  assert.deepEqual(openCommitmentsByDueDate([]), []);
+  assert.equal(openCommitmentsByDueDate([{ status: "open", dueAt: 1 }, { status: "open", dueAt: null }])[0].dueAt, null);
 });
 
 test("every honest check-in grows roots without changing or shrinking the money stem", () => {

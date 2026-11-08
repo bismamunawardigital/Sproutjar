@@ -12,6 +12,7 @@ import {
   type Strategy,
 } from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
+import { openCommitmentsByDueDate } from "@/lib/today";
 import { countryProfile } from "@/lib/money";
 import { plantState, principalCleared } from "@/lib/plant";
 
@@ -87,7 +88,7 @@ export async function buildSnapshot(caller?: Caller) {
   const debtRows = live.debts;
   const jarRows = live.jars;
   const recentCommitments = live.commitments.slice(0, 12);
-  const commitments = live.commitments.filter((c) => c.status === "open").slice(0, 5);
+  const commitments = openCommitmentsByDueDate(live.commitments).slice(0, 5);
 
   const debts: DebtInput[] = debtRows.map((d) => ({
     id: d._id,
