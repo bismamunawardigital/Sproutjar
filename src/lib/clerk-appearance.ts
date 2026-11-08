@@ -15,7 +15,7 @@ export const clerkAppearance: Appearance = {
     colorBorder: "#ded6c8",
     colorDanger: "#b4453a",
     borderRadius: "12px",
-    fontFamily: "var(--font-nunito), ui-sans-serif, system-ui, sans-serif",
+    fontFamily: "var(--font-sans)",
     fontSize: "15px",
   },
   elements: {
@@ -25,6 +25,9 @@ export const clerkAppearance: Appearance = {
     socialButtonsBlockButton: "rounded-full py-3 font-bold border-rule",
     formButtonPrimary: "rounded-full py-3 text-[15px] font-bold shadow-none",
     formFieldInput: "rounded-sm py-3",
+    formFieldInputShowPasswordButton: "min-h-11 min-w-11",
+    formResendCodeLink: "min-h-11 min-w-11 inline-flex items-center",
+    identityPreviewEditButton: "min-h-11 min-w-11",
     footer: "hidden",
   },
 };

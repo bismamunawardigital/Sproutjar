@@ -6,7 +6,7 @@ export function RenOrb({ small = false, level = 0 }: { small?: boolean; level?: 
   return (
     <div aria-hidden className={`relative mx-auto grid shrink-0 place-items-center ${small ? "h-28 w-28" : "h-56 w-56"}`}>
       <span className="absolute inset-2 rounded-full bg-leaf-300/20 blur-2xl" />
-      <svg viewBox="0 0 200 200" className="orb-listening absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] rounded-full shadow-sh-3 transition-transform duration-100" style={{ transform: `scale(${scale})` }}>
+      <svg viewBox="0 0 200 200" className="ren-level orb-listening absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] rounded-full shadow-sh-3 transition-transform duration-100" style={{ transform: `scale(${scale})` }}>
         <defs>
           <radialGradient id={`${id}-light`} cx="70%" cy="25%" r="80%"><stop stopColor="#e0f0cb" /><stop offset=".48" stopColor="#92d3a3" /><stop offset="1" stopColor="#3d7a55" /></radialGradient>
           <radialGradient id={`${id}-shade`}><stop stopColor="#24553d" /><stop offset="1" stopColor="#3d7a55" stopOpacity="0" /></radialGradient>

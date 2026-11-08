@@ -37,6 +37,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
+      data-reveal
       className={className}
       style={{
         opacity: seen ? 1 : 0,
