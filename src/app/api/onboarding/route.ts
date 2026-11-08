@@ -4,6 +4,7 @@ import { currentCaller, isDemo } from "@/lib/caller";
 import { api } from "../../../../convex/_generated/api";
 import { convexClient } from "@/lib/convex";
 import { COUNTRIES } from "@/lib/money";
+import { onboardingAnswersSchema, onboardingProgressSchema } from "@/lib/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,9 @@ const schema = z.object({
   complete: z.boolean().default(false),
   name: z.string().trim().min(1).max(40).optional(),
   country: z.enum(Object.keys(COUNTRIES) as [string, ...string[]]).optional(),
-  answers: z.object({
-    why: z.string().max(40).optional(),
-    pattern: z.string().max(40).optional(),
-    carrying: z.string().max(40).optional(),
-    help: z.string().max(40).optional(),
-  }),
+  answers: onboardingAnswersSchema,
+  progress: onboardingProgressSchema.optional(),
+  saveMoney: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {

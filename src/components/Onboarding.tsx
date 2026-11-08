@@ -1,548 +1,163 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Plant } from "@/components/Plant";
 import { RenHello } from "@/components/RenHello";
 import { StatementImport, type StatementReading } from "@/components/StatementImport";
-import { COUNTRIES } from "@/lib/money";
-
-type Question = {
-  id: "why" | "pattern" | "carrying" | "help";
-  title: string;
-  note: string;
-  options: { value: string; label: string; mirror: string }[];
-};
-
-/**
- * Four questions about your relationship with money, not a form. The numbers
- * come after, and only if you want to give them now.
- */
-const QUESTIONS: Question[] = [
-  {
-    id: "why",
-    title: "What made you open this?",
-    note: "No wrong answer. Pick the closest one.",
-    options: [
-      {
-        value: "balance-stuck",
-        label: "I pay every month and the balance barely moves",
-        mirror: "Most of that payment is interest. You can see exactly how much, on day one.",
-      },
-      {
-        value: "want-savings",
-        label: "I want something set aside, for once",
-        mirror: "A small buffer is what stops the card getting used again. That's a place to start.",
-      },
-      {
-        value: "avoiding",
-        label: "I've been avoiding the numbers",
-        mirror: "Looking once, with someone, is easier than looking alone every night.",
-      },
-      {
-        value: "want-plan",
-        label: "I'm okay, I just want a plan I'd stick to",
-        mirror: "Then the plan gets built with you, in your words, not handed to you.",
-      },
-    ],
-  },
-  {
-    id: "pattern",
-    title: "When money comes up, what usually happens?",
-    note: "The honest one, not the good-sounding one.",
-    options: [
-      { value: "go-quiet", label: "I go quiet and deal with it later", mirror: "" },
-      { value: "plan-drop", label: "I make a plan, then it fades in a week or two", mirror: "" },
-      { value: "handle-repeat", label: "I handle it, then it comes back around", mirror: "" },
-      { value: "behind", label: "I feel behind everyone around me", mirror: "" },
-    ],
-  },
-  {
-    id: "carrying",
-    title: "What would you most want to stop carrying?",
-    note: "",
-    options: [
-      { value: "interest", label: "What the interest costs me", mirror: "" },
-      { value: "not-knowing", label: "Not knowing where I actually stand", mirror: "" },
-      { value: "alone", label: "Doing it on my own", mirror: "" },
-      { value: "after-spending", label: "How I feel after I spend", mirror: "" },
-    ],
-  },
-  {
-    id: "help",
-    title: "What would help most right now?",
-    note: "",
-    options: [
-      { value: "think-aloud", label: "Someone to think out loud with", mirror: "" },
-      { value: "real-number", label: "A number I can trust", mirror: "" },
-      { value: "one-step", label: "One small thing a week", mirror: "" },
-      { value: "space", label: "Space, mostly. No pushing.", mirror: "" },
-    ],
-  },
-];
-
-const BELIEF_FROM: Record<string, string> = {
-  "go-quiet": "When money comes up, I go quiet and deal with it later.",
-  "plan-drop": "I make a plan and it fades after a week or two.",
-  "handle-repeat": "I handle it, and then it comes back around.",
-  behind: "I'm behind everyone around me.",
-};
-
-const STEPS = ["you", "q1", "q2", "q3", "q4", "card", "money", "hello", "seed"] as const;
-type Step = (typeof STEPS)[number];
-
-type Card = { name: string; balance: string; ratePct: string; minimum: string; dueDay: string };
-const EMPTY_CARD: Card = { name: "", balance: "", ratePct: "", minimum: "", dueDay: "" };
+import { COUNTRIES, formatMoney } from "@/lib/money";
+import { INITIAL_ONBOARDING, MONEY_HELPS, MONEY_REASONS, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingVoiceContext, type OnboardingAnswers, type OnboardingCard, type OnboardingProgress, type OnboardingStep } from "@/lib/onboarding";
 
 const SEED = { stemPct: 0.02, leafPairs: 0, rootDepth: 0.05, sparks: false, cleared: false };
+const primary = "w-full rounded-full bg-ink-800 px-5 py-3.5 text-[16px] font-bold text-cream hover:bg-ink-700 disabled:opacity-60";
+const option = "w-full rounded-card border border-rule bg-cream px-4 py-3.5 text-left text-[15px] leading-snug text-ink-800 hover:border-stem aria-pressed:border-stem aria-pressed:bg-leaf-100";
+const link = "w-full py-2 text-[13px] font-bold text-ink-400 underline underline-offset-2";
+const input = "mt-1 w-full rounded-sm border border-rule bg-card px-3 py-3 text-[16px] text-ink-900 outline-none placeholder:text-ink-300 focus:border-stem";
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return <label className="block text-[12px] font-bold text-ink-500">{label}{children}{hint ? <span className="mt-1 block text-[12px] font-normal text-ink-400">{hint}</span> : null}</label>;
+}
+function number(value: string) {
+  const clean = value.replace(/[,\s]/g, "");
+  return clean === "" ? 0 : /^\d+(\.\d+)?$/.test(clean) ? Number(clean) : NaN;
+}
+function cardForm(card?: OnboardingCard) {
+  return card ? { name: card.name, balance: String(card.balance), rate: card.estimatedFields?.includes("rate") ? "" : String(Number((card.monthlyRate * 100).toFixed(6))), minimum: card.estimatedFields?.includes("minimum") ? "" : String(card.minimumPayment) } : { name: "", balance: "", rate: "", minimum: "" };
+}
 
-export function Onboarding({ initialName, initialCountry }: { initialName: string; initialCountry: string }) {
+export function Onboarding({ initialName, initialCountry, initialAnswers = {}, initialProgress = INITIAL_ONBOARDING, initialCards = [] }: { initialName: string; initialCountry: string; initialAnswers?: OnboardingAnswers; initialProgress?: OnboardingProgress; initialCards?: OnboardingCard[] }) {
   const router = useRouter();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [progress, setProgress] = useState(initialProgress);
+  const [answers, setAnswers] = useState(initialAnswers);
   const [name, setName] = useState(initialName);
   const [country, setCountry] = useState(initialCountry in COUNTRIES ? initialCountry : "AE");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [cardMode, setCardMode] = useState<"pick" | "type" | "statement">("pick");
-  const [card, setCard] = useState<Card>(EMPTY_CARD);
-  const [cardSaved, setCardSaved] = useState<string | null>(null);
-  const [money, setMoney] = useState({ income: "", essentials: "", payday: "" });
-  const [savedBelief, setSavedBelief] = useState<{ id: string; text: string } | null>(null);
+  const [cards, setCards] = useState(initialCards);
+  const [card, setCard] = useState(() => cardForm(initialCards[initialProgress.cardSlot]));
+  const [money, setMoney] = useState(() => Object.fromEntries(Object.entries(initialProgress.money).map(([key, value]) => [key, value ? String(value) : ""])) as Record<keyof OnboardingProgress["money"], string>);
   const [busy, setBusy] = useState(false);
+  const pending = useRef(false);
   const [error, setError] = useState<string | null>(null);
-
-  const step: Step = STEPS[stepIndex];
+  const step = progress.step;
   const currency = COUNTRIES[country as keyof typeof COUNTRIES]?.currency ?? "AED";
-  const firstName = name.trim().split(" ")[0] || "there";
+  const m = (amount: number) => formatMoney(amount, currency);
+  const values = { income: number(money.income), bills: number(money.bills), family: number(money.family), everyday: number(money.everyday) };
+  const outlook = onboardingMoney(cards, values, progress.payment);
+  const savedOutlook = onboardingMoney(cards, { income: progress.payment ?? 0, bills: 0, family: 0, everyday: 0 });
+  const planLabel = onboardingPlanLabel(progress.hasMore, cards.length);
+  const minimumLabel = outlook.guessed ? "Estimated minimum required" : "Minimum required";
 
-  function next() {
-    setStepIndex((index) => Math.min(index + 1, STEPS.length - 1));
+  async function post(url: string, body: unknown) {
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => { throw new Error("Could not reach Sproutjar. Check your connection and try again."); });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error ?? "Something did not save. Try again.");
+    return data;
   }
-  function back() {
-    setStepIndex((index) => Math.max(index - 1, 0));
+  async function run(action: () => Promise<void>) {
+    if (pending.current) return;
+    pending.current = true; setBusy(true); setError(null);
+    try { await action(); } catch (caught) { setError((caught as Error).message); }
+    finally { pending.current = false; setBusy(false); }
   }
-
-  async function post(url: string, body: unknown, method = "POST") {
-    const response = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).catch(() => {
-      throw new Error("Could not reach Sproutjar. Check your connection and try again.");
+  async function go(next: OnboardingStep, fields: Partial<OnboardingProgress> = {}, nextAnswers = answers, saveMoney = false, complete = false) {
+    await run(async () => {
+      const state = { ...progress, ...fields, step: next };
+      await post("/api/onboarding", { name: name.trim() || undefined, country, answers: nextAnswers, progress: state, saveMoney, complete });
+      setAnswers(nextAnswers); setProgress(state); window.scrollTo(0, 0);
+      if (complete && state.callFirst) router.push("/dashboard/ren");
     });
-    if (!response.ok) {
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
-      throw new Error(data.error ?? "Something went wrong. Try again.");
-    }
-    return response.json();
   }
-
-  async function saveProfile() {
-    if (!name.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await post("/api/profile", { name: name.trim(), country }, "PATCH");
-      next();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
+  async function saveCard(reading?: StatementReading) {
+    const balance = reading ? reading.balance ?? 0 : number(card.balance);
+    const cardName = reading ? reading.name ?? reading.issuer ?? "Card" : card.name.trim();
+    const rate = reading ? reading.monthlyRatePct : card.rate.trim() === "" ? null : number(card.rate);
+    const minimum = reading ? reading.minimumPayment : card.minimum.trim() === "" ? null : number(card.minimum);
+    if (!cardName) { setError("Give it a name you'd recognise."); return; }
+    if (!Number.isFinite(balance) || balance <= 0) { setError("Add what you owe, even a rough figure."); return; }
+    if ((rate !== null && (!Number.isFinite(rate) || rate < 0 || rate > 100)) || (minimum !== null && (!Number.isFinite(minimum) || minimum < 0))) { setError("Check the rate and minimum against your statement."); return; }
+    await run(async () => {
+      const existing = cards[progress.cardSlot];
+      const data = await post("/api/onboarding/card", { slot: progress.cardSlot, name: cardName, issuer: reading?.issuer ?? cardName.split(" ")[0], balance, monthlyRate: rate === null ? 0.0325 : rate / 100, minimumPayment: minimum === null ? Math.round(balance * 0.05) : minimum, dueDay: reading?.dueDay ?? existing?.dueDay, statementDay: reading?.statementDay ?? existing?.statementDay, estimatedFields: [rate === null ? "rate" : "", minimum === null ? "minimum" : ""].filter(Boolean).join(",") });
+      setCards((current) => { const copy = [...current]; copy[progress.cardSlot] = data.card; return copy; });
+      setCard(cardForm(data.card)); setProgress(data.progress); window.scrollTo(0, 0);
+    });
   }
-
-  function pick(questionId: string, value: string) {
-    setAnswers({ ...answers, [questionId]: value });
-    next();
-  }
-
-  async function saveAnswersAndContinue() {
-    setBusy(true);
-    setError(null);
-    try {
-      await post("/api/onboarding", { name: name.trim() || undefined, country, answers, complete: false });
-      const belief = BELIEF_FROM[answers.pattern ?? ""];
-      if (belief && belief !== savedBelief?.text) {
-        const saved = (await post("/api/beliefs", { text: belief, replaces: savedBelief?.id })) as { id: string };
-        setSavedBelief({ id: saved.id, text: belief });
-      }
-      next();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveCard(input: {
-    name: string;
-    issuer: string;
-    balance: number;
-    monthlyRate: number | null;
-    minimumPayment: number | null;
-    dueDay: number | null;
-    statementDay?: number | null;
-  }) {
-    if (cardSaved) {
-      await saveAnswersAndContinue();
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const estimated: string[] = [];
-      const monthlyRate = input.monthlyRate ?? 0.0299;
-      if (input.monthlyRate === null) estimated.push("rate");
-      const minimumPayment = input.minimumPayment ?? Math.max(100, Math.round(input.balance * 0.05));
-      if (input.minimumPayment === null) estimated.push("minimum");
-      await post("/api/debts", {
-        name: input.name,
-        issuer: input.issuer,
-        balance: input.balance,
-        monthlyRate,
-        minimumPayment,
-        dueDay: input.dueDay ?? undefined,
-        statementDay: input.statementDay ?? undefined,
-        estimatedFields: estimated.join(",") || undefined,
-      });
-      setCardSaved(input.name);
-      await saveAnswersAndContinue();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function saveMoney() {
-    const parseAmount = (value: string) => {
-      const trimmed = value.replace(/[,\s]/g, "").replace(/^(AED|SAR|QAR|KWD|BHD|OMR|USD|GBP|EUR|INR|PKR)/i, "");
-      if (trimmed === "") return 0;
-      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : NaN;
-    };
-    const income = parseAmount(money.income);
-    const essentials = parseAmount(money.essentials);
-    const payday = money.payday === "" ? 0 : Number(money.payday);
-    if (Number.isNaN(income) || Number.isNaN(essentials)) {
-      setError("Just the number, like 12000. No minus signs or letters.");
-      return;
-    }
-    if (payday > 31 || (money.payday !== "" && payday < 1)) {
-      setError("Payday is a day of the month, 1 to 31.");
-      return;
-    }
-    const fields: Record<string, number> = {};
-    if (income > 0) fields.monthlyIncome = income;
-    if (essentials > 0) fields.monthlyEssentials = essentials;
-    if (payday >= 1) fields.payday = payday;
-    if (Object.keys(fields).length === 0) {
-      next();
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      await post("/api/profile", fields, "PATCH");
-      next();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    if (Object.values(values).some((value) => !Number.isFinite(value) || value < 0)) { setError("Just the number, like 12000. No minus signs or letters."); return; }
+    if (!values.income) { setError("Add a rough figure, or skip this for now."); return; }
+    await go(outlook.left >= outlook.minimums ? "plan" : "tight", { money: values, payment: outlook.payment, moneySkipped: false }, answers, true);
   }
-
-  async function finishOnboarding() {
-    setBusy(true);
-    setError(null);
-    try {
-      await post("/api/onboarding", { name: name.trim() || undefined, country, answers, complete: true });
-      next();
-    } catch (caught) {
-      setError((caught as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function saveTypedCard() {
-    const balance = Number(card.balance.replace(/[^0-9.]/g, ""));
-    if (!card.name.trim() || !(balance > 0)) {
-      setError("A name and a balance are enough to start.");
-      return;
-    }
-    const ratePct = Number(card.ratePct);
-    const minimum = Number(card.minimum.replace(/[^0-9.]/g, ""));
-    const dueDay = Number(card.dueDay);
-    void saveCard({
-      name: card.name.trim(),
-      issuer: card.name.trim().split(" ")[0],
-      balance,
-      monthlyRate: ratePct > 0 ? ratePct / 100 : null,
-      minimumPayment: minimum > 0 ? minimum : null,
-      dueDay: dueDay >= 1 && dueDay <= 31 ? dueDay : null,
-    });
-  }
-
-  function saveStatement(reading: StatementReading) {
-    if (reading.balance === null) {
-      setError("That statement had no balance on it. Type the card in instead.");
-      setCardMode("type");
-      return;
-    }
-    const issuer = reading.issuer ?? "Card";
-    void saveCard({
-      name: reading.name ?? issuer,
-      issuer,
-      balance: reading.balance,
-      monthlyRate: reading.monthlyRatePct !== null ? reading.monthlyRatePct / 100 : null,
-      minimumPayment: reading.minimumPayment,
-      dueDay: reading.dueDay,
-      statementDay: reading.statementDay,
-    });
-  }
-
-  const progress = (
-    <div className="flex gap-1.5" aria-hidden>
-      {STEPS.slice(0, -1).map((s, index) => (
-        <span key={s} className={`h-1 flex-1 rounded-full ${index <= stepIndex ? "bg-stem" : "bg-rule"}`} />
-      ))}
-    </div>
-  );
-
-  const input = "mt-1 w-full rounded-sm border border-rule bg-card px-3 py-3 text-[16px] text-ink-900 outline-none placeholder:text-ink-300 focus:border-stem";
-  const primary = "w-full rounded-full bg-ink-800 px-5 py-3.5 text-[16px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60";
-  const option = "w-full rounded-card border border-rule bg-cream px-4 py-3.5 text-left text-[15px] leading-snug text-ink-800 transition hover:border-stem hover:shadow-sh-2";
-
-  if (step === "you") {
-    return (
-      <div className="space-y-4">
-        {progress}
-        <section className="rounded-card border border-rule bg-card p-6">
-          <h1 className="text-[21px] font-bold leading-snug text-ink-900">First, what should Ren call you?</h1>
-          <label className="mt-5 block text-[12px] font-bold text-ink-500">
-            First name
-            <input value={name} onChange={(e) => setName(e.target.value.slice(0, 40))} maxLength={40} placeholder="Layla" autoFocus className={input} />
-          </label>
-          <label className="mt-4 block text-[12px] font-bold text-ink-500">
-            Where you live
-            <select value={country} onChange={(e) => setCountry(e.target.value)} className={input}>
-              {Object.entries(COUNTRIES).map(([code, profile]) => (
-                <option key={code} value={code}>
-                  {profile.name} ({profile.currency})
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="mt-2 text-[12px] text-ink-300">Sets your currency and which bank rules Ren checks.</p>
-          {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
-          <button onClick={saveProfile} disabled={busy || !name.trim()} className={`${primary} mt-5`}>
-            {busy ? "One moment" : "Next"}
-          </button>
-        </section>
-      </div>
-    );
-  }
+  const minimumNote = outlook.guessed ? <p className="text-[12px] leading-relaxed text-ink-400">Your minimum is an estimate: usually around {m(outlook.minimums)}. Check your statement when you can.</p> : null;
+  const stage = step.startsWith("q") ? (step === "q1" ? 1 : 2) : step === "name" ? 3 : ["card", "type", "statement", "more"].includes(step) ? 4 : step === "money" ? 5 : ["plan", "tight", "why", "renready"].includes(step) ? 6 : 7;
+  const title = (text: string) => <h1 className="text-[23px] font-bold leading-tight tracking-tight text-ink-900">{text}</h1>;
+  const note = (text: string) => <p className="text-[14px] leading-relaxed text-ink-400">{text}</p>;
+  let body: ReactNode;
+  let footer: ReactNode;
+  let back: OnboardingStep | undefined;
 
   if (step.startsWith("q")) {
-    const question = QUESTIONS[Number(step.slice(1)) - 1];
-    return (
-      <div className="space-y-4">
-        {progress}
-        <section className="rounded-card border border-rule bg-card p-6">
-          <h1 className="text-[21px] font-bold leading-snug text-ink-900">{question.title}</h1>
-          {question.note ? <p className="mt-1.5 text-[13px] text-ink-400">{question.note}</p> : null}
-          <div className="mt-5 space-y-2.5">
-            {question.options.map((o) => (
-              <button key={o.value} onClick={() => pick(question.id, o.value)} className={`${option} ${answers[question.id] === o.value ? "border-stem" : ""}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </section>
-        <button onClick={back} className="text-[13px] font-bold text-ink-300 underline underline-offset-2">
-          Back
-        </button>
-      </div>
-    );
+    const index = Number(step.slice(1)) - 1;
+    const question = ONBOARDING_QUESTIONS[index];
+    body = <>{title(question.title)}<div className="space-y-3">{question.options.map((answer) => <button key={answer} aria-pressed={answers[question.id] === answer} className={option} onClick={() => void go(index === 2 ? "name" : index === 0 ? "q2" : "q3", {}, { ...answers, [question.id]: answer })}>{answer}</button>)}</div></>;
+    back = index === 1 ? "q1" : index === 2 ? "q2" : undefined;
+  } else if (step === "name") {
+    body = <>{title("First, what should Ren call you?")}<Field label="Your name"><input autoComplete="given-name" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} className={input} /></Field><Field label="Where you live" hint="Sets your currency and which bank rules Ren checks."><select value={country} onChange={(event) => setCountry(event.target.value)} className={input}>{Object.entries(COUNTRIES).map(([code, profile]) => <option key={code} value={code}>{profile.name} ({profile.currency})</option>)}</select></Field></>;
+    footer = <button className={primary} onClick={() => name.trim() ? void go("card") : setError("Add a name, even a nickname. Ren will use it.")}>Next</button>; back = "q3";
+  } else if (step === "card") {
+    body = <>{title("One card to start with?")}{note("Just one. The rest can wait for Ren.")}<button className={option} onClick={() => void go("statement")}><b>Upload or paste a statement</b><span className="mt-1 block text-[13px] text-ink-400">The PDF your bank emails, or its text. Read on Sproutjar&apos;s side, keeping only the figures you confirm.</span></button><button className={option} onClick={() => void go("type")}><b>Type it in</b><span className="mt-1 block text-[13px] text-ink-400">Name and balance is enough.</span></button></>; back = "name";
+  } else if (step === "type") {
+    const interest = number(card.balance) * number(card.rate) / 100;
+    body = <>{title("Your card")}<Field label="What you call it"><input value={card.name} onChange={(event) => setCard({ ...card, name: event.target.value })} placeholder="Emirates NBD Visa" className={input} /></Field><Field label={`What you owe on it (${currency})`}><input value={card.balance} onChange={(event) => setCard({ ...card, balance: event.target.value })} inputMode="decimal" className={input} /></Field><Field label="Monthly interest (optional)"><input value={card.rate} onChange={(event) => setCard({ ...card, rate: event.target.value })} inputMode="decimal" placeholder="3.25%" className={input} /></Field><Field label={`Minimum required (optional, ${currency})`} hint="Not sure of it or the rate? Leave them, and Ren marks them as guesses."><input value={card.minimum} onChange={(event) => setCard({ ...card, minimum: event.target.value })} inputMode="decimal" className={input} /></Field><details className="rounded-sm border border-rule p-3 text-[13px] leading-relaxed text-ink-500"><summary className="cursor-pointer font-bold">What is this?</summary><p className="mt-2">The smallest amount your bank asks you to pay each month. It is usually printed on your statement.</p><p className="mt-2"><b>Pay just this:</b> your account stays in good standing, but much of the money goes to interest, so what you owe barely moves.</p><p className="mt-2"><b>Pay less, or late:</b> your bank may charge a fee, and it can hurt your credit record.</p>{interest > 0 ? <p className="mt-2">On {m(number(card.balance))} at {card.rate}% a month, about {m(interest)} of what you pay goes to interest each month.</p> : null}</details>{card.minimum !== "" && interest > 0 && number(card.minimum) <= interest ? <div className="rounded-card bg-root/10 p-4 text-[13px] text-root" role="status"><b>This minimum doesn&apos;t cover the interest.</b><p className="mt-1">At {card.rate}% a month the interest is about {m(interest)}, so paying {m(number(card.minimum))} never brings it down. Worth checking the figures against your statement.</p></div> : null}</>;
+    footer = <button className={primary} onClick={() => void saveCard()}>Next</button>; back = "card";
+  } else if (step === "statement") {
+    body = <StatementImport currency={currency} onRead={(reading) => void saveCard(reading)} onClose={() => void go("card")} />; back = "card";
+  } else if (step === "more") {
+    body = <>{title("Is this the only card or loan you're paying off?")}{note("So the date on your plan means what it says.")}<button className={option} onClick={() => void go("money", { hasMore: false })}><b>{cards.length > 1 ? "Yes, that's all of them" : "Yes, just this one"}</b><span className="mt-1 block text-[13px] text-ink-400">Your plan shows when you&apos;re debt-free.</span></button><button className={option} onClick={() => void go("money", { hasMore: true })}><b>I have more. I&apos;ll add them later</b><span className="mt-1 block text-[13px] text-ink-400">Your plan shows when {cards.length > 1 ? "these cards are" : "this card is"} paid off. Ren can add the rest with you.</span></button><button className={option} onClick={() => { setCard(cardForm()); void go("type", { cardSlot: cards.length }); }}><b>Add another now</b><span className="mt-1 block text-[13px] text-ink-400">Name and balance is enough.</span></button><p className="text-[12px] text-ink-400">{cards.length} {cards.length === 1 ? "card saved" : "cards saved"}</p></>; back = "type";
+  } else if (step === "money") {
+    body = <>{title("Roughly, what comes in and what goes out?")}{note("A rough number is fine. You can change it any time.")}{([
+      ["income", "Take-home pay", ""], ["bills", "Bills that leave on their own", "Rent, school, loans, phone. Not your cards."], ["family", "Family support", "What you give or send each month. It stays in your plan."], ["everyday", "Everyday spending", "Food, transport, going out."],
+    ] as const).map(([key, label, hint]) => <Field key={key} label={`${label} (${currency})`} hint={hint}><input value={money[key]} onChange={(event) => { setMoney({ ...money, [key]: event.target.value }); setProgress({ ...progress, payment: undefined }); }} inputMode="decimal" className={input} /></Field>)}{values.income > 0 && Object.values(values).every(Number.isFinite) ? <div role="status" className={`space-y-3 rounded-card p-4 ${outlook.tier === "short" || outlook.tier === "none" ? "bg-root/10 text-root" : "bg-leaf-100 text-ink-800"}`}><p className="text-[12px] font-bold">{outlook.tier === "room" ? "Towards your cards" : outlook.left < 0 ? "More goes out than comes in, by" : "That leaves for your cards"}</p><p className="text-[25px] font-bold tabular-nums">{m(outlook.tier === "room" ? outlook.payment : Math.abs(outlook.left))} a month</p>{outlook.tier === "room" ? <><input type="range" min={outlook.minimums} max={outlook.left} step="any" value={outlook.payment} onChange={(event) => setProgress({ ...progress, payment: Number(event.target.value) })} aria-label="How much goes towards your cards each month" className="w-full accent-stem" /><div className="flex justify-between gap-4 text-[11px]"><span>{m(outlook.minimums)}, {minimumLabel.toLowerCase()}</span><span>{m(outlook.left)}, all that&apos;s left</span></div><p className="text-[13px]">{planLabel}<b className="mt-1 block text-[18px]">{outlook.hasDate ? outlook.plan.debtFreeOn : "Not yet"}</b></p>{outlook.left > outlook.payment ? <p className="text-[13px]">{m(outlook.left - outlook.payment)} stays with you each month.</p> : null}</> : <p className="text-[13px]">{minimumLabel}: {m(outlook.minimums)}.{outlook.tier === "just" ? " That covers the minimum, with nothing extra yet." : outlook.tier === "short" ? outlook.guessed ? " This may be tight. Check the minimum against your statement." : ` That leaves a gap of ${m(outlook.minimums - outlook.left)}.` : " Ren can work through the month with you."}</p>}{minimumNote}</div> : null}</>;
+    footer = <><button className={primary} onClick={() => void saveMoney()}>See my plan</button><button className={link} onClick={() => void go("plan", { payment: outlook.minimums, moneySkipped: true }, answers, true)}>Skip, I&apos;ll tell Ren</button></>; back = "more";
+  } else if (step === "tight") {
+    const left = progress.money.income - progress.money.bills - progress.money.family - progress.money.everyday;
+    body = <><Plant state={SEED} className="mx-auto h-36 w-24" />{title(left <= 0 ? left < 0 ? "More is going out than coming in." : "There's nothing left for your cards right now." : outlook.guessed ? "This may be tight." : "This month is tight.")}{note(left > 0 ? `You have ${m(left)} for your cards, ${outlook.guessed ? "and the minimum is probably around" : "and the minimum required is"} ${m(outlook.minimums)}. Thanks for saying so. Ren can work on it with you.` : "That's hard to carry alone, and you don't have to. Thanks for saying so. Ren can work on it with you.")}{minimumNote}</>;
+    footer = <><button className={primary} onClick={() => void go("why")}>Let&apos;s work on it</button>{left > 0 ? <button className={link} onClick={() => void go("plan", { payment: outlook.minimums }, answers, true)}>See the plan at {m(outlook.minimums)}</button> : null}</>; back = "money";
+  } else if (step === "why") {
+    body = <>{title("What's making it hard right now?")}<div className="space-y-2">{Object.entries(MONEY_REASONS).map(([key, value]) => <button key={key} className={option} aria-pressed={progress.reason === key} onClick={() => setProgress({ ...progress, reason: key as OnboardingProgress["reason"] })}>{value[0]}</button>)}</div><h2 className="text-[19px] font-bold">What would help most?</h2><div className="space-y-2">{Object.entries(MONEY_HELPS).map(([key, value]) => <button key={key} className={option} aria-pressed={progress.help === key} onClick={() => setProgress({ ...progress, help: key as OnboardingProgress["help"] })}>{value[0]}</button>)}</div></>;
+    footer = <><button className={primary} onClick={() => void go("renready")}>Next</button><button className={link} onClick={() => void go("renready", { reason: undefined, help: undefined })}>Skip and talk to Ren</button></>; back = "tight";
+  } else if (step === "renready") {
+    body = <><div className="flex items-center gap-3"><span className="h-12 w-12 rounded-full bg-stem/40 shadow-[0_0_25px_8px_#5fa87740]" aria-hidden /><div><h1 className="text-[23px] font-bold">Ren</h1><p className="text-[13px] text-ink-400">Your AI voice coach</p></div></div>{progress.reason ? note(MONEY_REASONS[progress.reason][1]) : null}<section className="rounded-card border border-rule p-4"><h2 className="text-[13px] font-bold">Ren will already know</h2><ul className="mt-3 list-disc space-y-2 pl-4 text-[14px]"><li>{(progress.payment ?? 0) > 0 ? `You have ${m(progress.payment ?? 0)} for your cards` : "There's nothing left for your cards right now"}</li><li>{minimumLabel}: {m(outlook.minimums)}</li>{progress.reason ? <li>{MONEY_REASONS[progress.reason][0]}</li> : null}</ul>{minimumNote}</section><section className="rounded-card border border-rule p-4"><h2 className="text-[13px] font-bold">On this call</h2><ol className="mt-3 list-decimal space-y-2 pl-4 text-[14px]"><li>{progress.help ? MONEY_HELPS[progress.help][1] : "Talk through what's going on"}</li><li>Pick one small thing to try</li></ol></section></>;
+    footer = <><button className={primary} onClick={() => void go("save", { callFirst: true })}>Call Ren</button>{(progress.payment ?? 0) > 0 ? <button className={link} onClick={() => void go("plan", { payment: Math.max(progress.payment ?? 0, outlook.minimums), callFirst: false }, answers, true)}>Not now, see the plan at {m(Math.max(progress.payment ?? 0, outlook.minimums))}</button> : null}</>; back = "money";
+  } else if (step === "plan") {
+    const focusId = cards.filter((item) => item.balance > 0.005).slice().sort((a, b) => b.monthlyRate - a.monthlyRate || a.balance - b.balance)[0]?.id;
+    body = <>
+      <Plant state={SEED} className="mx-auto h-36 w-24" />
+      <p className="text-center text-[12px] font-bold uppercase tracking-wide text-root">Estimated</p>
+      {savedOutlook.hasDate ? <>
+        {title(planLabel)}
+        <p className="text-[30px] font-bold leading-tight text-stem">{savedOutlook.plan.debtFreeOn}</p>
+        {note(`At ${m(progress.payment ?? 0)} a month.`)}
+        <div className="space-y-3 rounded-card border border-rule p-4">
+          <h2 className="text-[13px] font-bold">This month, pay</h2>
+          {cards.map((item) => {
+            const focus = focusId === item.id;
+            const amount = item.minimumPayment + (focus ? Math.max(0, savedOutlook.firstMonthPayment - outlook.minimums) : 0);
+            return <div key={item.id} className="flex justify-between gap-3 border-t border-rule pt-3 text-[13px]"><span>{item.name}{focus && cards.length > 1 ? " (focus)" : ""}</span><b className="whitespace-nowrap">{m(Math.min(amount, item.balance * (1 + item.monthlyRate)))}</b></div>;
+          })}
+        </div>
+        {savedOutlook.firstMonthPayment < (progress.payment ?? 0) ? note("Your plan also starts a small reserve in the first month.") : null}
+      </> : <>{title("No date yet. That's a place to start.")}{note("At this payment, the balance won't come down far enough for a date. Ren can help you work through what could change.")}</>}
+      {minimumNote}
+      {note(`${cards.some((item) => item.estimatedFields) ? "The rate or minimum is a guess for now. " : ""}Assumes no new spending on the card and rates staying the same.${progress.moneySkipped ? " You skipped the money question, so this uses the minimum required. Ren can help find the real figure." : ""}`)}
+      {!progress.moneySkipped && (progress.payment ?? 0) > outlook.left ? note(`This plan uses ${m(progress.payment ?? 0)} a month. Your money figures leave ${m(outlook.left)}; Ren can help you work through the gap.`) : null}
+    </>;
+    footer = <button className={primary} onClick={() => void go("save", { callFirst: !savedOutlook.hasDate })}>{savedOutlook.hasDate ? "Save my plan" : "Save this and talk to Ren"}</button>; back = "money";
+  } else if (step === "save") {
+    body = <>{title("Keep this plan.")}{note("So Ren remembers it, and you can open it on any phone.")}{note("Your plan is saved to your signed-in account.")}</>;
+    footer = <button className={primary} onClick={() => void go(progress.callFirst ? "seed" : "hello", {}, answers, false, progress.callFirst)}>{progress.callFirst ? "Save this and talk to Ren" : "Meet Ren"}</button>; back = progress.callFirst ? "renready" : "plan";
+  } else if (step === "hello") {
+    body = <><p className="text-[12px] font-bold uppercase tracking-wide text-root">Nearly there</p>{title("Meet Ren. Twenty seconds, out loud.")}{note("Your AI voice coach. Your phone will ask to use the microphone. Ren only hears you while a call is open, and the call is written down so you can read it or delete it later.")}<RenHello onDone={() => void go("seed", {}, answers, false, true)} answers={{ first_name: name.trim().split(" ")[0] || "there", context: onboardingVoiceContext(answers, progress, cards) }} /></>;
+  } else {
+    body = <><Plant state={SEED} className="mx-auto h-56 w-40" /><p className="text-center text-[12px] font-bold uppercase tracking-wide text-root">Day one</p>{title("It starts here.")}{note("It grows as the cards go down and the jar fills up. One picture for both. Nothing else to set up today.")}</>;
+    footer = <button className={primary} onClick={() => router.push("/dashboard")}>Take me in</button>;
   }
-
-  if (step === "card") {
-    const why = QUESTIONS[0].options.find((o) => o.value === answers.why);
-    return (
-      <div className="space-y-4">
-        {progress}
-        {why?.mirror && cardMode === "pick" ? (
-          <section className="rounded-card border border-rule bg-card p-5">
-            <p className="label">Heard</p>
-            <p className="mt-2 text-[15px] leading-relaxed text-ink-700">{why.mirror}</p>
-          </section>
-        ) : null}
-        <section className="rounded-card border border-rule bg-card p-6">
-          <h1 className="text-[21px] font-bold leading-snug text-ink-900">One card to start with?</h1>
-          <p className="mt-1.5 text-[13px] text-ink-400">Just one. The rest can wait for Ren.</p>
-
-          {cardMode === "pick" ? (
-            <div className="mt-5 space-y-2.5">
-              <button onClick={() => setCardMode("statement")} className={option}>
-                <span className="font-bold text-ink-900">Upload or paste a statement</span>
-                <span className="mt-0.5 block text-[13px] text-ink-400">The PDF your bank emails, or its text. Read on our side, nothing stored.</span>
-              </button>
-              <button onClick={() => setCardMode("type")} className={option}>
-                <span className="font-bold text-ink-900">Type it in</span>
-                <span className="mt-0.5 block text-[13px] text-ink-400">Name and balance is enough.</span>
-              </button>
-              <button onClick={saveAnswersAndContinue} disabled={busy} className={`${option} text-ink-500`}>
-                {busy ? "One moment" : "Skip, I'll tell Ren"}
-              </button>
-            </div>
-          ) : null}
-
-          {cardMode === "type" ? (
-            <div className="mt-5 space-y-3">
-              <label className="block text-[12px] font-bold text-ink-500">
-                Card
-                <input value={card.name} onChange={(e) => setCard({ ...card, name: e.target.value })} placeholder="Emirates NBD Visa" autoFocus className={input} />
-              </label>
-              <label className="block text-[12px] font-bold text-ink-500">
-                Balance owed ({currency})
-                <input value={card.balance} onChange={(e) => setCard({ ...card, balance: e.target.value })} inputMode="decimal" placeholder="12400" className={input} />
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                <label className="block text-[12px] font-bold text-ink-500">
-                  Rate % a month
-                  <input value={card.ratePct} onChange={(e) => setCard({ ...card, ratePct: e.target.value })} inputMode="decimal" placeholder="2.99" className={input} />
-                </label>
-                <label className="block text-[12px] font-bold text-ink-500">
-                  Minimum
-                  <input value={card.minimum} onChange={(e) => setCard({ ...card, minimum: e.target.value })} inputMode="decimal" placeholder="620" className={input} />
-                </label>
-                <label className="block text-[12px] font-bold text-ink-500">
-                  Due day
-                  <input value={card.dueDay} onChange={(e) => setCard({ ...card, dueDay: e.target.value })} inputMode="numeric" placeholder="10" className={input} />
-                </label>
-              </div>
-              <p className="text-[12px] text-ink-300">Not sure of the rate or minimum? Leave them. Ren marks them as guesses.</p>
-              {error ? <p className="text-[13px] text-root">{error}</p> : null}
-              <button onClick={saveTypedCard} disabled={busy} className={primary}>
-                {busy ? "Saving" : "Save this card"}
-              </button>
-              <button onClick={() => setCardMode("pick")} className="w-full text-[13px] font-bold text-ink-300 underline underline-offset-2">
-                Back
-              </button>
-            </div>
-          ) : null}
-
-          {cardMode === "statement" ? (
-            <>
-              {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
-              <StatementImport currency={currency} onRead={saveStatement} onClose={() => setCardMode("pick")} title="Your statement" />
-            </>
-          ) : null}
-        </section>
-        {cardMode === "pick" ? (
-          <button onClick={back} className="text-[13px] font-bold text-ink-300 underline underline-offset-2">
-            Back
-          </button>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (step === "money") {
-    const clean = (value: string) => {
-      const trimmed = value.replace(/[,\s]/g, "");
-      return /^\d+(\.\d+)?$/.test(trimmed) ? Number(trimmed) : 0;
-    };
-    const room = clean(money.income) - clean(money.essentials);
-    const showRoom = clean(money.income) > 0 && clean(money.essentials) > 0;
-    return (
-      <div className="space-y-4">
-        {progress}
-        <section className="rounded-card border border-rule bg-card p-6">
-          <h1 className="text-[21px] font-bold leading-snug text-ink-900">Roughly, what comes in and what has to go out?</h1>
-          <p className="mt-1.5 text-[13px] text-ink-400">Ballpark is fine. This is how Ren works out what the cards can actually get.</p>
-          <div className="mt-5 space-y-3">
-            <label className="block text-[12px] font-bold text-ink-500">
-              Take-home a month ({currency})
-              <input value={money.income} onChange={(e) => { setError(null); setMoney({ ...money, income: e.target.value }); }} inputMode="decimal" placeholder="12000" autoFocus className={input} />
-            </label>
-            <label className="block text-[12px] font-bold text-ink-500">
-              Rent, bills, food, the must-pays ({currency})
-              <input value={money.essentials} onChange={(e) => { setError(null); setMoney({ ...money, essentials: e.target.value }); }} inputMode="decimal" placeholder="8500" className={input} />
-            </label>
-            <label className="block text-[12px] font-bold text-ink-500">
-              Day of the month salary lands
-              <input value={money.payday} onChange={(e) => setMoney({ ...money, payday: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} inputMode="numeric" placeholder="25" className={input} />
-            </label>
-          </div>
-          {showRoom ? (
-            <p className="mt-4 rounded-sm bg-cream px-4 py-3 text-[14px] leading-relaxed text-ink-700">
-              {room > 0 ? (
-                <>
-                  That leaves about <span className="n font-bold">{Math.round(room).toLocaleString()} {currency}</span> a month to work with. Ren will split it between the jar and the cards with you.
-                </>
-              ) : (
-                <>Nothing left over right now. That is worth knowing, and it is exactly what Ren is for.</>
-              )}
-            </p>
-          ) : null}
-          {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
-          <button onClick={saveMoney} disabled={busy} className={`${primary} mt-5`}>
-            {busy ? "One moment" : "Next"}
-          </button>
-          <button onClick={next} disabled={busy} className="mt-3 w-full text-[13px] font-bold text-ink-300 underline underline-offset-2">
-            Skip, I&apos;ll tell Ren
-          </button>
-        </section>
-        <button onClick={back} className="text-[13px] font-bold text-ink-300 underline underline-offset-2">
-          Back
-        </button>
-      </div>
-    );
-  }
-
-  if (step === "hello") {
-    const labelOf = (id: Question["id"]) =>
-      QUESTIONS.find((q) => q.id === id)?.options.find((o) => o.value === answers[id])?.label ?? "";
-    return (
-      <div className="space-y-4">
-        {progress}
-        <section className="rounded-card border border-rule bg-card p-6">
-          <p className="label">Nearly there</p>
-          <h1 className="mt-2 text-[21px] font-bold leading-snug text-ink-900">Meet Ren. Twenty seconds, out loud.</h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-            Ren already knows what you just said{cardSaved ? ` and that ${cardSaved} is on the table` : ""}. One hello, one question, then your plant.
-          </p>
-          {error ? <p className="mt-3 text-[13px] text-root">{error}</p> : null}
-          <div className="mt-6" inert={busy} aria-busy={busy}>
-            <RenHello
-              onDone={() => void finishOnboarding()}
-              answers={{
-                first_name: firstName,
-                why: labelOf("why"),
-                pattern: labelOf("pattern"),
-                carrying: labelOf("carrying"),
-                help: labelOf("help"),
-              }}
-            />
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <section className="rounded-card border border-rule bg-card p-6 text-center">
-        <Plant state={SEED} className="mx-auto h-56 w-40" />
-        <p className="label mt-4">Day one</p>
-        <h1 className="mt-2 break-words text-[21px] font-bold leading-snug text-ink-900">This is your plant, {firstName}.</h1>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-400">
-          It grows as the cards go down and the jar fills up. One picture for both. Nothing else to set up today.
-        </p>
-        <button onClick={() => router.push("/dashboard")} className={`${primary} mt-6`}>
-          Go in
-        </button>
-      </section>
-    </div>
-  );
+  return <div className="space-y-5" data-onboarding-step={step}><div className="flex gap-1.5" role="progressbar" aria-label={`Step ${stage} of 7`} aria-valuemin={1} aria-valuemax={7} aria-valuenow={stage}>{Array.from({ length: 7 }, (_, index) => <span key={index} className={`h-1 flex-1 rounded-full ${index < stage ? "bg-stem" : "bg-rule"}`} />)}</div><fieldset disabled={busy} className="min-w-0 space-y-5 rounded-card border border-rule bg-card p-5" aria-busy={busy}><div className="space-y-5">{body}</div>{error ? <p role="alert" className="text-[13px] text-root">{error}</p> : null}<div className="space-y-2">{busy ? <p role="status" className="text-center text-[13px] text-ink-400">One moment</p> : null}{footer}{back ? <button className={link} onClick={() => void go(back)}>Back</button> : null}</div></fieldset></div>;
 }

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as onboarding from "../onboarding.js";
 import type * as sproutjar from "../sproutjar.js";
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  onboarding: typeof onboarding;
   sproutjar: typeof sproutjar;
 }>;
 

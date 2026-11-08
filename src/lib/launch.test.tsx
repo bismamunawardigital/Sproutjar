@@ -10,10 +10,167 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { completeOnboarding } from "../../convex/sproutjar";
+import { completeOnboarding, saveOnboardingCard } from "../../convex/sproutjar";
+import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs } from "convex/server";
 import type { api } from "../../convex/_generated/api";
 import type { MutationCtx } from "../../convex/_generated/server";
+import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
+import { buildPayoffPlan } from "./debt-engine";
+import { readStatement } from "./statement";
+
+test("statement import keeps full ungrouped balances and still reads grouped amounts", () => {
+  assert.equal(readStatement("Total Amount Due AED 4800. Minimum Amount Due AED 240.").balance, 4800);
+  assert.equal(readStatement("Total Amount Due AED 12400.50").balance, 12400.50);
+  assert.equal(readStatement("Total Amount Due AED 12,400.50").balance, 12400.50);
+  assert.equal(readStatement("").balance, null);
+  assert.equal(readStatement("Total Amount Due unavailable").balance, null);
+});
+
+const runCard = (saveOnboardingCard as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.saveOnboardingCard>) => Promise<{ id: string }> })._handler;
+const runDraft = (completeOnboarding as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.completeOnboarding>) => Promise<unknown> })._handler;
+
+async function onboardingFixture(check: (fixture: ReturnType<typeof makeOnboardingFixture>) => Promise<void>) {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "onboarding-test-key";
+  try { await check(makeOnboardingFixture()); }
+  finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+}
+
+function makeOnboardingFixture() {
+  const user = { _id: "user", name: "Layla", country: "AE" } as Doc<"users">;
+  const debts = new Map<string, Doc<"debts">>();
+  const entries: Record<string, unknown>[] = [];
+  const ctx = { db: {
+    query: (table: string) => ({ withIndex: () => ({ unique: async () => user, collect: async () => table === "debts" ? [...debts.values()].filter((debt) => debt.userId === user._id) : [] }) }),
+    get: async (id: string) => structuredClone(id === user._id ? user : debts.get(id)),
+    patch: async (id: string, fields: Record<string, unknown>) => Object.assign(id === user._id ? user : debts.get(id)!, fields),
+    insert: async (table: string, fields: Record<string, unknown>) => {
+      if (table === "balanceEntries") { entries.push(fields); return `entry-${entries.length}`; }
+      const id = `card-${debts.size}`;
+      debts.set(id, { ...fields, _id: id } as Doc<"debts">);
+      return id;
+    },
+  } } as unknown as MutationCtx;
+  const caller = { serverKey: "onboarding-test-key", userKey: "layla" };
+  const card = { caller, slot: 0, name: "Layla card", issuer: "Example", balance: 4800, monthlyRate: 0.0325, minimumPayment: 240, estimatedFields: "rate,minimum" };
+  return { user, debts, entries, ctx, caller, card };
+}
+
+test("set B has the three prototype questions and keeps family support separate", () => {
+  assert.equal(ONBOARDING_QUESTIONS.length, 3);
+  assert.ok(ONBOARDING_QUESTIONS.every((question) => question.options.length === 4));
+  assert.equal(ONBOARDING_QUESTIONS[1].options[3], "Family needed it more that month");
+  assert.equal(ONBOARDING_QUESTIONS[2].options[3], "Supporting family alongside the cards");
+});
+
+test("onboarding money covers room, minimum-only, short, zero, skipped and stalled cases", () => {
+  const cards = [{ id: "one", name: "Layla card", issuer: "Example", balance: 4800, monthlyRate: 0.0325, minimumPayment: 240, estimatedFields: "minimum" }];
+  const money = { income: 18000, bills: 10000, family: 3000, everyday: 2000 };
+  const room = onboardingMoney(cards, money, 1000);
+  assert.equal(room.left, 3000);
+  assert.equal(room.payment, 1000);
+  assert.equal(room.tier, "room");
+  assert.equal(room.guessed, true);
+  assert.equal(room.hasDate, true);
+  assert.equal(room.plan.debtFreeOn, buildPayoffPlan(cards, 1000, "avalanche", new Date(), allocateSurplus(1000, STARTER_RESERVE_DEFAULT, 0).toDebt).debtFreeOn);
+  assert.equal(onboardingMoney(cards, money, 9000).payment, 3000);
+  assert.equal(onboardingMoney(cards, money, 1).payment, 240);
+  assert.equal(onboardingMoney(cards, { ...money, everyday: 4710 }).tier, "just");
+  assert.equal(onboardingMoney(cards, { ...money, everyday: 4800 }).tier, "short");
+  assert.equal(onboardingMoney(cards, { ...money, everyday: 5000 }).tier, "none");
+  assert.equal(onboardingMoney(cards, { income: 0, bills: 0, family: 0, everyday: 0 }).hasDate, false);
+  assert.equal(onboardingMoney([], money).hasDate, false);
+  assert.equal(onboardingMoney([{ ...cards[0], minimumPayment: 100 }], { income: 100, bills: 0, family: 0, everyday: 0 }).hasDate, false);
+  assert.equal(onboardingPlanLabel(true, 1), "With this plan, this card is paid off by");
+  assert.match(onboardingPlanLabel(true, 2), /these cards are/);
+  assert.match(onboardingPlanLabel(false, 1), /debt-free/);
+});
+
+test("onboarding progress rejects invalid steps, amounts and choices", () => {
+  assert.ok(onboardingProgressSchema.safeParse(INITIAL_ONBOARDING).success);
+  for (const invalid of [{ step: "q4" }, { cardSlot: -1 }, { cardSlot: 0.5 }, { money: { ...INITIAL_ONBOARDING.money, family: -10 } }, { payment: Infinity }, { reason: "blame-family" }]) {
+    assert.equal(onboardingProgressSchema.safeParse({ ...INITIAL_ONBOARDING, ...invalid }).success, false);
+  }
+});
+
+test("onboarding card retries update a stable flow slot without duplicate debts or payment entries", async () => onboardingFixture(async ({ ctx, caller, card, user, debts, entries }) => {
+  const first = await runCard(ctx, card);
+  assert.equal(user.onboardingProgress?.step, "more");
+  assert.equal(user.onboardedAt, undefined);
+  const repeat = await runCard(ctx, card);
+  assert.equal(repeat.id, first.id);
+  assert.equal(debts.size, 1);
+  assert.equal(entries.length, 0);
+  await runDraft(ctx, { caller, answers: { statement: ONBOARDING_QUESTIONS[0].options[1] }, progress: { ...INITIAL_ONBOARDING, step: "money" } });
+  assert.equal(user.onboardingProgress?.step, "money");
+  assert.equal(user.onboarding?.statement, ONBOARDING_QUESTIONS[0].options[1]);
+  assert.equal((await runCard(ctx, { ...card, balance: 4500 })).id, first.id);
+  assert.equal(debts.get(first.id)?.openingBalance, 4800);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].source, "self_report");
+  assert.equal(entries[0].amountPaid, 0);
+  assert.equal(entries[0].principalCleared, 0);
+  await runCard(ctx, { ...card, slot: 1, name: "Second card" });
+  await runCard(ctx, { ...card, slot: 1, name: "Second card" });
+  assert.equal(debts.size, 2);
+  assert.equal(user.onboardingCardIds?.length, 2);
+}));
+
+test("an unfinished legacy flow adopts its saved card rather than inserting it again", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {
+  debts.set("legacy", { _id: "legacy", userId: user._id, ...card, openingBalance: card.balance } as unknown as Doc<"debts">);
+  assert.equal((await runCard(ctx, card)).id, "legacy");
+  assert.equal(debts.size, 1);
+}));
+
+test("onboarding card rejects invalid, foreign, missing, finished and demo saves", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {
+  await assert.rejects(runCard(ctx, { ...card, balance: -1 }), /Check the card figures/);
+  await assert.rejects(runCard(ctx, { ...card, slot: 1 }), /previous card/);
+  await assert.rejects(runCard(ctx, { ...card, caller: { ...card.caller, serverKey: "wrong" } }), /Not from the Sproutjar server/);
+  await assert.rejects(runCard(ctx, { ...card, caller: { ...card.caller, userKey: "demo" } }), /already finished/);
+  assert.equal(debts.size, 0);
+  user.onboardingCardIds = ["missing" as Id<"debts">];
+  await assert.rejects(runCard(ctx, card), /no longer available/);
+  debts.set("missing", { ...card, userId: "someone-else" } as unknown as Doc<"debts">);
+  await assert.rejects(runCard(ctx, card), /no longer available/);
+  user.onboardedAt = Date.now();
+  await assert.rejects(runCard(ctx, card), /already finished/);
+}));
+
+test("Option 2 saves protected family support and a chosen card budget without finishing onboarding", async () => onboardingFixture(async ({ ctx, caller, user }) => {
+  const progress = { ...INITIAL_ONBOARDING, step: "tight" as const, money: { income: 18000, bills: 10000, family: 3000, everyday: 2000 }, payment: 200, reason: "family" as const, help: "room" as const };
+  await runDraft(ctx, { caller, answers: {}, progress, saveMoney: true });
+  assert.deepEqual(user.onboardingProgress, progress);
+  assert.equal(user.monthlyIncome, 18000);
+  assert.equal(user.monthlyEssentials, 12000);
+  assert.equal(user.remittances, 3000);
+  assert.equal(user.debtAttack, 200);
+  assert.equal(user.strategy, "avalanche");
+  assert.equal(user.onboardedAt, undefined);
+  await assert.rejects(runDraft(ctx, { caller, answers: {}, progress, complete: true }), /Finish the onboarding/);
+  await runDraft(ctx, { caller, answers: {}, progress: { ...progress, step: "seed" }, complete: true });
+  assert.ok(user.onboardedAt);
+}));
+
+test("skipping money keeps unknown figures unknown and invalid progress does not save", async () => onboardingFixture(async ({ ctx, caller, user }) => {
+  await runDraft(ctx, { caller, answers: {}, progress: { ...INITIAL_ONBOARDING, step: "plan", payment: 240, moneySkipped: true }, saveMoney: true });
+  assert.equal(user.monthlyIncome, undefined);
+  assert.equal(user.remittances, undefined);
+  assert.equal(user.debtAttack, 240);
+  assert.equal(user.onboardedAt, undefined);
+  const before = JSON.stringify(user);
+  await assert.rejects(runDraft(ctx, { caller, answers: {}, progress: { ...INITIAL_ONBOARDING, step: "q4" } }));
+  await assert.rejects(runDraft(ctx, { caller, answers: {}, saveMoney: true }), /Money needs saved/);
+  assert.equal(JSON.stringify(user), before);
+}));
+
+test("Ren receives set B, four money figures, estimates, missing cards, reason and help", () => {
+  const text = onboardingVoiceContext({ statement: "Leave it as long as I can", setback: "I restart next month", pressure: "The interest" }, { ...INITIAL_ONBOARDING, hasMore: true, money: { income: 18000, bills: 10000, family: 3000, everyday: 2000 }, payment: 200, reason: "family", help: "room" }, [{ id: "one", name: "Layla card", issuer: "Example", balance: 4800, monthlyRate: 0.0325, minimumPayment: 240, estimatedFields: "rate,minimum" }]);
+  for (const phrase of ["Leave it as long as I can", "I restart next month", "The interest", "18000", "10000", "3000", "2000", "payment 200", "estimates: rate,minimum", "not the full debt picture", "supporting family", "Go through your month", "Family support stays"]) assert.ok(text.includes(phrase), phrase);
+  assert.match(onboardingVoiceContext({}, { ...INITIAL_ONBOARDING, moneySkipped: true }), /not confirmed figures/);
+  assert.match(onboardingVoiceContext({}), /Not answered/);
+});
 
 test("completed onboarding routes to Today and new or incomplete accounts stay in onboarding", () => {
   assert.equal(onboardingRedirect(1700000000000), "/dashboard");

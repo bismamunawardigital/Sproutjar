@@ -18,7 +18,7 @@ export default function PrivacyPage() {
             <>
               <p>Your first name, your country, and an email or Google or Apple account to sign in with.</p>
               <p>The money numbers you type or say to Ren: cards, balances, rates, take-home, essentials, payday, jar deposits, and the plans you make.</p>
-              <p>Your answers to the four onboarding questions and the beliefs you choose to work on.</p>
+              <p>Your answers to the onboarding questions and the beliefs you choose to work on.</p>
             </>
           ),
         },

@@ -45,7 +45,7 @@ const ISSUERS = [
   "Tamara",
 ];
 
-const MONEY = String.raw`(?:AED|QAR|SAR|KWD|BHD|OMR|USD|Dhs\.?|QR)?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,3})?|[0-9]+(?:\.[0-9]{1,3})?)`;
+const MONEY = String.raw`(?:AED|QAR|SAR|KWD|BHD|OMR|USD|Dhs\.?|QR)?\s*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,3})?|[0-9]+(?:\.[0-9]{1,3})?)`;
 
 function amountAfter(text: string, labels: string[]): number | null {
   for (const label of labels) {

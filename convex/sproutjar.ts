@@ -5,6 +5,8 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
+import { onboardingAnswers, onboardingProgress } from "./onboarding";
+import { INITIAL_ONBOARDING, onboardingAnswersSchema, onboardingProgressSchema } from "../src/lib/onboarding";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -106,19 +108,28 @@ export const completeOnboarding = mutation({
     complete: v.optional(v.boolean()),
     name: v.optional(v.string()),
     country: v.optional(v.string()),
-    answers: v.object({
-      why: v.optional(v.string()),
-      pattern: v.optional(v.string()),
-      carrying: v.optional(v.string()),
-      help: v.optional(v.string()),
-    }),
+    answers: onboardingAnswers,
+    progress: v.optional(onboardingProgress),
+    saveMoney: v.optional(v.boolean()),
   },
-  handler: async (ctx, { caller, complete, name, country, answers }) => {
+  handler: async (ctx, { caller, complete, name, country, answers, progress, saveMoney }) => {
     const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+    onboardingAnswersSchema.parse(answers);
+    const state = progress ? onboardingProgressSchema.parse(progress) : undefined;
+    if (saveMoney && !state) throw new Error("Money needs saved onboarding progress.");
+    if (state && complete && !["hello", "seed"].includes(state.step)) throw new Error("Finish the onboarding steps first.");
     await ctx.db.patch(user._id, {
       ...(name ? { name } : {}),
       ...(country ? { country } : {}),
       onboarding: answers,
+      ...(state ? { onboardingProgress: state } : {}),
+      ...(saveMoney && state ? {
+        ...(!state.moneySkipped ? { monthlyIncome: state.money.income, monthlyEssentials: state.money.bills + state.money.everyday, remittances: state.money.family, priorityObligations: 0 } : {}),
+        debtAttack: state.payment ?? 0,
+        debtAttackSource: "chosen",
+        strategy: "avalanche",
+      } : {}),
       ...(complete ? { onboardedAt: user.onboardedAt ?? Date.now() } : {}),
     });
     return ctx.db.get(user._id);
@@ -198,6 +209,40 @@ const debtDetailArgs = {
   provider: v.optional(v.string()),
   estimatedFields: v.optional(v.string()),
 };
+
+export const saveOnboardingCard = mutation({
+  args: {
+    caller: callerArg, slot: v.number(), name: v.string(), issuer: v.string(),
+    balance: v.number(), monthlyRate: v.number(), minimumPayment: v.number(),
+    ...debtDetailArgs,
+  },
+  handler: async (ctx, { caller, slot, ...fields }) => {
+    const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo" || user.onboardedAt) throw new Error("Onboarding is already finished.");
+    if (!Number.isInteger(slot) || slot < 0 || slot > 49 || !fields.name.trim() || !Number.isFinite(fields.balance) || fields.balance <= 0 || !Number.isFinite(fields.monthlyRate) || fields.monthlyRate < 0 || fields.monthlyRate > 1 || !Number.isFinite(fields.minimumPayment) || fields.minimumPayment < 0) throw new Error("Check the card figures and try again.");
+    const ids = user.onboardingCardIds ?? (await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()).map((debt) => debt._id);
+    if (slot > ids.length) throw new Error("Save the previous card first.");
+    let id = ids[slot];
+    if (id) {
+      const debt = await ctx.db.get(id);
+      if (!debt || debt.userId !== user._id) throw new Error("That card is no longer available.");
+      await ctx.db.patch(id, { ...fields, isEstimated: Boolean(fields.estimatedFields) });
+      if (fields.balance !== debt.balance) await ctx.db.insert("balanceEntries", {
+        userId: user._id, debtId: id, balance: fields.balance, amountPaid: 0,
+        principalCleared: 0, interestCharged: 0, source: "self_report", loggedAt: Date.now(),
+      });
+    } else {
+      id = await ctx.db.insert("debts", {
+        ...fields, userId: user._id, kind: "credit_card", isIslamic: false,
+        openingBalance: fields.balance, isEstimated: Boolean(fields.estimatedFields), carryingBalance: true, status: "active",
+      });
+      ids.push(id);
+    }
+    const progress = { ...INITIAL_ONBOARDING, ...user.onboardingProgress, step: "more", cardSlot: slot };
+    await ctx.db.patch(user._id, { onboardingCardIds: ids, onboardingProgress: progress });
+    return { id, progress, card: { id, ...fields } };
+  },
+});
 
 export const addDebt = mutation({
   args: {
