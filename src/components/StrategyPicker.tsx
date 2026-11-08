@@ -1,82 +1,22 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formatMoney } from "@/lib/money";
+import { planMoney, savePlanChange } from "@/lib/plan";
 
-type Option = {
-  key: "snowball" | "avalanche";
-  title: string;
-  months: number;
-  interest: number;
-  blurb: string;
-};
+type Option = { key: "snowball" | "avalanche"; title: string; months: number; interest: number; blurb: string; date?: string };
 
-export function StrategyPicker({
-  current,
-  options,
-  currency,
-}: {
-  current: "snowball" | "avalanche";
-  options: Option[];
-  currency: string;
-}) {
+export function StrategyPicker({ current, options, currency, readOnly = false }: { current: Option["key"]; options: Option[]; currency: string; readOnly?: boolean }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
   async function choose(strategy: Option["key"]) {
-    if (strategy === current) return;
-    setSaving(true);
-    await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ strategy }),
-    });
-    setSaving(false);
-    router.refresh();
+    if (strategy === current || saving || readOnly) return;
+    setSaving(true); setError(null);
+    try { await savePlanChange("/api/profile", "PATCH", { strategy }); router.refresh(); }
+    catch { setError("That didn't save. Your current order is unchanged. Try again."); }
+    finally { setSaving(false); }
   }
-
-  return (
-    <div>
-      <p className="text-[14px] leading-relaxed text-ink-400">
-        It&rsquo;s the same money either way. One clears a card sooner, the other saves you more.
-        Pick whichever you&rsquo;ll actually stick to.
-      </p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {options.map((option) => {
-          const active = option.key === current;
-          return (
-            <button
-              key={option.key}
-              onClick={() => choose(option.key)}
-              disabled={saving}
-              aria-pressed={active}
-              className={`rounded-card border p-4 text-left transition disabled:opacity-60 ${
-                active ? "border-stem bg-leaf-50" : "border-rule bg-cream hover:border-ink-300"
-              }`}
-            >
-              <p className="flex items-center justify-between gap-2 text-[15px] font-bold text-ink-900">
-                {option.title}
-                {active ? <span className="chip c-grow">Your pick</span> : null}
-              </p>
-              {option.months > 0 ? (
-                <>
-                  <p className="n mt-3 text-[22px] text-ink-900">{option.months} months</p>
-                  <p className="mt-1 text-[13px] text-root">
-                    and <span className="n">{formatMoney(option.interest, currency)}</span> of
-                    interest along the way
-                  </p>
-                </>
-              ) : (
-                <p className="mt-3 text-[15px] text-ink-400">
-                  No timeline yet. There isn&rsquo;t enough spare to cover the minimums.
-                </p>
-              )}
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-400">{option.blurb}</p>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
+  return <div><p className="mt-2 text-[14px] leading-relaxed text-ink-400">It&apos;s the same money either way. One clears a card sooner, the other saves you more. Pick whichever you&apos;ll actually stick to.</p><div role="radiogroup" aria-label="Which card goes first" className="mt-4 grid gap-3">
+    {options.map((option) => <button key={option.key} role="radio" aria-checked={current === option.key} onClick={() => void choose(option.key)} disabled={saving || readOnly} className={`min-h-11 rounded-card border p-4 text-left disabled:opacity-70 ${current === option.key ? "border-stem bg-leaf-50" : "border-rule bg-cream"}`}><span className="flex items-center justify-between gap-2 text-[15px] font-bold">{option.title}{current === option.key ? <span className="chip c-grow">Your pick</span> : null}</span><span className="mt-1 block text-[13px] text-ink-500">{option.blurb}</span><span className="n mt-2 block text-[14px]">{option.months > 0 && option.months < 600 ? `${option.date ?? option.months + " months"} · ${planMoney(option.interest, currency)} in interest · Estimated` : "No date yet on these numbers."}</span></button>)}
+  </div>{error ? <p role="alert" className="mt-3 text-[13px] text-root">{error}</p> : null}</div>;
 }

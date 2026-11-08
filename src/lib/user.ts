@@ -9,12 +9,12 @@ import {
   isPaymentEntry,
   minimumsOnlyOutlook,
   type DebtInput,
-  type Strategy,
 } from "@/lib/debt-engine";
 import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { openCommitmentsByDueDate } from "@/lib/today";
 import { countryProfile } from "@/lib/money";
 import { plantState, principalCleared } from "@/lib/plant";
+import { planStrategy } from "@/lib/plan";
 
 export const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -86,6 +86,8 @@ export async function buildSnapshot(caller?: Caller) {
   const user = live.user;
 
   const debtRows = live.debts;
+  const settledRows = live.settledDebts ?? [];
+  const recordedDebtRows = [...debtRows, ...settledRows];
   const jarRows = live.jars;
   const recentCommitments = live.commitments.slice(0, 12);
   const commitments = openCommitmentsByDueDate(live.commitments).slice(0, 5);
@@ -102,7 +104,7 @@ export async function buildSnapshot(caller?: Caller) {
   const country = countryProfile(user.country);
   const attack = debtAttackFor(user);
   const surplus = attack.amount;
-  const strategy = (user.strategy === "avalanche" ? "avalanche" : "snowball") as Strategy;
+  const strategy = planStrategy(user.strategy);
 
   const starterJar = jarRows.find((j) => j.purpose === "emergency");
   const starterTarget = recommendedStarterJar(starterJar?.target);
@@ -136,8 +138,8 @@ export async function buildSnapshot(caller?: Caller) {
     return d;
   })();
 
-  const openingPrincipal = debtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);
-  const history = totalOwedOverTime(debtRows, live.balanceEntries);
+  const openingPrincipal = recordedDebtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);
+  const history = totalOwedOverTime(recordedDebtRows, live.balanceEntries);
   const currentPrincipal = debtRows.reduce((s, d) => s + d.balance, 0);
   const commitmentsKept = recentCommitments.filter((c) => c.status === "kept").length;
   const growth = plantState({
@@ -153,6 +155,7 @@ export async function buildSnapshot(caller?: Caller) {
   return {
     user: { ...user, id: user._id },
     country,
+    settledDebts: settledRows.map((debt) => ({ ...debt, id: debt._id, lastReviewed: null, paidSinceReview: 0, touchedSinceReview: false })),
     debts: debtRows.map((d) => {
       // The last figure the person actually read off a statement, if any.
       const reviewed = [...live.balanceEntries]

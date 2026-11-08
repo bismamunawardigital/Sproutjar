@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatementImport, type StatementReading } from "@/components/StatementImport";
-import { formatMoney, formatMoneyShort } from "@/lib/money";
+import { planMoney as formatMoney, planMoney as formatMoneyShort, planReviewEntry, savePlanChange, type PlanReviewEntry } from "@/lib/plan";
 
 export type ReviewRow = {
   id: string;
@@ -20,9 +20,7 @@ export type ReviewRow = {
   reflection: string;
 };
 
-type Card = { id: string; name: string; balance: number; minimumPayment: number };
-
-type Entry = { paid: string; newBorrowing: string; balance: string };
+type Card = { id: string; name: string; balance: number; minimumPayment: number; paidSinceReview?: number };
 
 /**
  * The review is where the plan meets what happened. Four numbers, one per card
@@ -43,7 +41,9 @@ export function ReviewRitual({
   currency,
   debtFreeOn,
   payday,
+  readOnly = false,
 }: {
+  readOnly?: boolean;
   reviews: ReviewRow[];
   cards: Card[];
   cadence: "weekly" | "payday";
@@ -55,31 +55,33 @@ export function ReviewRitual({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [chosenCadence, setChosenCadence] = useState<"weekly" | "payday">(cadence);
-  const [entries, setEntries] = useState<Record<string, Entry>>(() =>
-    Object.fromEntries(cards.map((c) => [c.id, { paid: "", newBorrowing: "", balance: "" }])),
-  );
+  const [entries, setEntries] = useState<Record<string, PlanReviewEntry>>({});
   const [reflection, setReflection] = useState("");
   const [reading, setReading] = useState<string | null>(null);
   const [result, setResult] = useState<{ before: string; after: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const last = reviews[0] ?? null;
+  const entryFor = (card: Card) => planReviewEntry(card, entries);
 
-  function update(id: string, patch: Partial<Entry>) {
-    setEntries((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
+  function update(id: string, patch: Partial<PlanReviewEntry>) {
+    const card = cards.find((card) => card.id === id);
+    if (!card) return;
+    setEntries((prev) => ({ ...prev, [id]: { ...planReviewEntry(card, prev), ...patch } }));
   }
 
   function applyReading(id: string, r: StatementReading) {
     update(id, {
-      balance: r.balance !== null ? String(r.balance) : entries[id].balance,
-      paid: r.paymentsReceived !== null ? String(r.paymentsReceived) : entries[id].paid,
-      newBorrowing: r.newBorrowing !== null ? String(r.newBorrowing) : entries[id].newBorrowing,
+      balance: r.balance !== null ? String(r.balance) : (entries[id]?.balance ?? String(cards.find((card) => card.id === id)?.balance ?? "")),
+      paid: r.paymentsReceived !== null ? String(r.paymentsReceived) : (entries[id]?.paid ?? ""),
+      newBorrowing: r.newBorrowing !== null ? String(r.newBorrowing) : (entries[id]?.newBorrowing ?? ""),
     });
     setReading(null);
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (readOnly || busy) return;
     setBusy(true);
     setError(null);
     const body = {
@@ -87,28 +89,22 @@ export function ReviewRitual({
       reflection,
       entries: cards.map((c) => ({
         debtId: c.id,
-        paid: Number(entries[c.id].paid || 0),
-        newBorrowing: Number(entries[c.id].newBorrowing || 0),
-        balance: Number(entries[c.id].balance || c.balance),
+        paid: Number(entryFor(c).paid || 0),
+        newBorrowing: Number(entryFor(c).newBorrowing || 0),
+        balance: Number(entryFor(c).balance || c.balance),
       })),
     };
-    const res = await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    let json: { review: { debtFreeBefore: string; debtFreeAfter: string } | null };
+    try { json = await savePlanChange("/api/reviews", "POST", body); }
+    catch { setError("That didn't save. Your figures are still here. Check your connection and try again."); setBusy(false); return; }
     setBusy(false);
-    if (!res.ok) {
-      setError("That didn't save. Check the figures are numbers and try again.");
-      return;
-    }
-    const json = (await res.json()) as { review: { debtFreeBefore: string; debtFreeAfter: string } | null };
     setResult(
       json.review
         ? { before: json.review.debtFreeBefore, after: json.review.debtFreeAfter }
         : { before: debtFreeOn, after: debtFreeOn },
     );
     setOpen(false);
+    setEntries({});
     router.refresh();
   }
 
@@ -124,10 +120,10 @@ export function ReviewRitual({
       : "Once a week, whenever suits.";
 
   const input =
-    "mt-1 w-full rounded-sm border border-rule bg-card px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
+    "mt-1 min-h-11 w-full rounded-sm border border-rule bg-card px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
 
   return (
-    <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
+    <section className="rounded-card border border-rule bg-card p-5 sm:p-6"><fieldset disabled={readOnly || busy} className="min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="label">Your review</p>
@@ -137,7 +133,7 @@ export function ReviewRitual({
           <button
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="shrink-0 rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
+            className="min-h-11 shrink-0 rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
           >
             {open ? "Not now" : "Do this month's"}
           </button>
@@ -148,7 +144,7 @@ export function ReviewRitual({
         <div className="mt-4 rounded-sm bg-cream px-4 py-3">
           <p className="text-[15px] font-bold text-ink-900">Saved.</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-            {dateLine(result.before, result.after)} Ren has these numbers for next time.
+            Estimated: {dateLine(result.before, result.after)} Ren has these numbers for next time.
           </p>
         </div>
       ) : null}
@@ -156,20 +152,21 @@ export function ReviewRitual({
       {open ? (
         <form onSubmit={submit} className="mt-4 space-y-4">
           <p className="text-[13px] leading-relaxed text-ink-500">
-            One reading per card, off the statement or the app. Interest is worked out from what
+            One reading per card, off the statement or the app. Logged payments already count. Interest is worked out from what
             the balance did that the payment and anything new don&rsquo;t explain.
           </p>
 
           {cards.map((card) => (
             <fieldset key={card.id} className="rounded-sm bg-cream p-4">
               <legend className="px-1 text-[14px] font-bold text-ink-900">{card.name}</legend>
+              {(card.paidSinceReview ?? 0) > 0 ? <p className="mb-2 text-[13px] text-stem-700">{formatMoney(card.paidSinceReview!, currency)} logged since your last review</p> : null}
               <p className="text-[12px] text-ink-400">
                 Last known <span className="n">{formatMoney(card.balance, currency)}</span>
                 {" · "}
                 <button
                   type="button"
                   onClick={() => setReading(reading === card.id ? null : card.id)}
-                  className="font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem"
+                  className="min-h-11 font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem"
                 >
                   read it off the statement
                 </button>
@@ -182,33 +179,7 @@ export function ReviewRitual({
                   onClose={() => setReading(null)}
                 />
               ) : null}
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <label className="text-[12px] font-bold text-ink-500">
-                  Paid to it ({currency})
-                  <input
-                    type="number"
-                    step="any"
-                    min={0}
-                    inputMode="decimal"
-                    value={entries[card.id].paid}
-                    onChange={(e) => update(card.id, { paid: e.target.value })}
-                    className={input}
-                  />
-                </label>
-                <label className="text-[12px] font-bold text-ink-500">
-                  New on it ({currency})
-                  <input
-                    type="number"
-                    step="any"
-                    min={0}
-                    inputMode="decimal"
-                    value={entries[card.id].newBorrowing}
-                    onChange={(e) => update(card.id, { newBorrowing: e.target.value })}
-                    className={input}
-                    placeholder="0"
-                  />
-                </label>
-                <label className="text-[12px] font-bold text-ink-500">
+              <div className="mt-3"><label className="text-[12px] font-bold text-ink-500">
                   Balance now ({currency})
                   <input
                     required
@@ -216,12 +187,34 @@ export function ReviewRitual({
                     step="any"
                     min={0}
                     inputMode="decimal"
-                    value={entries[card.id].balance}
+                    value={entryFor(card).balance}
                     onChange={(e) => update(card.id, { balance: e.target.value })}
                     className={input}
                   />
-                </label>
-              </div>
+                </label><details className="mt-3"><summary className="flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-ink-500">Payments and new spending (optional)</summary><p className="mb-3 text-[12px] text-ink-400">Logged payments already count. Fill these only to replace them with the statement total or add new spending.</p><div className="grid gap-3 sm:grid-cols-2"><label className="text-[12px] font-bold text-ink-500">
+                  Payments on the statement ({currency}, optional)
+                  <input
+                    type="number"
+                    step="any"
+                    min={0}
+                    inputMode="decimal"
+                    value={entryFor(card).paid}
+                    onChange={(e) => update(card.id, { paid: e.target.value })}
+                    className={input}
+                  />
+                </label><label className="text-[12px] font-bold text-ink-500">
+                  New spending ({currency}, optional)
+                  <input
+                    type="number"
+                    step="any"
+                    min={0}
+                    inputMode="decimal"
+                    value={entryFor(card).newBorrowing}
+                    onChange={(e) => update(card.id, { newBorrowing: e.target.value })}
+                    className={input}
+                    placeholder="0"
+                  />
+                </label></div></details></div>
             </fieldset>
           ))}
 
@@ -250,7 +243,7 @@ export function ReviewRitual({
                   type="button"
                   aria-pressed={chosenCadence === key}
                   onClick={() => setChosenCadence(key)}
-                  className={`rounded-full border px-3 py-1 text-[12px] font-bold transition ${
+                  className={`min-h-11 rounded-full border px-3 py-1 text-[12px] font-bold transition ${
                     chosenCadence === key
                       ? "border-ink-800 bg-ink-800 text-cream"
                       : "border-rule text-ink-500 hover:border-ink-300"
@@ -267,7 +260,7 @@ export function ReviewRitual({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-full bg-ink-800 px-4 py-2.5 text-sm font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+            className="min-h-11 rounded-full bg-ink-800 px-4 py-2.5 text-sm font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
           >
             {busy ? "Saving" : "Save the review"}
           </button>
@@ -303,13 +296,13 @@ export function ReviewRitual({
           {last.reflection ? (
             <p className="mt-3 text-[14px] leading-relaxed text-ink-700">&ldquo;{last.reflection}&rdquo;</p>
           ) : null}
-          <p className="mt-2 text-[12px] text-ink-400">{dateLine(last.debtFreeBefore, last.debtFreeAfter)}</p>
+          <p className="mt-2 text-[12px] text-ink-400">Estimated: {dateLine(last.debtFreeBefore, last.debtFreeAfter)}</p>
         </div>
       ) : (
         <p className="mt-4 text-[13px] leading-relaxed text-ink-400">
           No reviews yet. The first one takes about five minutes with the statements open.
         </p>
       )}
-    </section>
+    </fieldset></section>
   );
 }

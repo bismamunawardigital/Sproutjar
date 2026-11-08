@@ -113,7 +113,7 @@ export function StatementImport({
         </div>
         <button
           onClick={onClose}
-          className="shrink-0 text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
+          className="min-h-11 shrink-0 text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
         >
           Close
         </button>
@@ -135,11 +135,11 @@ export function StatementImport({
           type="button"
           disabled={text.trim().length === 0}
           onClick={() => read(text)}
-          className="rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+          className="min-h-11 rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
         >
           Read it
         </button>
-        <label className="cursor-pointer text-[13px] font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem">
+        <label className="inline-flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem">
           {reading_ ? "Reading the PDF" : "or upload the PDF"}
           <input
             type="file"
@@ -175,12 +175,12 @@ export function StatementImport({
                 ))}
               </dl>
               <p className="mt-3 text-[12px] leading-relaxed text-ink-400">
-                Check these against the page. Anything wrong or missing you can change later on the Plan tab.
+                Check these against the page. Anything wrong or missing is editable before saving.
               </p>
               <button
                 type="button"
                 onClick={() => onRead(reading)}
-                className="mt-3 rounded-full bg-stem-600 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-stem-700"
+                className="min-h-11 mt-3 rounded-full bg-stem-600 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-stem-700"
               >
                 Use these figures
               </button>
