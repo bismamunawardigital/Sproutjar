@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { callerFromRenToken } from "@/lib/caller";
 import { assertToolKey } from "@/lib/tool-auth";
 import { buildSnapshot } from "@/lib/user";
-import { buildPayoffPlan, compareStrategies, monthsOfLifeBack, type Strategy } from "@/lib/debt-engine";
+import { buildPayoffPlan, compareStrategies, monthsOfLifeBack, payoffUnavailableMessage, type Strategy } from "@/lib/debt-engine";
 import { formatMoney, speakableAmount } from "@/lib/money";
 import { debtAllocation } from "@/lib/jars";
 
@@ -47,10 +47,7 @@ export async function GET(request: Request) {
       has_data: true,
       feasible: false,
       shortfall: formatMoney(plan.shortfall, currency),
-      message:
-        plan.shortfall > 0
-          ? "That monthly amount does not cover the minimum payments. This is a hardship conversation, not a plan conversation — the bank's restructuring team needs to be involved."
-          : "No payoff date is reachable with that payment and these rates. Talk through the options with the bank's restructuring team.",
+      message: payoffUnavailableMessage(plan.shortfall),
     });
   }
 

@@ -34,6 +34,12 @@ export type PayoffPlan = {
 
 const MAX_MONTHS = 600;
 
+export function payoffUnavailableMessage(shortfall: number): string {
+  return shortfall > 0
+    ? "This amount does not cover the minimum payments. Ren can help you look at the options."
+    : "At this payment and these rates, the cards do not have a payoff date yet. Ren can help you look at the options.";
+}
+
 export function monthlyBleed(debts: DebtInput[]): number {
   return debts.reduce((sum, d) => sum + d.balance * d.monthlyRate, 0);
 }

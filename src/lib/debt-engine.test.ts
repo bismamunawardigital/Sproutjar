@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, monthsOfLifeBack, type DebtInput } from "./debt-engine";
+import { buildPayoffPlan, compareStrategies, minimumsOnlyOutlook, monthsOfLifeBack, payoffUnavailableMessage, type DebtInput } from "./debt-engine";
 import { debtAllocation } from "./jars";
 
 const start = new Date(2026, 10, 1);
@@ -121,4 +121,16 @@ test("First-month budget is not silently increased to cover minimums", () => {
 test("Month-end starts do not skip the payoff month", () => {
   const plan = buildPayoffPlan([{ ...one[0], balance: 100, monthlyRate: 0, minimumPayment: 0 }], 100, "avalanche", new Date(2026, 0, 31));
   assert.equal(plan.debtFreeOn, "February 2026");
+});
+
+test("Unavailable copy distinguishes a minimum shortfall from a stalled plan", () => {
+  const short = buildPayoffPlan(one, 500, "avalanche", start);
+  const stalled = buildPayoffPlan(one, 620, "avalanche", start);
+  assert.equal(short.feasible, false);
+  assert.equal(short.shortfall, 120);
+  assert.equal(stalled.feasible, false);
+  assert.equal(stalled.shortfall, 0);
+  assert.match(payoffUnavailableMessage(short.shortfall), /does not cover the minimum payments/);
+  assert.doesNotMatch(payoffUnavailableMessage(stalled.shortfall), /minimum/);
+  assert.match(payoffUnavailableMessage(stalled.shortfall), /do not have a payoff date yet/);
 });
