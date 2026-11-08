@@ -28,6 +28,102 @@ import { PaydayInvitation } from "../components/PaydayInvitation";
 import type { Snapshot } from "./user";
 import { agendasFor, requestedAgenda } from "./session-agendas";
 import { BUILDING_AGENDAS, generatedAgendas, shuffledStarters } from "./agendas";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { RenRoom } from "../components/RenRoom";
+import { RenCall } from "../components/RenCall";
+import { RenOrb } from "../components/RenOrb";
+import { SessionClose } from "../components/SessionClose";
+import { SessionImpact } from "../components/SessionImpact";
+import { PendingTransfers } from "../components/PendingTransfers";
+import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, wordsToKeep } from "./ren";
+import { renAgendasFor } from "./session-agendas";
+
+const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
+
+test("Ren's first four calls use set B votes, the last-answer tiebreak and a free choice", () => {
+  for (let call = 0; call < 4; call++) {
+    for (let option = 0; option < 4; option++) {
+      const answers = Object.fromEntries(ONBOARDING_QUESTIONS.map((question) => [question.id, question.options[option]]));
+      const agendas = firstCallAgendas(answers, call);
+      assert.equal(agendas.length, 2);
+      assert.match(agendas[0].id, new RegExp(`set-b-${["stuck", "fade", "away", "carry"][option]}-${call + 1}`));
+      assert.match(agendas[0].reason, /Family support stays in the plan; never suggest giving less/);
+      assert.ok(agendas[0].title);
+      const snap = { horizon: "clearing", user: { onboarding: answers }, sessions: Array(call).fill({}) } as unknown as Snapshot;
+      assert.equal(renAgendasFor(snap).at(-1)?.title, "Just talk it through");
+    }
+  }
+  assert.match(firstCallAgendas({ statement: ONBOARDING_QUESTIONS[0].options[0], setback: ONBOARDING_QUESTIONS[1].options[1], pressure: ONBOARDING_QUESTIONS[2].options[3] }, 0)[0].id, /carry/);
+  assert.deepEqual(firstCallAgendas({}, 0), []);
+  assert.deepEqual(firstCallAgendas({ pressure: "unknown" }, 0), []);
+  for (const count of [-1, 4, 0.5, NaN]) assert.deepEqual(firstCallAgendas({ pressure: "The interest" }, count), []);
+});
+
+test("Ren keeps actual partial turns without inventing a close or duplicating streaming echoes", () => {
+  const first = [{ role: "you" as const, text: "I stopped opening" }];
+  const full = appendRenLine(first, { role: "you", text: "I stopped opening the statements because I was worried about them." });
+  assert.equal(full.length, 1);
+  assert.equal(appendRenLine(full, first[0]), full);
+  assert.equal(appendRenLine(full, { role: "ren", text: " " }), full);
+  assert.equal(appendRenLine(full, { role: "ren", text: "What helped you open one?" }).length, 2);
+  assert.equal(wordsToKeep(full.map((line) => line.text)), full[0].text);
+  assert.equal(wordsToKeep([]), null);
+  assert.equal(wordsToKeep(["Hello"]), null);
+  assert.ok((wordsToKeep(["A long sentence about something I want to change. ".repeat(8)])?.length ?? 0) <= 141);
+});
+
+test("Ren saves only an explicitly chosen step and never reports a rejected request as saved", async () => {
+  const calls: { url: string; body: unknown }[] = [];
+  const request: typeof fetch = async (url, init) => { calls.push({ url: String(url), body: JSON.parse(String(init?.body)) }); return new Response("{}", { status: 201 }); };
+  await keepRenStep(" Open the statement ", " Sunday morning ", request);
+  assert.deepEqual(calls, [{ url: "/api/commitments", body: { wish: "Open the statement", trigger: "Sunday morning", ownershipConfirmed: true } }]);
+  await assert.rejects(() => keepRenStep(" ", "", request), /Write the thing/);
+  assert.equal(calls.length, 1);
+  await assert.rejects(() => keepRenStep("Open it", "", async () => new Response("{}", { status: 503 })), /didn't save/);
+  await assert.rejects(() => keepRenStep("Open it", "", async () => { throw new Error("offline"); }), /offline/);
+  await decideRenProposal("move/1", "discard", request);
+  assert.deepEqual(calls.at(-1), { url: "/api/proposals/move%2F1", body: { action: "discard" } });
+  await decideRenProposal("move", "apply", request);
+  assert.deepEqual(calls.at(-1)?.body, { action: "apply" });
+  await assert.rejects(() => decideRenProposal("move", "apply", async () => new Response("{}", { status: 403 })), /proposal is still here/);
+});
+
+test("Ren room, call, quiet, typed and connecting states identify the AI and keep controls accessible", () => {
+  const agenda = firstCallAgendas({ pressure: "The interest" }, 0)[0];
+  const noop = () => {};
+  const room = renderToStaticMarkup(<RenRoom userName="Layla" agenda={agenda} agendas={[agenda]} onAgenda={noop} intent={null} onIntent={noop} quiet={false} onQuiet={noop} typed={false} onTyped={noop} onStart={noop} />);
+  assert.match(room, /Nothing to prepare/);
+  assert.match(room, /Your AI voice coach/);
+  assert.match(room, /role="switch"/);
+  assert.ok(!room.includes("ask what actually happened"));
+  const empty = renderToStaticMarkup(<RenRoom userName="" agenda={null} agendas={[]} onAgenda={noop} intent={null} onIntent={noop} quiet={false} onQuiet={noop} typed={false} onTyped={noop} onStart={noop} error="Microphone is off" />);
+  assert.match(empty, /role="alert"/);
+  for (const mode of ["voice", "quiet", "typed", "connecting"]) {
+    const markup = renderToStaticMarkup(<RenCall agenda={agenda} minutes={20} elapsed={61} connecting={mode === "connecting"} speaking={false} muted={false} quiet={mode === "quiet"} typed={mode === "typed"} words={false} lines={[]} level={0} glance={null} draft="" onDraft={noop} onSend={noop} onStop={noop} onMute={noop} onQuiet={noop} onWords={noop} onHideGlance={noop} />);
+    assert.match(markup, /Your AI voice coach/);
+    assert.match(markup, /1:01/);
+    assert.match(markup, mode === "connecting" ? />Cancel</ : />End call</);
+  }
+  assert.match(renderToStaticMarkup(<RenOrb level={NaN} />), /scale\(1\)/);
+});
+
+test("Ren close has words, nothing or a newly kept step, without shrinking a plant", () => {
+  const words = "I stopped opening the statements because I was worried about them.";
+  const render = (commitment: { wish: string; trigger: string } | null, saidByYou: string[]) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><SessionClose commitment={commitment} saidByYou={saidByYou} /></AppRouterContext.Provider>);
+  assert.match(render(null, []), /Thinking out loud counts too/);
+  const pending = render(null, [words]);
+  assert.match(pending, /Nothing is saved unless you choose it/);
+  assert.match(pending, /In your words/);
+  assert.match(render({ wish: "Open the statement", trigger: "Sunday" }, []), /One thing, chosen by you/);
+  assert.ok(!pending.includes("scaleY"));
+  const empty = renderToStaticMarkup(<SessionImpact history={[]} talks={[]} currency="AED" />);
+  assert.match(empty, /Your talks with Ren will show up here/);
+  const history = renderToStaticMarkup(<SessionImpact history={[]} talks={[{ id: "talk", agenda: "What changed", startedAt: new Date("2026-11-01"), mode: "text", summary: "Opened a statement", wish: null, status: null }]} currency="AED" />);
+  assert.match(history, /Saved summary/);
+  assert.match(history, /Opened a statement/);
+  assert.ok(!history.includes("Transcript"));
+  assert.equal(renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><PendingTransfers transfers={[]} currency="AED" monthlyAttack={100} readOnly /></AppRouterContext.Provider>), "");
+});
 
 test("empty Today uses starter openers and zero jar cover is never formatted as 0.0 months", () => {
   const empty = { horizon: "building", debts: [], runwayMonths: 0 } as unknown as Snapshot;

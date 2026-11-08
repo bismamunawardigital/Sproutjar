@@ -56,7 +56,7 @@ export function RenContract({
       <p className="px-1 text-center text-[13px] text-ink-400">
         <button
           onClick={() => setOpen(true)}
-          className="font-bold text-stem-700 underline underline-offset-4 transition hover:text-stem"
+          className="min-h-11 font-bold text-stem-700 underline underline-offset-4 transition hover:text-stem"
         >
           What Ren does and doesn&rsquo;t do
         </button>
@@ -68,7 +68,7 @@ export function RenContract({
     <section className="rounded-card border border-rule bg-card p-5">
       <p className="label">{contracted ? "What Ren does and doesn't do" : "Before your first call"}</p>
       <h2 className="mt-1.5 text-[19px] font-bold leading-tight text-ink-900">
-        Ren is a coach, not a bank and not a boss.
+        Ren is an AI coach, not a bank and not a boss.
       </h2>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -97,6 +97,10 @@ export function RenContract({
       </div>
 
       <p className="mt-4 text-[13px] leading-relaxed text-ink-400">
+        Your phone asks for the microphone before a voice call. Typing needs no microphone.
+        Calls are written down so Ren can remember them.
+      </p>
+      <p className="mt-4 text-[13px] leading-relaxed text-ink-400">
         You can say &ldquo;not now&rdquo; to anything Ren raises, and you can correct anything Ren
         works from on the You screen.
       </p>
@@ -107,7 +111,7 @@ export function RenContract({
         {contracted ? (
           <button
             onClick={() => setOpen(false)}
-            className="rounded-full border border-rule px-4 py-2 text-[14px] font-bold text-ink-600 transition hover:border-ink-300"
+            className="min-h-11 rounded-full border border-rule px-4 py-2 text-[14px] font-bold text-ink-600 transition hover:border-ink-300"
           >
             Close
           </button>
@@ -115,7 +119,7 @@ export function RenContract({
           <button
             onClick={agree}
             disabled={busy}
-            className="rounded-full bg-stem-600 px-5 py-2.5 text-[15px] font-bold text-white transition hover:bg-stem-700 disabled:opacity-60"
+            className="min-h-11 rounded-full bg-stem-600 px-5 py-2.5 text-[15px] font-bold text-white transition hover:bg-stem-700 disabled:opacity-60"
           >
             {busy ? "Saving" : "Understood"}
           </button>

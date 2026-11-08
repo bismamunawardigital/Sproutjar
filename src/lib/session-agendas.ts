@@ -6,6 +6,13 @@ import {
 } from "@/lib/agendas";
 import type { Snapshot } from "@/lib/user";
 import { CHECKIN_ANSWERS } from "@/lib/today";
+import { OPEN_AGENDA } from "@/lib/agendas";
+import { firstCallAgendas } from "@/lib/ren";
+
+export function renAgendasFor(snap: Snapshot): Agenda[] {
+  const firstCalls = snap.horizon === "clearing" ? firstCallAgendas(snap.user.onboarding ?? {}, snap.sessions.length) : [];
+  return firstCalls.length ? [...firstCalls, { ...OPEN_AGENDA, title: "Just talk it through" }] : [...agendasFor(snap), OPEN_AGENDA];
+}
 
 export function requestedAgenda(agendas: Agenda[], id: string | undefined): Agenda | null {
   const existing = agendas.find((agenda) => agenda.id === id);

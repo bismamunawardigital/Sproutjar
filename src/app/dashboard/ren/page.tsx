@@ -1,7 +1,8 @@
 import { SessionDeck } from "@/components/SessionDeck";
 import { SessionImpact } from "@/components/SessionImpact";
-import { agendasFor, requestedAgenda } from "@/lib/session-agendas";
-import { isGuestDemo } from "@/lib/caller";
+import { PendingTransfers } from "@/components/PendingTransfers";
+import { agendasFor, renAgendasFor, requestedAgenda } from "@/lib/session-agendas";
+import { currentCaller, isDemo } from "@/lib/caller";
 import { buildSnapshot } from "@/lib/user";
 import { pageMetadata } from "@/lib/metadata";
 
@@ -14,10 +15,11 @@ export default async function RenPage({
 }: {
   searchParams: Promise<{ agenda?: string }>;
 }) {
-  const [snap, params, guest] = await Promise.all([buildSnapshot(), searchParams, isGuestDemo()]);
-  const agendas = agendasFor(snap);
-  const picked = requestedAgenda(agendas, params.agenda);
-  const suggested = agendas.find((agenda) => agenda.id !== picked?.id) ?? null;
+  const caller = await currentCaller();
+  const [snap, params] = await Promise.all([buildSnapshot(caller), searchParams]);
+  const guest = isDemo(caller);
+  const agendas = renAgendasFor(snap);
+  const picked = requestedAgenda([...agendas, ...agendasFor(snap)], params.agenda);
 
   const talks = snap.sessions.map((session) => {
     const produced = session.commitments[0];
@@ -25,6 +27,7 @@ export default async function RenPage({
       id: session.id,
       agenda: session.agenda,
       mode: session.mode,
+      summary: session.summary,
       startedAt: session.startedAt,
       wish: produced ? produced.wish : null,
       status: produced ? produced.status : null,
@@ -33,20 +36,18 @@ export default async function RenPage({
 
   return (
     <>
+      <h1 className="text-[27px] font-bold tracking-tight text-ink-900">Ren</h1>
       <SessionDeck
+        key={params.agenda ?? "room"}
         guest={guest}
         userName={snap.user.name}
         initialAgenda={picked}
         agendas={agendas}
         contracted={typeof snap.user.contractedAt === "number" || snap.sessions.length > 0}
-        commitment={
-          snap.commitments[0]
-            ? { wish: snap.commitments[0].wish, trigger: snap.commitments[0].trigger }
-            : null
-        }
-        nextAgenda={suggested ? { id: suggested.id, title: suggested.title } : null}
+        commitments={snap.recentCommitments.map(({ id, wish, trigger }) => ({ id, wish, trigger }))}
       />
 
+      <PendingTransfers transfers={snap.proposals.filter((proposal) => proposal.kind === "balance_move").map((proposal) => ({ ...proposal, on: proposal.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) }))} currency={snap.country.currency} monthlyAttack={snap.attack.amount} readOnly={guest} />
       <SessionImpact
         history={snap.history}
         talks={talks}
