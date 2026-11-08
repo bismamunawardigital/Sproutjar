@@ -112,7 +112,7 @@ test("Today review invitation reflects the actual cadence and known payday", () 
 });
 
 test("check-in links resolve their actual follow-up topic even with past-session generated agendas", () => {
-  const agendas = agendasFor({ horizon: "clearing", debts: [{ balance: 1000 }], user: { name: "Layla" }, beliefs: [], recentCommitments: [], sessions: [{}], plan: { monthlyBleed: 20 }, history: [], lastReview: null, attack: { amount: 200, source: "chosen" }, payday: { isWindow: false } } as unknown as Snapshot);
+  const agendas = agendasFor({ horizon: "clearing", debts: [{ balance: 1000 }], user: { name: "Layla" }, country: { currency: "AED" }, beliefs: [], recentCommitments: [], sessions: [{}], plan: { monthlyBleed: 20 }, history: [], lastReview: null, attack: { amount: 200, source: "chosen" }, payday: { isWindow: false } } as unknown as Snapshot);
   for (const answer of Object.values(CHECKIN_ANSWERS)) {
     assert.ok(!agendas.some((agenda) => agenda.id === answer.agenda));
     const picked = requestedAgenda(agendas, answer.agenda);
