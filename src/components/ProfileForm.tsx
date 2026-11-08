@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { debtAttackFor } from "@/lib/cash-flow";
-import { COUNTRIES } from "@/lib/money";
+import { COUNTRIES, countryProfile } from "@/lib/money";
+import { planMoney, planStrategy } from "@/lib/plan";
 
 type Fields = {
   name: string;
@@ -25,7 +26,7 @@ type Fields = {
 };
 
 const field =
-  "mt-1 w-full rounded-sm border border-rule bg-cream px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
+  "mt-1 min-h-11 w-full rounded-sm border border-rule bg-cream px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
 const label = "block text-[12px] font-bold text-ink-500";
 
 function num(value: string): number {
@@ -40,7 +41,7 @@ function num(value: string): number {
  */
 export function ProfileForm({
   initial,
-  currency,
+  readOnly = false,
 }: {
   initial: {
     name: string;
@@ -61,6 +62,7 @@ export function ProfileForm({
     upbringing?: string;
   };
   currency: string;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<Fields>({
@@ -73,10 +75,10 @@ export function ProfileForm({
     remittances: initial.remittances ? String(initial.remittances) : "",
     sinkingFunds: initial.sinkingFunds ? String(initial.sinkingFunds) : "",
     debtAttackSource: initial.debtAttackSource === "chosen" ? "chosen" : "derived",
-    debtAttack: initial.debtAttack ? String(initial.debtAttack) : "",
+    debtAttack: initial.debtAttack === undefined ? "" : String(initial.debtAttack),
     windfallRule: initial.windfallRule ?? "",
     reviewCadence: initial.reviewCadence === "weekly" ? "weekly" : "payday",
-    strategy: initial.strategy === "avalanche" ? "avalanche" : "snowball",
+    strategy: planStrategy(initial.strategy),
     moneyPurpose: initial.moneyPurpose ?? "",
     goodDecision: initial.goodDecision ?? "",
     upbringing: initial.upbringing ?? "",
@@ -84,6 +86,8 @@ export function ProfileForm({
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currency = countryProfile(form.country).currency;
+  const money = (value: number) => planMoney(value, currency);
 
   const set = <K extends keyof Fields>(key: K, value: Fields[K]) => {
     setSaved(false);
@@ -102,6 +106,8 @@ export function ProfileForm({
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (readOnly || busy) return;
+    if (!form.payday && initial.payday) { setError("Enter a payday from 1 to 31. Clearing a saved payday is not supported yet."); return; }
     setBusy(true);
     setError(null);
     try {
@@ -131,7 +137,7 @@ export function ProfileForm({
       setSaved(true);
       router.refresh();
     } catch {
-      setError("That didn't save. Check the numbers and try again; nothing was changed.");
+      setError("That didn't save. Your edits are still here. Check the numbers and try again.");
     } finally {
       setBusy(false);
     }
@@ -139,12 +145,13 @@ export function ProfileForm({
 
   return (
     <form onSubmit={save} className="space-y-6">
+      <fieldset disabled={readOnly || busy} className="space-y-6 disabled:opacity-60">
       <fieldset>
         <legend className="label">About you</legend>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className={label}>
             Name
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} className={field} />
+            <input required maxLength={40} value={form.name} onChange={(e) => set("name", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Where you live
@@ -156,6 +163,7 @@ export function ProfileForm({
               ))}
             </select>
           </label>
+          <p className="text-[12px] text-ink-500 sm:col-span-2">Country sets the currency. Changing it does not convert saved amounts. Check all figures, including cards and jars, in the new currency.</p>
         </div>
       </fieldset>
 
@@ -164,27 +172,27 @@ export function ProfileForm({
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className={label}>
             Take-home salary
-            <input inputMode="decimal" value={form.monthlyIncome} onChange={(e) => set("monthlyIncome", e.target.value)} className={field} />
+            <input type="number" min={0} step="any" inputMode="decimal" value={form.monthlyIncome} onChange={(e) => set("monthlyIncome", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Payday (day of month)
-            <input inputMode="numeric" placeholder="25" value={form.payday} onChange={(e) => set("payday", e.target.value)} className={field} />
+            <input type="number" min={1} max={31} step={1} inputMode="numeric" placeholder="25" value={form.payday} onChange={(e) => set("payday", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Essentials: food, transport, phone
-            <input inputMode="decimal" value={form.monthlyEssentials} onChange={(e) => set("monthlyEssentials", e.target.value)} className={field} />
+            <input type="number" min={0} step="any" inputMode="decimal" value={form.monthlyEssentials} onChange={(e) => set("monthlyEssentials", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Rent, school fees, instalments
-            <input inputMode="decimal" placeholder="0" value={form.priorityObligations} onChange={(e) => set("priorityObligations", e.target.value)} className={field} />
+            <input type="number" min={0} step="any" inputMode="decimal" placeholder="0" value={form.priorityObligations} onChange={(e) => set("priorityObligations", e.target.value)} className={field} />
           </label>
           <label className={label}>
-            Sent home
-            <input inputMode="decimal" placeholder="0" value={form.remittances} onChange={(e) => set("remittances", e.target.value)} className={field} />
+            Family support / sent home · protected
+            <input type="number" min={0} step="any" inputMode="decimal" placeholder="0" value={form.remittances} onChange={(e) => set("remittances", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Set aside for known lumps (Eid, renewals)
-            <input inputMode="decimal" placeholder="0" value={form.sinkingFunds} onChange={(e) => set("sinkingFunds", e.target.value)} className={field} />
+            <input type="number" min={0} step="any" inputMode="decimal" placeholder="0" value={form.sinkingFunds} onChange={(e) => set("sinkingFunds", e.target.value)} className={field} />
           </label>
         </div>
       </fieldset>
@@ -196,15 +204,14 @@ export function ProfileForm({
             <div key={line.label} className="flex items-baseline justify-between gap-3 text-[13px]">
               <dt className="text-ink-500">{line.label}</dt>
               <dd className={`n ${line.amount < 0 ? "text-ink-400" : "text-ink-800"}`}>
-                {line.amount < 0 ? "−" : ""}
-                {Math.abs(line.amount).toLocaleString("en-US")}
+                {money(line.amount)}
               </dd>
             </div>
           ))}
           <div className="flex items-baseline justify-between gap-3 border-t border-rule pt-2 text-[14px] font-bold">
             <dt className="text-ink-800">Derived</dt>
             <dd className="n text-stem-700">
-              {currency} {attack.derived.toLocaleString("en-US")}
+              {money(attack.derived)}
             </dd>
           </div>
         </dl>
@@ -214,7 +221,7 @@ export function ProfileForm({
             type="button"
             onClick={() => set("debtAttackSource", "derived")}
             aria-pressed={form.debtAttackSource === "derived"}
-            className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
+            className={`min-h-11 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
               form.debtAttackSource === "derived"
                 ? "bg-stem-600 text-white"
                 : "border border-rule bg-card text-ink-600 hover:border-stem"
@@ -226,7 +233,7 @@ export function ProfileForm({
             type="button"
             onClick={() => set("debtAttackSource", "chosen")}
             aria-pressed={form.debtAttackSource === "chosen"}
-            className={`rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
+            className={`min-h-11 rounded-full px-3.5 py-1.5 text-[12px] font-bold transition ${
               form.debtAttackSource === "chosen"
                 ? "bg-stem-600 text-white"
                 : "border border-rule bg-card text-ink-600 hover:border-stem"
@@ -240,7 +247,7 @@ export function ProfileForm({
           <label className={`${label} mt-3`}>
             Your figure ({currency})
             <input
-              inputMode="decimal"
+              type="number" min={0} step="any" inputMode="decimal"
               value={form.debtAttack}
               onChange={(e) => set("debtAttack", e.target.value)}
               className={field}
@@ -251,13 +258,13 @@ export function ProfileForm({
         <p className="mt-3 text-[13px] text-ink-500">
           The plan runs on{" "}
           <span className="n font-bold text-ink-800">
-            {currency} {attack.amount.toLocaleString("en-US")}
+            {money(attack.amount)}
           </span>{" "}
           a month, the{" "}
           <span className="chip c-neutral">{attack.source === "chosen" ? "chosen" : "derived"}</span>{" "}
           figure.
           {attack.source === "chosen" && attack.chosen !== null && attack.chosen !== attack.derived
-            ? ` The formula would say ${currency} ${attack.derived.toLocaleString("en-US")}.`
+            ? ` The formula would say ${money(attack.derived)}.`
             : ""}
         </p>
       </fieldset>
@@ -296,15 +303,15 @@ export function ProfileForm({
         <div className="mt-3 grid gap-3">
           <label className={label}>
             What the money is for
-            <textarea rows={2} value={form.moneyPurpose} onChange={(e) => set("moneyPurpose", e.target.value)} className={field} />
+            <textarea maxLength={300} rows={2} value={form.moneyPurpose} onChange={(e) => set("moneyPurpose", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Something you already did that worked
-            <textarea rows={2} value={form.goodDecision} onChange={(e) => set("goodDecision", e.target.value)} className={field} />
+            <textarea maxLength={300} rows={2} value={form.goodDecision} onChange={(e) => set("goodDecision", e.target.value)} className={field} />
           </label>
           <label className={label}>
             Where your money story starts
-            <textarea rows={2} value={form.upbringing} onChange={(e) => set("upbringing", e.target.value)} className={field} />
+            <textarea maxLength={300} rows={2} value={form.upbringing} onChange={(e) => set("upbringing", e.target.value)} className={field} />
           </label>
         </div>
       </fieldset>
@@ -314,10 +321,11 @@ export function ProfileForm({
       <button
         type="submit"
         disabled={busy}
-        className="rounded-full bg-ink-800 px-5 py-2.5 text-[14px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+        className="min-h-11 rounded-full bg-ink-800 px-5 py-2.5 text-[14px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
       >
         {busy ? "Saving" : saved ? "Saved" : "Save"}
       </button>
+      </fieldset>
     </form>
   );
 }
