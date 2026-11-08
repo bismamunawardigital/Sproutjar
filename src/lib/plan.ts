@@ -15,6 +15,16 @@ export function planReviewEntry(card: { id: string; balance: number }, drafts: R
   return drafts[card.id] ?? { paid: "", newBorrowing: "", balance: String(card.balance) };
 }
 
+export function planReviewSplit(opening: number, paid: number, balance: number, monthlyRate: number, spending?: number) {
+  const unexplained = Math.max(0, balance - Math.max(0, opening - paid));
+  if (spending !== undefined) {
+    const newBorrowing = Math.max(0, spending);
+    return { interestCharged: Math.max(0, balance - Math.max(0, opening - paid + newBorrowing)), newBorrowing, estimatedSplit: false };
+  }
+  const interestCharged = Math.min(unexplained, Math.max(0, opening * monthlyRate));
+  return { interestCharged, newBorrowing: unexplained - interestCharged, estimatedSplit: unexplained > 0 };
+}
+
 export async function savePlanChange<T = unknown>(url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown, request: typeof fetch = fetch): Promise<T> {
   const response = await request(url, { method, ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) });
   const result = await response.json().catch(() => ({}));

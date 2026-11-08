@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
-import { planStrategy } from "../src/lib/plan";
+import { planReviewSplit, planStrategy } from "../src/lib/plan";
 import { onboardingAnswers, onboardingProgress } from "./onboarding";
 import { INITIAL_ONBOARDING, onboardingAnswersSchema, onboardingProgressSchema } from "../src/lib/onboarding";
 
@@ -426,7 +426,7 @@ export const recordReview = mutation({
       v.object({
         debtId: v.id("debts"),
         paid: v.number(),
-        newBorrowing: v.number(),
+        newBorrowing: v.optional(v.number()),
         balance: v.number(),
       }),
     ),
@@ -480,19 +480,16 @@ export const recordReview = mutation({
       completedAt: now,
     });
 
-    const totals = { openingDebt: 0, closingDebt: 0, paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0 };
+    const totals = { openingDebt: 0, closingDebt: 0, paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0, estimatedSplit: false };
     for (const entry of args.entries) {
       const debt = active.find((d) => d._id === entry.debtId);
       if (!debt) continue;
       const logged = loggedSince.get(debt._id) ?? { paid: 0, reduction: 0 };
       // The statement covers the logged payments too; a blank field means "just those".
       const paid = Math.max(0, entry.paid, logged.paid);
-      const newBorrowing = Math.max(0, entry.newBorrowing);
       const balance = Math.max(0, entry.balance);
       const opening = debt.balance + logged.reduction;
-      // What the card would stand at if no interest had been charged.
-      const expected = Math.max(0, opening - paid + newBorrowing);
-      const interestCharged = Math.max(0, balance - expected);
+      const { newBorrowing, interestCharged, estimatedSplit } = planReviewSplit(opening, paid, balance, debt.monthlyRate, entry.newBorrowing);
       const principalRepaid = Math.max(0, Math.min(paid, opening + newBorrowing) - interestCharged);
 
       totals.openingDebt += opening;
@@ -501,6 +498,7 @@ export const recordReview = mutation({
       totals.principalRepaid += principalRepaid;
       totals.interestCharged += interestCharged;
       totals.newBorrowing += newBorrowing;
+      totals.estimatedSplit ||= estimatedSplit;
 
       debt.balance = balance;
       await ctx.db.patch(debt._id, {
@@ -518,6 +516,7 @@ export const recordReview = mutation({
         // interest found here takes some of that back so the history sums right.
         principalCleared: principalRepaid - logged.reduction,
         statementPaid: paid,
+        estimatedSplit,
         interestCharged,
         newBorrowing,
         reviewId,

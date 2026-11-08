@@ -173,6 +173,7 @@ export async function buildSnapshot(caller?: Caller) {
         id: d._id,
         /** "I paid this" amounts not yet confirmed by a statement review. */
         paidSinceReview,
+        reductionSinceReview: sinceLastReview.filter(isPaymentEntry).reduce((sum, entry) => sum + entry.principalCleared, 0),
         /** Any payment or balance edit since the last review, so a card taken to zero still gets reviewed. */
         touchedSinceReview: sinceLastReview.length > 0,
         lastReviewed: reviewed

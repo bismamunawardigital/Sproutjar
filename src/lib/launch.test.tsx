@@ -12,7 +12,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { addCommitment, completeOnboarding, recordCompletedSession, saveOnboardingCard, setCommitmentStatus, snapshot } from "../../convex/sproutjar";
+import { addCommitment, completeOnboarding, recordCompletedSession, recordReview, saveOnboardingCard, setCommitmentStatus, snapshot } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -41,7 +41,7 @@ import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, record
 import { readRenSessionToken, readRenUserToken, renUserToken } from "./ren-token";
 import { renAgendasFor } from "./session-agendas";
 import { PlanScreen } from "../components/PlanScreen";
-import { planMoney, planStrategy, planReviewEntry, savePlanChange } from "./plan";
+import { planMoney, planStrategy, planReviewEntry, planReviewSplit, savePlanChange } from "./plan";
 import { compareStrategies, minimumsOnlyOutlook } from "./debt-engine";
 
 function planFixture(debts = [{ id: "card", name: "A real card", issuer: "ADCB", kind: "credit_card", balance: 1000, openingBalance: 1500, monthlyRate: 0.0325, minimumPayment: 50, isEstimated: true, estimatedFields: "rate", touchedSinceReview: false, lastReviewed: null }], monthly = 200, openingPrincipal = 1500) {
@@ -84,6 +84,43 @@ test("review defaults follow a payment or a newly added card without replacing a
   assert.equal(planReviewEntry({ id: "new", balance: 500 }, drafts).balance, "500");
   assert.deepEqual(planReviewEntry({ id: "card", balance: 990 }, { card: { balance: "1010", paid: "10", newBorrowing: "" } }), { balance: "1010", paid: "10", newBorrowing: "" });
   assert.equal(planReviewEntry({ id: "card", balance: 0 }, drafts).balance, "0");
+});
+
+test("unknown spending estimates only the engine's interest, with editable and empty splits", () => {
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03), { interestCharged: 30, newBorrowing: 470, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 100, 1100, 0.03), { interestCharged: 30, newBorrowing: 170, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 450), { interestCharged: 50, newBorrowing: 450, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 0), { interestCharged: 500, newBorrowing: 0, estimatedSplit: false });
+  for (const balance of [900, 1000]) assert.deepEqual(planReviewSplit(1000, 0, balance, 0.03), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(0, 0, 0, 0.03), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0), { interestCharged: 0, newBorrowing: 500, estimatedSplit: true });
+});
+
+test("review records an unexplained rise as an Estimated split, preserves explicit readings, and rejects invalid callers", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
+  try {
+    for (const spending of [undefined, 450, 0]) {
+      const debt = { _id: "card", userId: "layla", status: "active", name: "Card", issuer: "Bank", balance: 1000, monthlyRate: 0.03, minimumPayment: 50 };
+      const user = { _id: "layla", monthlyIncome: 2000, monthlyEssentials: 1000, debtAttack: 200, debtAttackSource: "chosen", strategy: "avalanche", reviewCadence: "payday" };
+      const inserted: Record<string, Record<string, unknown>> = {};
+      const ctx = { db: {
+        query: (table: string) => ({ withIndex: () => ({ unique: async () => user, collect: async () => table === "debts" ? [debt] : [] }) }),
+        insert: async (table: string, fields: Record<string, unknown>) => { inserted[table] = { ...fields }; return table; },
+        patch: async (id: string, fields: Record<string, unknown>) => { Object.assign(id === "card" ? debt : inserted[id], fields); },
+      } } as unknown as MutationCtx;
+      const run = (recordReview as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordReview>) => Promise<unknown> })._handler;
+      const args = { caller: { serverKey: "plan-test-key", userKey: "layla" }, cadence: "payday", reflection: "", entries: [{ debtId: "card" as Id<"debts">, paid: 0, balance: 1500, ...(spending === undefined ? {} : { newBorrowing: spending }) }] };
+      await assert.rejects(() => run(ctx, { ...args, caller: { ...args.caller, serverKey: "invalid" } }), /Not from the Sproutjar server/);
+      assert.deepEqual(inserted, {});
+      await run(ctx, args);
+      const expected = planReviewSplit(1000, 0, 1500, 0.03, spending);
+      for (const table of ["reviews", "balanceEntries"]) for (const key of ["interestCharged", "newBorrowing", "estimatedSplit"] as const) assert.equal(inserted[table][key], expected[key]);
+      assert.equal(debt.balance, 1500);
+    }
+    const topics = generatedAgendas({ name: "Layla", currency: "AED", monthlyBleed: 0, sessionsHeld: 2, lastReview: { completedAt: new Date(), principalRepaid: 0, interestCharged: 30, newBorrowing: 470, reflection: "", estimatedSplit: true } });
+    for (const topic of topics.filter((topic) => ["review-gap", "the-price"].includes(topic.id))) assert.match(topic.reason, /Estimated split/);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
 });
 
 test("statement-cleared cards remain available for the Plan's history without reopening their debt", async () => {

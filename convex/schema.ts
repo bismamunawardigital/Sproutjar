@@ -82,6 +82,7 @@ export default defineSchema({
     newBorrowing: v.optional(v.number()),
     /** Review rows only: the full payment figure on the statement, logged payments included. */
     statementPaid: v.optional(v.number()),
+    estimatedSplit: v.optional(v.boolean()),
     reviewId: v.optional(v.id("reviews")),
     source: v.string(),
     loggedAt: v.number(),
@@ -96,6 +97,7 @@ export default defineSchema({
    */
   reviews: defineTable({
     userId: v.id("users"),
+    estimatedSplit: v.optional(v.boolean()),
     /** weekly | payday */
     cadence: v.string(),
     /** Total owed when the period opened. */

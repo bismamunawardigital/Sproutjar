@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plant, type PlantState } from "@/components/Plant";
 import { StatementImport, type StatementReading } from "@/components/StatementImport";
-import { planMoney as formatMoney, planMoney as formatMoneyShort, planReviewEntry, savePlanChange, type PlanReviewEntry } from "@/lib/plan";
+import { planMoney as formatMoney, planMoney as formatMoneyShort, planReviewEntry, planReviewSplit, savePlanChange, type PlanReviewEntry } from "@/lib/plan";
 
 export type ReviewRow = {
+  estimatedSplit?: boolean;
   id: string;
   cadence: string;
   completedAt: string;
@@ -22,7 +23,7 @@ export type ReviewRow = {
   reflection: string;
 };
 
-type Card = { id: string; name: string; balance: number; minimumPayment: number; paidSinceReview?: number };
+type Card = { id: string; name: string; balance: number; monthlyRate: number; minimumPayment: number; paidSinceReview?: number; reductionSinceReview?: number };
 
 /**
  * The review is where the plan meets what happened. Four numbers, one per card
@@ -67,6 +68,10 @@ export function ReviewRitual({
 
   const last = reviews[0] ?? null;
   const entryFor = (card: Card) => planReviewEntry(card, entries);
+  const splitFor = (card: Card) => {
+    const entry = entryFor(card);
+    return planReviewSplit(card.balance + (card.reductionSinceReview ?? card.paidSinceReview ?? 0), Math.max(card.paidSinceReview ?? 0, Number(entry.paid || 0)), Number(entry.balance), card.monthlyRate, entry.newBorrowing.trim() ? Number(entry.newBorrowing) : undefined);
+  };
 
   function update(id: string, patch: Partial<PlanReviewEntry>) {
     const card = cards.find((card) => card.id === id);
@@ -75,10 +80,16 @@ export function ReviewRitual({
   }
 
   function applyReading(id: string, r: StatementReading) {
+    const card = cards.find((card) => card.id === id);
+    if (!card) return;
+    const current = entryFor(card);
+    const balance = r.balance ?? Number(current.balance);
+    const paid = Math.max(card.paidSinceReview ?? 0, r.paymentsReceived ?? Number(current.paid || 0));
+    const opening = card.balance + (card.reductionSinceReview ?? card.paidSinceReview ?? 0);
     update(id, {
       balance: r.balance !== null ? String(r.balance) : (entries[id]?.balance ?? String(cards.find((card) => card.id === id)?.balance ?? "")),
       paid: r.paymentsReceived !== null ? String(r.paymentsReceived) : (entries[id]?.paid ?? ""),
-      newBorrowing: r.newBorrowing !== null ? String(r.newBorrowing) : (entries[id]?.newBorrowing ?? ""),
+      newBorrowing: r.newBorrowing !== null ? String(r.newBorrowing) : r.interestCharged !== null ? String(Math.max(0, balance - Math.max(0, opening - paid) - r.interestCharged)) : current.newBorrowing,
     });
     setReading(null);
   }
@@ -94,8 +105,8 @@ export function ReviewRitual({
       entries: cards.map((c) => ({
         debtId: c.id,
         paid: Number(entryFor(c).paid || 0),
-        newBorrowing: Number(entryFor(c).newBorrowing || 0),
-        balance: Number(entryFor(c).balance || c.balance),
+        ...(entryFor(c).newBorrowing.trim() ? { newBorrowing: Number(entryFor(c).newBorrowing) } : {}),
+        balance: Number(entryFor(c).balance),
       })),
     };
     let json: { review: { debtFreeBefore: string; debtFreeAfter: string } | null };
@@ -158,8 +169,7 @@ export function ReviewRitual({
       {open ? (
         <form onSubmit={submit} className="mt-4 space-y-4">
           <p className="text-[13px] leading-relaxed text-ink-500">
-            One reading per card, off the statement or the app. Logged payments already count. Interest is worked out from what
-            the balance did that the payment and anything new don&rsquo;t explain.
+            One reading per card, off the statement or the app. Logged payments already count. Without a spending figure, the saved monthly rate estimates interest; the rest is Estimated new spending. Check and edit the split against your statement.
           </p>
 
           {cards.map((card) => (
@@ -197,7 +207,7 @@ export function ReviewRitual({
                     onChange={(e) => update(card.id, { balance: e.target.value })}
                     className={input}
                   />
-                </label><details className="mt-3"><summary className="flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-ink-500">Payments and new spending (optional)</summary><p className="mb-3 text-[12px] text-ink-400">Logged payments already count. Fill these only to replace them with the statement total or add new spending.</p><div className="grid gap-3 sm:grid-cols-2"><label className="text-[12px] font-bold text-ink-500">
+                </label><p className="mt-3 text-[13px] text-ink-500">{splitFor(card).estimatedSplit ? "Estimated split" : "Split"}: {formatMoney(splitFor(card).interestCharged, currency)} interest, {formatMoney(splitFor(card).newBorrowing, currency)} new spending. Edit new spending below to adjust the split.</p><label className="mt-3 block text-[12px] font-bold text-ink-500">New spending ({currency}, optional)<input type="number" step="any" min={0} inputMode="decimal" value={entryFor(card).newBorrowing} placeholder={String(splitFor(card).newBorrowing)} onChange={(e) => update(card.id, { newBorrowing: e.target.value })} className={input} /></label><details className="mt-3"><summary className="flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-ink-500">Payments (optional)</summary><p className="mb-3 text-[12px] text-ink-400">Logged payments already count. Fill this only to replace them with the statement total.</p><div><label className="text-[12px] font-bold text-ink-500">
                   Payments on the statement ({currency}, optional)
                   <input
                     type="number"
@@ -207,18 +217,6 @@ export function ReviewRitual({
                     value={entryFor(card).paid}
                     onChange={(e) => update(card.id, { paid: e.target.value })}
                     className={input}
-                  />
-                </label><label className="text-[12px] font-bold text-ink-500">
-                  New spending ({currency}, optional)
-                  <input
-                    type="number"
-                    step="any"
-                    min={0}
-                    inputMode="decimal"
-                    value={entryFor(card).newBorrowing}
-                    onChange={(e) => update(card.id, { newBorrowing: e.target.value })}
-                    className={input}
-                    placeholder="0"
                   />
                 </label></div></details></div>
             </fieldset>
@@ -279,6 +277,7 @@ export function ReviewRitual({
             Last review ·{" "}
             {new Date(last.completedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
           </p>
+          {last.estimatedSplit ? <p className="mt-2 text-[13px] text-ink-500">Estimated split for interest and new spending. Check these against your statement.</p> : null}
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
             <div>
               <dt className="label">Owed at the start</dt>
