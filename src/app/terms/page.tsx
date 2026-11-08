@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import { LegalPage } from "@/components/LegalPage";
 import { SUPPORT_EMAIL } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Terms · Sproutjar" };
+export const metadata = pageMetadata("Terms · Sproutjar");
 
 export default function TermsPage() {
   return (

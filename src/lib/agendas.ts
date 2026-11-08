@@ -80,7 +80,7 @@ export const BUILDING_AGENDAS: Agenda[] = [
     id: "a-year-of-cover",
     title: "How much cover is enough",
     reason:
-      "Three months, six, a year. Not the textbook answer — the number that would let you sleep.",
+      "Three months, six, a year. Not the textbook answer, the number that would let you sleep.",
     technique: "What matters to you",
     minutes: 20,
   },
@@ -153,7 +153,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
           )} you said it might be because ${lowerFirst(
             context.belief.text,
           )} Worth looking at, because it would explain more than just this month.`
-        : `"${context.missedCommitment.wish}" didn't happen. Not why — just what got in the way.`,
+        : `"${context.missedCommitment.wish}" didn't happen. Not why, just what got in the way.`,
       technique: "Working out what happened",
       minutes: 15,
     });

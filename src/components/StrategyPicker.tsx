@@ -69,7 +69,7 @@ export function StrategyPicker({
                 </>
               ) : (
                 <p className="mt-3 text-[15px] text-ink-400">
-                  No timeline yet — there isn&rsquo;t enough spare to cover the minimums.
+                  No timeline yet. There isn&rsquo;t enough spare to cover the minimums.
                 </p>
               )}
               <p className="mt-3 text-[13px] leading-relaxed text-ink-400">{option.blurb}</p>

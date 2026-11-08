@@ -76,7 +76,7 @@ export function SessionClose({
           <input
             value={trigger}
             onChange={(e) => setTrigger(e.target.value)}
-            placeholder="When something already happens — after Friday lunch, say"
+            placeholder="When something already happens, after Friday lunch, say"
             className="w-full rounded-sm border border-rule bg-cream px-3 py-2.5 text-[15px] text-ink-800 outline-none focus:border-stem"
           />
           <button

@@ -32,7 +32,7 @@ const QUESTIONS: Question[] = [
       {
         value: "want-savings",
         label: "I want something set aside, for once",
-        mirror: "A small buffer is what stops the card getting used again. That's where we start.",
+        mirror: "A small buffer is what stops the card getting used again. That's a place to start.",
       },
       {
         value: "avoiding",

@@ -8,6 +8,9 @@ import { ReviewRitual } from "@/components/ReviewRitual";
 import { StrategyPicker } from "@/components/StrategyPicker";
 import { formatMoney, formatMoneyShort } from "@/lib/money";
 import { buildSnapshot } from "@/lib/user";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata("Your plan · Sproutjar");
 
 export const dynamic = "force-dynamic";
 

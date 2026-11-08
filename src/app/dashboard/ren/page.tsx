@@ -3,6 +3,9 @@ import { SessionImpact } from "@/components/SessionImpact";
 import { agendasFor } from "@/lib/session-agendas";
 import { isGuestDemo } from "@/lib/caller";
 import { buildSnapshot } from "@/lib/user";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata("Ren, your AI coach · Sproutjar");
 
 export const dynamic = "force-dynamic";
 

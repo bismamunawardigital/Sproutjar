@@ -5,6 +5,9 @@ import { Plant } from "@/components/Plant";
 import { formatMoneyShort } from "@/lib/money";
 import { agendasFor } from "@/lib/session-agendas";
 import { buildSnapshot } from "@/lib/user";
+import { pageMetadata } from "@/lib/metadata";
+
+export const metadata = pageMetadata("Today · Sproutjar");
 
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/metadata";
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
@@ -34,11 +34,10 @@ import {
   TRANSFER_CONDITIONS,
 } from "./content";
 
-export const metadata: Metadata = {
-  title: "Sproutjar: how it was researched, designed and built",
-  description:
-    "The case study behind Sproutjar: a voice coach for people clearing credit card debt in the Gulf. Research, the findings that argued against my own idea, the decisions taken, and what remains unproven.",
-};
+export const metadata = pageMetadata(
+  "Sproutjar: how it was researched, designed and built",
+  "The case study behind Sproutjar: a voice coach for people clearing credit card debt in the Gulf. Research, the findings that argued against my own idea, the decisions taken, and what remains unproven.",
+);
 
 export default function CaseStudy() {
   return (
