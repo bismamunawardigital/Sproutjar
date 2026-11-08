@@ -113,11 +113,42 @@ test("Layla's prototype seed preserves figures, eleven weeks, six dated talks an
     for (const debtId of new Set(rows.balanceEntries.map((entry) => entry.debtId))) {
       const series = rows.balanceEntries.filter((entry) => entry.debtId === debtId).sort((a, b) => Number(a.loggedAt) - Number(b.loggedAt));
       for (let i = 1; i < series.length; i++) {
-        assert.ok(Number(series[i].balance) <= Number(series[i - 1].balance), `${debtId}: ${series[i - 1].balance} -> ${series[i].balance} without new borrowing`);
+        assert.ok(Number(series[i].balance) <= Number(series[i - 1].balance) + Number(series[i].newBorrowing), `${debtId}: ${series[i - 1].balance} -> ${series[i].balance} exceeds recorded new borrowing`);
       }
     }
     await run(ctx, { ...args, debts: [], jars: [], beliefs: [], commitments: [], sessions: [] });
     assert.equal(rows.users.at(-1)?.weeksActive, 0);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
+
+test("seed interpolation applies windfalls and borrowing on their recorded weeks without moving talk readings", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "seed-events-key";
+  try {
+    const rows: Record<string, Record<string, unknown>[]> = {};
+    const ctx = { db: { query: () => ({ withIndex: () => ({ unique: async () => null }) }), insert: async (table: string, data: Record<string, unknown>) => { (rows[table] ??= []).push(data); return `${table}-${rows[table].length}`; } } } as unknown as MutationCtx;
+    const run = (seed as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.seed>) => Promise<unknown> })._handler;
+    const args = { ...LAYLA_SEED, caller: { serverKey: "seed-events-key", userKey: "demo" }, debts: [{ ...LAYLA_SEED.debts[0], openingBalance: 1000, balance: 400, monthlyRate: 0, events: [{ week: 3, principal: 80 }, { week: 3, principal: 40 }, { week: 9, newBorrowing: 120 }] }], sessions: [{ ...LAYLA_SEED.sessions[0], daysAgo: 44, balanceAtStart: 700 }], commitments: [] };
+    await run(ctx, args);
+    const payments = rows.balanceEntries.filter((entry) => entry.source !== "seed_snapshot");
+    assert.equal(payments[1].balance, 940);
+    assert.equal(payments[2].balance, 790);
+    assert.equal(payments[2].principalCleared, 150);
+    assert.equal(payments[2].amountPaid, 150);
+    assert.equal(payments[7].balance, 560);
+    assert.equal(payments[8].balance, 610);
+    assert.equal(payments[8].newBorrowing, 120);
+    assert.equal(payments[8].principalCleared, 70);
+    assert.equal(payments.at(-1)?.balance, 400);
+    assert.equal(rows.balanceEntries.find((entry) => entry.source === "seed_snapshot")?.balance, 700);
+    assert.equal(rows.reviews[0].openingDebt, 700);
+    assert.equal(rows.reviews[0].closingDebt, 540);
+    assert.equal(rows.reviews[0].newBorrowing, 120);
+    assert.equal(rows.reviews[0].principalRepaid, 280);
+    assert.equal(rows.reviews[0].paid, 280);
+    const series = [...rows.balanceEntries].sort((a, b) => Number(a.loggedAt) - Number(b.loggedAt));
+    for (let i = 1; i < series.length; i++) assert.ok(Number(series[i].balance) <= Number(series[i - 1].balance) + Number(series[i].newBorrowing));
+    await assert.rejects(() => run(ctx, { ...args, debts: [{ ...args.debts[0], events: [{ week: 3, principal: 500 }] }] }), /Seed events exceed/);
   } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
 });
 

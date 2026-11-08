@@ -1042,9 +1042,9 @@ export const seed = mutation({
       let previous = debt.openingBalance;
       weekly[0].balance += previous;
       for (let week = 1; week <= HISTORY_WEEKS; week += 1) {
-        const event = events.find((e) => e.week === week);
-        const lump = event?.principal ?? 0;
-        const newBorrowing = event?.newBorrowing ?? 0;
+        const eventsThisWeek = events.filter((event) => event.week === week);
+        const lump = eventsThisWeek.reduce((sum, event) => sum + (event.principal ?? 0), 0);
+        const newBorrowing = eventsThisWeek.reduce((sum, event) => sum + (event.newBorrowing ?? 0), 0);
         const balance = seedBalanceAt(debt, week, anchors[index]);
         const interestCharged = previous * weeklyRate;
         const principalCleared = Math.max(0, previous + newBorrowing - balance);
@@ -1173,20 +1173,16 @@ function engineInputFromSeed(debt: SeedDebt, index: number): DebtInput {
 }
 
 function seedBalanceAt(debt: SeedDebt, week: number, anchors: { week: number; balance: number }[] = []): number {
-  if (anchors.length > 0) {
-    const points = [{ week: 0, balance: debt.openingBalance }, ...anchors, { week: HISTORY_WEEKS, balance: debt.balance }].sort((a, b) => a.week - b.week);
-    const right = points.findIndex((point) => point.week >= week);
-    if (right <= 0) return points[0].balance;
-    const before = points[right - 1], after = points[right];
-    return before.balance + (after.balance - before.balance) * (week - before.week) / (after.week - before.week);
-  }
-  const lumps = debt.events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
-  const slips = debt.events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
-  const step = (debt.openingBalance - debt.balance - lumps + slips) / HISTORY_WEEKS;
-  let balance = debt.openingBalance;
-  for (let w = 1; w <= week; w += 1) {
-    const event = debt.events.find((e) => e.week === w);
-    balance = w === HISTORY_WEEKS ? debt.balance : balance - step - (event?.principal ?? 0) + (event?.newBorrowing ?? 0);
-  }
-  return balance;
+  const points = [{ week: 0, balance: debt.openingBalance }, ...anchors, { week: HISTORY_WEEKS, balance: debt.balance }].sort((a, b) => a.week - b.week);
+  const right = points.findIndex((point) => point.week >= week);
+  if (right === -1) return points[points.length - 1].balance;
+  if (right === 0) return points[0].balance;
+  const before = points[right - 1], after = points[right];
+  const events = debt.events.filter((event) => event.week > before.week && event.week <= after.week);
+  const delta = (event: SeedEvent) => (event.newBorrowing ?? 0) - (event.principal ?? 0);
+  const payment = before.balance + events.reduce((sum, event) => sum + delta(event), 0) - after.balance;
+  if (payment < -1e-8) throw new Error("Seed events exceed the principal cleared between readings");
+  if (week === after.week) return after.balance;
+  const eventDelta = events.filter((event) => event.week <= week).reduce((sum, event) => sum + delta(event), 0);
+  return before.balance - Math.max(0, payment) * (week - before.week) / (after.week - before.week) + eventDelta;
 }
