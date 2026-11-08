@@ -12,7 +12,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { addCommitment, completeOnboarding, recordCompletedSession, recordReview, saveOnboardingCard, setCommitmentStatus, snapshot } from "../../convex/sproutjar";
+import { addCommitment, completeOnboarding, recordCompletedSession, recordReview, saveOnboardingCard, setCommitmentStatus, snapshot, updateProfile } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -41,6 +41,7 @@ import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, record
 import { readRenSessionToken, readRenUserToken, renUserToken } from "./ren-token";
 import { renAgendasFor } from "./session-agendas";
 import { PlanScreen } from "../components/PlanScreen";
+import { GrowthTabs } from "../components/GrowthTabs";
 import { planMoney, planStrategy, planReviewEntry, planReviewSplit, savePlanChange } from "./plan";
 import { compareStrategies, minimumsOnlyOutlook } from "./debt-engine";
 
@@ -120,6 +121,41 @@ test("review records an unexplained rise as an Estimated split, preserves explic
     }
     const topics = generatedAgendas({ name: "Layla", currency: "AED", monthlyBleed: 0, sessionsHeld: 2, lastReview: { completedAt: new Date(), principalRepaid: 0, interestCharged: 30, newBorrowing: 470, reflection: "", estimatedSplit: true } });
     for (const topic of topics.filter((topic) => ["review-gap", "the-price"].includes(topic.id))) assert.match(topic.reason, /Estimated split/);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
+
+test("debt-free acknowledgement persists once for its owner and gates a fresh Plan render", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
+  try {
+    const user = { _id: "layla", debtFreeAcknowledgedAt: undefined as number | undefined };
+    const other = { _id: "other", debtFreeAcknowledgedAt: undefined as number | undefined };
+    let debts = [{ status: "active", balance: 100, openingBalance: 1500 }];
+    const patches: string[] = [];
+    const ctx = { db: {
+      query: (table: string) => ({ withIndex: () => ({ unique: async () => user, collect: async () => table === "debts" ? debts : [] }) }),
+      patch: async (id: string, fields: Record<string, unknown>) => { patches.push(id); Object.assign(user, fields); },
+      get: async () => ({ ...user }),
+    } } as unknown as MutationCtx;
+    const run = (updateProfile as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.updateProfile>) => Promise<Doc<"users"> | null> })._handler;
+    const caller = { serverKey: "plan-test-key", userKey: "layla" };
+    await assert.rejects(() => run(ctx, { caller, acknowledgeDebtFree: true }), /Clear the cards/);
+    debts = [];
+    await assert.rejects(() => run(ctx, { caller, acknowledgeDebtFree: true }), /Clear the cards/);
+    debts = [{ status: "settled", balance: 0, openingBalance: 1500 }];
+    await assert.rejects(() => run(ctx, { caller: { ...caller, userKey: "demo" }, acknowledgeDebtFree: true }), /read-only/);
+    await assert.rejects(() => run(ctx, { caller: { ...caller, serverKey: "invalid" }, acknowledgeDebtFree: true }), /Not from the Sproutjar server/);
+    assert.deepEqual(patches, []);
+    const saved = await run(ctx, { caller, acknowledgeDebtFree: true });
+    assert.ok(saved?.debtFreeAcknowledgedAt);
+    const again = await run(ctx, { caller, acknowledgeDebtFree: true });
+    assert.equal(again?.debtFreeAcknowledgedAt, saved.debtFreeAcknowledgedAt);
+    assert.ok(patches.every((id) => id === "layla"));
+    assert.equal(other.debtFreeAcknowledgedAt, undefined);
+    const render = (acknowledgedAt?: number) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><GrowthTabs moment={<p>All clear moment</p>} clearing={<p>Clearing data</p>} building={<p>Building data</p>} initialSegment="building" acknowledgedAt={acknowledgedAt} /></AppRouterContext.Provider>);
+    assert.match(render(other.debtFreeAcknowledgedAt), /All clear moment/);
+    assert.doesNotMatch(render(saved.debtFreeAcknowledgedAt), /All clear moment|See where it goes/);
+    assert.match(render(saved.debtFreeAcknowledgedAt), /Building data/);
   } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
 });
 

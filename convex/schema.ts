@@ -36,6 +36,7 @@ export default defineSchema({
     reviewCadence: v.optional(v.string()),
     /** The person has read what Ren does and does not do. */
     contractedAt: v.optional(v.number()),
+    debtFreeAcknowledgedAt: v.optional(v.number()),
     strategy: v.string(),
     weeksActive: v.number(),
     upbringing: v.string(),

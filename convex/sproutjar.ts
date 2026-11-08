@@ -557,10 +557,18 @@ export const updateProfile = mutation({
     goodDecision: v.optional(v.string()),
     upbringing: v.optional(v.string()),
     strategy: v.optional(v.string()),
+    acknowledgeDebtFree: v.optional(v.boolean()),
   },
-  handler: async (ctx, { caller, ...fields }) => {
+  handler: async (ctx, { caller, acknowledgeDebtFree, ...fields }) => {
     const user = await callerUser(ctx, caller);
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+    if (acknowledgeDebtFree && !user.debtFreeAcknowledgedAt) {
+      if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+      const debts = await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+      const recorded = debts.filter((debt) => debt.status === "active" || debt.status === "settled");
+      if (!recorded.some((debt) => debt.openingBalance > 0) || recorded.some((debt) => debt.status === "active" && debt.balance > 0)) throw new Error("Clear the cards before acknowledging this moment.");
+      patch.debtFreeAcknowledgedAt = Date.now();
+    }
     await ctx.db.patch(user._id, patch);
     return ctx.db.get(user._id);
   },

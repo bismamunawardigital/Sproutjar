@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { savePlanChange } from "@/lib/plan";
 
 const SEGMENTS = [
   { key: "clearing", label: "Clearing" },
@@ -10,11 +11,26 @@ const SEGMENTS = [
 
 type Segment = (typeof SEGMENTS)[number]["key"];
 
-export function GrowthTabs({ clearing, building, moment, initialSegment = "clearing" }: { clearing: ReactNode; building: ReactNode; moment?: ReactNode; initialSegment?: Segment }) {
+export function GrowthTabs({ clearing, building, moment, acknowledgedAt, readOnly = false, initialSegment = "clearing" }: { clearing: ReactNode; building: ReactNode; moment?: ReactNode; acknowledgedAt?: number; readOnly?: boolean; initialSegment?: Segment }) {
+  const router = useRouter();
   const [segment, setSegment] = useState<Segment>(initialSegment);
   const [acknowledged, setAcknowledged] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (moment && !acknowledged) return <section className="rounded-card bg-ink-900 p-6 text-center text-cream">{moment}<button className="mt-5 min-h-12 w-full rounded-full bg-leaf-300 px-4 text-[16px] font-bold text-ink-900" onClick={() => { setSegment("building"); setAcknowledged(true); }}>See where it goes</button><Link className="mt-2 inline-flex min-h-11 items-center text-[14px] font-bold text-leaf-300" href="/dashboard/ren">Tell Ren · AI voice coach</Link></section>;
+  async function acknowledge(destination: "building" | "ren") {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      if (!readOnly) await savePlanChange("/api/profile", "PATCH", { acknowledgeDebtFree: true });
+      setAcknowledged(true); setSegment("building");
+      if (!readOnly) router.refresh();
+      if (destination === "ren") router.push("/dashboard/ren");
+    } catch { setError("That didn't save. Try again."); }
+    finally { setBusy(false); }
+  }
+
+  if (moment && !acknowledgedAt && !acknowledged) return <section className="rounded-card bg-ink-900 p-6 text-center text-cream">{moment}{error ? <p role="alert" className="mt-3 text-[14px] text-cream">{error}</p> : null}<button disabled={busy} className="mt-5 min-h-12 w-full rounded-full bg-leaf-300 px-4 text-[16px] font-bold text-ink-900 disabled:opacity-50" onClick={() => void acknowledge("building")}>{busy ? "Saving" : "See where it goes"}</button><button disabled={busy} className="mt-2 inline-flex min-h-11 items-center text-[14px] font-bold text-leaf-300 disabled:opacity-50" onClick={() => void acknowledge("ren")}>Tell Ren · AI voice coach</button></section>;
 
   return (
     <div className="space-y-4">
