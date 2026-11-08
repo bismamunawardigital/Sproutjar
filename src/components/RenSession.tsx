@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { Agenda } from "@/lib/agendas";
-import { appendRenLine, type RenLine } from "@/lib/ren";
+import { appendRenLine, type RenLine, type RenTalkRecord } from "@/lib/ren";
 import { RenCall, type GlanceCard } from "@/components/RenCall";
 import { RenRoom } from "@/components/RenRoom";
 import { RenSample } from "@/components/RenSample";
@@ -32,7 +32,7 @@ type Props = {
   agendas?: Agenda[];
   onAgenda?: (agenda: Agenda) => void;
   minutes?: number;
-  onEnded?: (saidByYou: string[]) => void;
+  onEnded?: (saidByYou: string[], talk: RenTalkRecord | null) => void;
   guest?: boolean;
 };
 
@@ -55,18 +55,20 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
   const attempt = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const spoken = useRef<RenLine[]>([]);
+  const talk = useRef<RenTalkRecord | null>(null);
 
   const finish = useCallback(() => {
     if (ended.current) return;
     ended.current = true;
     setStatus("idle");
-    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text));
+    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current);
     router.refresh();
   }, [onEnded, router]);
 
   const conversation = useConversation({
-    onConnect: () => {
+    onConnect: ({ conversationId }) => {
       if (ended.current) return;
+      talk.current = { conversationId, agenda: agenda?.title ?? "Open conversation", agendaReason: agenda?.reason ?? "", technique: agenda?.technique ?? "Open", plannedMinutes: minutes, contractChoice: intent ?? "unstated", mode: typed ? "text" : "voice", startedAt: Date.now() };
       connected.current = true;
       setHadCall(true);
       setStatus("live");
@@ -156,6 +158,7 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
     setElapsed(0);
     setStatus("connecting");
     spoken.current = [];
+    talk.current = null;
     setLines([]);
     setGlance(null);
     pending.current = new AbortController();

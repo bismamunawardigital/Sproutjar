@@ -50,11 +50,32 @@ export function wordsToKeep(words: string[]): string | null {
   return `${cut.slice(0, stop > 60 ? stop : 140).trim()}…`;
 }
 
-export async function keepRenStep(wish: string, trigger: string, request: typeof fetch = fetch) {
+export type RenTalkRecord = {
+  conversationId: string;
+  agenda: string;
+  agendaReason: string;
+  technique: string;
+  plannedMinutes: number;
+  contractChoice: string;
+  mode: "voice" | "text";
+  startedAt: number;
+};
+
+export async function recordRenTalk(talk: RenTalkRecord, request: typeof fetch = fetch): Promise<string> {
+  const response = await request("/api/sessions", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(talk),
+  });
+  if (!response.ok) throw new Error("Your talk didn't save. Try again before keeping a step.");
+  const result = await response.json();
+  if (typeof result?.id !== "string" || !result.id) throw new Error("Your talk didn't save. Try again before keeping a step.");
+  return result.id;
+}
+
+export async function keepRenStep(wish: string, trigger: string, request: typeof fetch = fetch, sessionId?: string) {
   if (!wish.trim()) throw new Error("Write the thing you want to keep first.");
   const response = await request("/api/commitments", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ wish: wish.trim(), trigger: trigger.trim(), ownershipConfirmed: true }),
+    body: JSON.stringify({ wish: wish.trim(), trigger: trigger.trim(), ownershipConfirmed: true, ...(sessionId ? { sessionId } : {}) }),
   });
   if (!response.ok) throw new Error("That didn't save. Your words are still here. Try again.");
 }

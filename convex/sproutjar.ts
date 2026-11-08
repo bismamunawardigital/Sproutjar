@@ -637,6 +637,7 @@ export const jarByName = query({
 export const addCommitment = mutation({
   args: {
     caller: callerArg,
+    sessionId: v.optional(v.id("sessions")),
     wish: v.string(),
     outcome: v.string(),
     obstacle: v.string(),
@@ -647,6 +648,10 @@ export const addCommitment = mutation({
   },
   handler: async (ctx, { caller, days, ...rest }) => {
     const user = await callerUser(ctx, caller);
+    if (rest.sessionId) {
+      const session = await ctx.db.get(rest.sessionId);
+      if (!session || session.userId !== user._id) throw new Error("That talk isn't available.");
+    }
     return ctx.db.insert("commitments", {
       ...rest,
       userId: user._id,
@@ -820,6 +825,37 @@ export const endSession = mutation({
     if (!session || session.userId !== user._id) return null;
     await ctx.db.patch(id, { summary, closingReflection, endedAt: Date.now() });
     return id;
+  },
+});
+
+export const recordCompletedSession = mutation({
+  args: {
+    caller: callerArg,
+    conversationId: v.string(),
+    agenda: v.string(),
+    agendaReason: v.string(),
+    technique: v.string(),
+    plannedMinutes: v.number(),
+    contractChoice: v.string(),
+    mode: v.union(v.literal("voice"), v.literal("text")),
+    startedAt: v.number(),
+  },
+  handler: async (ctx, { caller, ...record }) => {
+    const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+    if (!record.conversationId.trim() || !Number.isFinite(record.startedAt) || record.startedAt < 0) throw new Error("Invalid talk.");
+    const sessions = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+    const existing = sessions.find((session) => session.conversationId === record.conversationId);
+    if (existing) return existing._id;
+    const endedAt = Date.now();
+    return ctx.db.insert("sessions", {
+      ...record,
+      userId: user._id,
+      startedAt: Math.min(record.startedAt, endedAt),
+      endedAt,
+      summary: "",
+      closingReflection: "",
+    });
   },
 });
 

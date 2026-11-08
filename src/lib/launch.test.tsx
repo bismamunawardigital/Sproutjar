@@ -10,7 +10,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { completeOnboarding, saveOnboardingCard, setCommitmentStatus } from "../../convex/sproutjar";
+import { addCommitment, completeOnboarding, recordCompletedSession, saveOnboardingCard, setCommitmentStatus } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs } from "convex/server";
@@ -35,10 +35,75 @@ import { RenOrb } from "../components/RenOrb";
 import { SessionClose } from "../components/SessionClose";
 import { SessionImpact } from "../components/SessionImpact";
 import { PendingTransfers } from "../components/PendingTransfers";
-import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, wordsToKeep } from "./ren";
+import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, recordRenTalk, wordsToKeep, type RenTalkRecord } from "./ren";
 import { renAgendasFor } from "./session-agendas";
 
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
+
+const completedTalk: RenTalkRecord = { conversationId: "conv_layla", agenda: "A small step", agendaReason: "Looking back", technique: "If-then planning", plannedMinutes: 20, contractChoice: "plan", mode: "voice", startedAt: 1 };
+
+test("a completed talk is recorded before its explicitly kept step is linked", async () => {
+  const requests: { url: string; body: Record<string, unknown> }[] = [];
+  const request: typeof fetch = async (url, init) => { requests.push({ url: String(url), body: JSON.parse(String(init?.body)) }); return new Response('{"id":"talk-id"}', { status: 201 }); };
+  const sessionId = await recordRenTalk(completedTalk, request);
+  await keepRenStep("Open the statement", "Sunday", request, sessionId);
+  assert.deepEqual(requests[0], { url: "/api/sessions", body: completedTalk });
+  assert.equal(requests[1].body.sessionId, "talk-id");
+  assert.equal(requests[1].body.ownershipConfirmed, true);
+  for (const body of ["{}", '{"id":""}', "null"]) await assert.rejects(() => recordRenTalk(completedTalk, async () => new Response(body, { status: 201 })), /talk didn't save/);
+  await assert.rejects(() => recordRenTalk(completedTalk, async () => new Response("{}", { status: 503 })), /talk didn't save/);
+  await assert.rejects(() => recordRenTalk(completedTalk, async () => { throw new Error("offline"); }), /offline/);
+});
+
+test("talk recording is idempotent and commitment links reject missing or other people's talks", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "ren-test-key";
+  try {
+    const user = { _id: "layla", name: "Layla" } as Doc<"users">;
+    const sessions = new Map<string, Record<string, unknown>>([["foreign", { _id: "foreign", userId: "someone-else", conversationId: "conv_other" }]]);
+    const steps: Record<string, unknown>[] = [];
+    const ctx = { db: {
+      query: () => ({ withIndex: () => ({ unique: async () => user, collect: async () => [...sessions.values()].filter((row) => row.userId === user._id) }) }),
+      get: async (id: string) => sessions.get(id) ?? null,
+      insert: async (table: string, row: Record<string, unknown>) => {
+        if (table === "sessions") { const id = `talk-${sessions.size}`; sessions.set(id, { ...row, _id: id }); return id; }
+        steps.push(row); return `step-${steps.length}`;
+      },
+    } } as unknown as MutationCtx;
+    const caller = { serverKey: "ren-test-key", userKey: "layla" };
+    const record = (recordCompletedSession as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordCompletedSession>) => Promise<Id<"sessions">> })._handler;
+    const keep = (addCommitment as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.addCommitment>) => Promise<unknown> })._handler;
+    const id = await record(ctx, { caller, ...completedTalk });
+    assert.equal(await record(ctx, { caller, ...completedTalk }), id);
+    assert.equal(sessions.size, 2);
+    assert.equal(sessions.get(id)?.summary, "");
+    assert.ok(Number(sessions.get(id)?.endedAt) >= completedTalk.startedAt);
+    const step = { caller, sessionId: id, wish: "Open the statement", outcome: "", obstacle: "", ifThenPlan: "", trigger: "Sunday", ownershipConfirmed: true, days: 7 };
+    await keep(ctx, step);
+    const linked = steps.filter((commitment) => commitment.sessionId === id);
+    assert.equal(linked[0].wish, "Open the statement");
+    const history = renderToStaticMarkup(<SessionImpact history={[]} talks={[{ id, agenda: completedTalk.agenda, startedAt: new Date(1), summary: "", mode: "voice", wish: String(linked[0].wish), status: String(linked[0].status) }]} currency="AED" />);
+    assert.match(history, /Open the statement/);
+    assert.doesNotMatch(history, /Nothing to do after this one/);
+    for (const sessionId of ["missing", "foreign"]) await assert.rejects(() => keep(ctx, { ...step, sessionId: sessionId as Id<"sessions"> }), /talk isn't available/);
+    assert.equal(steps.length, 1);
+    await assert.rejects(() => record(ctx, { caller, ...completedTalk, conversationId: " " }), /Invalid talk/);
+    await assert.rejects(() => record(ctx, { caller, ...completedTalk, startedAt: NaN }), /Invalid talk/);
+    await assert.rejects(() => record(ctx, { caller: { ...caller, userKey: "demo" }, ...completedTalk }), /read-only/);
+    assert.equal(sessions.size, 2);
+  } finally {
+    if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous;
+  }
+});
+
+test("keeping a call step waits for its talk and recording errors offer a retry", () => {
+  const props = { commitment: null, saidByYou: ["Open the latest statement on Sunday before doing anything else."] };
+  const render = (extra: Partial<Parameters<typeof SessionClose>[0]>) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><SessionClose {...props} {...extra} /></AppRouterContext.Provider>);
+  assert.match(render({ savingTalk: true }), /Saving your talk/);
+  assert.match(render({ savingTalk: true }), /<button disabled=""[^>]*>Keep this/);
+  assert.match(render({ talkError: "The talk did not save", onRetryTalk() {} }), /Try saving the talk again/);
+  assert.doesNotMatch(render({ sessionId: "talk-id" }), /<button disabled=""[^>]*>Keep this/);
+});
 
 test("proposal fees retain currency precision without adding decimals to headline amounts", () => {
   const render = (fee: number, currency: string) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><PendingTransfers transfers={[{ id: "move", fromName: "Layla card", fromRate: .03, toIssuer: "Example", toName: "Example", amount: 12400, monthlyRate: .01, promoMonths: 12, fee, revertRate: .03, note: "", on: "6 Nov" }]} currency={currency} monthlyAttack={1000} /></AppRouterContext.Provider>);
