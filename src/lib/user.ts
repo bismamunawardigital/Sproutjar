@@ -143,6 +143,7 @@ export async function buildSnapshot(caller?: Caller) {
     openingPrincipal,
     currentPrincipal,
     sessionsHeld: live.sessions.length,
+    checkins: live.commitments.filter((c) => c.checkedInAt !== undefined).length,
     commitmentsKept,
     weeksActive: user.weeksActive,
     stemPeak: user.stemPeak,

@@ -10,7 +10,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { completeOnboarding, saveOnboardingCard } from "../../convex/sproutjar";
+import { completeOnboarding, saveOnboardingCard, setCommitmentStatus } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs } from "convex/server";
@@ -19,6 +19,102 @@ import type { MutationCtx } from "../../convex/_generated/server";
 import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
 import { buildPayoffPlan } from "./debt-engine";
 import { readStatement } from "./statement";
+import { CHECKIN_ANSWERS, todayHasDate, todayPayments } from "./today";
+import { plantState } from "./plant";
+import { TodayHero } from "../components/TodayHero";
+import { HomeAgendas } from "../components/HomeAgendas";
+import { Plant } from "../components/Plant";
+import { PaydayInvitation } from "../components/PaydayInvitation";
+import type { Snapshot } from "./user";
+
+test("Today payments follow the live strategy, capped minimums and reserve budget", () => {
+  const cards = [
+    { id: "high", name: "Layla high", issuer: "Example", balance: 1000, monthlyRate: 0.1, minimumPayment: 100 },
+    { id: "small", name: "Layla small", issuer: "Example", balance: 10, monthlyRate: 0, minimumPayment: 50 },
+    { id: "zero", name: "Layla zero", issuer: "Example", balance: 0, monthlyRate: 0, minimumPayment: 100 },
+  ];
+  const rows = todayPayments(cards, 200, "avalanche");
+  assert.deepEqual(rows.map((row) => [row.id, row.amount, row.focus]), [["high", 190, true], ["small", 10, false]]);
+  assert.equal(todayPayments(cards, 0, "avalanche")[0].amount, 140);
+  assert.equal(todayPayments(cards, 200, "snowball")[0].id, "small");
+  assert.deepEqual(todayPayments([], 200, "avalanche"), []);
+  assert.equal(todayHasDate({ feasible: false, months: 0 }), false);
+  assert.equal(todayHasDate({ feasible: true, months: 600 }), false);
+  assert.equal(todayHasDate({ feasible: true, months: 8 }), true);
+});
+
+test("every honest check-in grows roots without changing or shrinking the money stem", () => {
+  const input = { openingPrincipal: 1000, currentPrincipal: 800, sessionsHeld: 6, commitmentsKept: 0, weeksActive: 4, stemPeak: 0.6 };
+  const before = plantState(input);
+  for (const status of Object.keys(CHECKIN_ANSWERS)) {
+    assert.ok(CHECKIN_ANSWERS[status as keyof typeof CHECKIN_ANSWERS].agenda);
+    const after = plantState({ ...input, checkins: 1 });
+    assert.equal(after.rootDepth, before.rootDepth + 1);
+    assert.equal(after.stemPct, before.stemPct);
+    assert.equal(after.leafPairs, before.leafPairs);
+  }
+  assert.equal(plantState({ ...input, checkins: 20 }).rootDepth, 27);
+  const crowded = renderToStaticMarkup(<Plant state={plantState({ ...input, checkins: 20 })} />);
+  assert.equal((crowded.match(/class="plant-root"/g) ?? []).length, 27);
+});
+
+test("Today review invitation reflects the actual cadence and known payday", () => {
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={null} cadence="weekly" />), /Weekly review/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={0} cadence="payday" />), /It&#x27;s payday/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={2} cadence="payday" />), /Payday is in 2 days/);
+  assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={null} cadence="payday" />), /Payday review/);
+});
+
+test("check-ins record every answer once, preserve ownership, and reject invalid or demo writes", async () => onboardingFixture(async ({ caller, user }) => {
+  const records = new Map<string, { userId: string; status: string; checkedInAt?: number }>();
+  const ctx = { db: {
+    query: () => ({ withIndex: () => ({ unique: async () => user }) }),
+    get: async (id: string) => structuredClone(records.get(id)),
+    patch: async (id: string, patch: object) => Object.assign(records.get(id)!, patch),
+  } } as unknown as MutationCtx;
+  const run = (setCommitmentStatus as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.setCommitmentStatus>) => Promise<unknown> })._handler;
+  for (const status of ["kept", "partial", "missed"] as const) {
+    records.set(status, { userId: user._id, status: "open" });
+    const args = { caller, id: status as Id<"commitments">, status, reflection: "" };
+    await run(ctx, args);
+    const saved = records.get(status)!.checkedInAt;
+    assert.ok(saved);
+    await run(ctx, args);
+    await run(ctx, { ...args, status: "open" });
+    await run(ctx, args);
+    assert.equal(records.get(status)!.checkedInAt, saved);
+  }
+  const args = { caller, id: "missing" as Id<"commitments">, status: "kept", reflection: "" };
+  assert.equal(await run(ctx, args), null);
+  records.set("foreign", { userId: "other", status: "open" });
+  assert.equal(await run(ctx, { ...args, id: "foreign" as Id<"commitments"> }), null);
+  assert.equal(records.get("foreign")!.checkedInAt, undefined);
+  await assert.rejects(run(ctx, { ...args, status: "score" }), /Choose a check-in/);
+  await assert.rejects(run(ctx, { ...args, caller: { ...caller, userKey: "demo" } }), /read-only/);
+  await assert.rejects(run(ctx, { ...args, caller: { ...caller, serverKey: "wrong" } }), /Not from/);
+}));
+
+test("Today hero labels forecasts, handles stalled, empty and debt-free states, and keeps the full AI opener", () => {
+  const snap = {
+    country: { currency: "AED" }, growth: plantState({ openingPrincipal: 1000, currentPrincipal: 800, sessionsHeld: 0, commitmentsKept: 0, weeksActive: 0, stemPeak: 0 }),
+    user: {}, horizon: "clearing", openingPrincipal: 1000, cleared: 200, attack: { amount: 200 }, totals: { debt: 800, saved: 0 }, debts: [], jars: [],
+    plan: { feasible: true, months: 5, debtFreeOn: "April 2027", monthlyBleed: 25, shortfall: 0 },
+  } as unknown as Snapshot;
+  const hero = renderToStaticMarkup(<TodayHero snap={snap} />);
+  assert.match(hero, /Estimated/);
+  assert.match(hero, /April/);
+  assert.ok(!hero.includes("AED 800.00"));
+  const stalled = renderToStaticMarkup(<TodayHero snap={{ ...snap, plan: { ...snap.plan, months: 600 } }} />);
+  assert.match(stalled, /Not possible yet/);
+  assert.ok(!stalled.includes("minimums need"));
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, totals: { ...snap.totals, debt: 0 }, openingPrincipal: 0 }} />), /One card to start/);
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, horizon: "building" }} />), /Nothing left to pay/);
+  assert.match(renderToStaticMarkup(<TodayHero snap={{ ...snap, horizon: "building", jars: [{ id: "jar", name: "A real goal", target: 1000, saved: 250, pct: 25, stage: "sprout" }] as Snapshot["jars"] }} />), /A real goal/);
+  const opener = renderToStaticMarkup(<HomeAgendas agendas={[{ id: "gap", title: "A real topic", reason: "The whole personal sentence stays visible.", minutes: 20, technique: "Looking back" }]} hasHistory />);
+  assert.match(opener, /AI voice coach/);
+  assert.match(opener, /whole personal sentence stays visible/);
+  assert.ok(!opener.includes("line-clamp"));
+});
 
 test("statement import keeps full ungrouped balances and still reads grouped amounts", () => {
   assert.equal(readStatement("Total Amount Due AED 4800. Minimum Amount Due AED 240.").balance, 4800);
