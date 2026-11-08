@@ -829,40 +829,16 @@ export const endSession = mutation({
 });
 
 export const recordCompletedSession = mutation({
-  args: {
-    caller: callerArg,
-    conversationId: v.string(),
-    agenda: v.string(),
-    agendaReason: v.string(),
-    technique: v.string(),
-    plannedMinutes: v.number(),
-    contractChoice: v.string(),
-    mode: v.union(v.literal("voice"), v.literal("text")),
-    durationMs: v.number(),
-  },
-  handler: async (ctx, { caller, durationMs, ...record }) => {
+  args: { caller: callerArg, sessionId: v.id("sessions"), conversationId: v.string() },
+  handler: async (ctx, { caller, sessionId, conversationId }) => {
     const user = await callerUser(ctx, caller);
     if (caller.userKey === "demo") throw new Error("The demo is read-only.");
-    if (!record.conversationId.trim() || !Number.isFinite(durationMs) || durationMs < 0 || durationMs > 86_400_000) throw new Error("Invalid talk.");
-    const sessions = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
-    const existing = sessions.find((session) => session.conversationId === record.conversationId);
-    const endedAt = Date.now();
-    const startedAt = endedAt - durationMs;
-    const id = existing?._id ?? await ctx.db.insert("sessions", {
-      ...record,
-      userId: user._id,
-      startedAt,
-      endedAt,
-      summary: "",
-      closingReflection: "",
-    });
-    const commitments = await ctx.db.query("commitments").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
-    for (const commitment of commitments) {
-      if (!commitment.sessionId && commitment.ownershipConfirmed && commitment.createdAt >= (existing?.startedAt ?? startedAt) - 5000 && commitment.createdAt <= (existing?.endedAt ?? endedAt) + 5000) {
-        await ctx.db.patch(commitment._id, { sessionId: id });
-      }
-    }
-    return id;
+    if (!conversationId.trim()) throw new Error("Invalid talk.");
+    const session = await ctx.db.get(sessionId);
+    if (!session || session.userId !== user._id) throw new Error("That talk isn't available.");
+    if (session.conversationId && session.conversationId !== conversationId) throw new Error("That talk belongs to a different conversation.");
+    if (session.endedAt === undefined) await ctx.db.patch(sessionId, { conversationId, endedAt: Date.now() });
+    return sessionId;
   },
 });
 

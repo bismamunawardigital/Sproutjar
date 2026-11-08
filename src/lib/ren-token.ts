@@ -16,12 +16,13 @@ function sign(userKey: string): string {
   return createHmac("sha256", secret()).update(userKey).digest("base64url");
 }
 
-export function renUserToken(userKey: string): string {
-  return `${userKey}.${sign(userKey)}`;
+export function renUserToken(userKey: string, sessionId?: string): string {
+  const payload = sessionId ? `call:${Buffer.from(JSON.stringify({ userKey, sessionId })).toString("base64url")}` : userKey;
+  return `${payload}.${sign(payload)}`;
 }
 
 /** The user key inside a valid token, or null when it is missing or forged. */
-export function readRenUserToken(token: string | null | undefined): string | null {
+function readClaims(token: string | null | undefined): { userKey: string; sessionId?: string } | null {
   if (!token) return null;
   const at = token.lastIndexOf(".");
   if (at <= 0) return null;
@@ -29,5 +30,17 @@ export function readRenUserToken(token: string | null | undefined): string | nul
   const given = Buffer.from(token.slice(at + 1));
   const expected = Buffer.from(sign(userKey));
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
-  return userKey;
+  if (!userKey.startsWith("call:")) return { userKey };
+  try {
+    const claims = JSON.parse(Buffer.from(userKey.slice(5), "base64url").toString("utf8"));
+    return typeof claims.userKey === "string" && typeof claims.sessionId === "string" && claims.userKey && claims.sessionId ? claims : null;
+  } catch { return null; }
+}
+
+export function readRenUserToken(token: string | null | undefined): string | null {
+  return readClaims(token)?.userKey ?? null;
+}
+
+export function readRenSessionToken(token: string | null | undefined): string | null {
+  return readClaims(token)?.sessionId ?? null;
 }

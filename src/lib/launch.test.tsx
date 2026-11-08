@@ -37,12 +37,13 @@ import { RenOrb } from "../components/RenOrb";
 import { SessionClose } from "../components/SessionClose";
 import { SessionImpact } from "../components/SessionImpact";
 import { PendingTransfers } from "../components/PendingTransfers";
-import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, recordRenTalk, wordsToKeep, type RenTalkRecord } from "./ren";
+import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, recordRenTalk, startRenTalk, wordsToKeep, type RenTalkRecord } from "./ren";
+import { readRenSessionToken, readRenUserToken, renUserToken } from "./ren-token";
 import { renAgendasFor } from "./session-agendas";
 
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
-const completedTalk: RenTalkRecord = { conversationId: "conv_layla", agenda: "A small step", agendaReason: "Looking back", technique: "If-then planning", plannedMinutes: 20, contractChoice: "plan", mode: "voice", durationMs: 1000 };
+const completedTalk: RenTalkRecord & { sessionId: Id<"sessions"> } = { sessionId: "talk-id" as Id<"sessions">, conversationId: "conv_layla" };
 
 test("Ren's commitment tool rejects unconfirmed steps before resolving a person or writing", async () => {
   const source = await readFile(new URL("../app/api/tools/log-commitment/route.ts", import.meta.url), "utf8");
@@ -59,6 +60,7 @@ test("Ren's commitment tool rejects unconfirmed steps before resolving a person 
       case "@/lib/tool-auth": return { assertToolKey: (request: Request) => request.headers.get("x-api-key") === "fixture-key" ? null : json({ error: "Unauthorized" }, { status: 401 }) };
       case "@/lib/caller": return { callerFromRenToken: (user: string) => { reads++; return { userKey: user }; }, isDemo: (caller: { userKey: string }) => caller.userKey === "demo" };
       case "@/lib/user": return { currentUser: async () => { reads++; return { name: "Layla" }; } };
+      case "@/lib/ren-token": return { readRenSessionToken: (user: string) => user === "layla-scoped" ? "talk-id" : null };
       case "@/lib/convex": return { convexClient: () => ({ mutation: async (_fn: unknown, args: Record<string, unknown>) => { writes.push(args); return "step"; } }) };
       default: throw new Error(`Unexpected import: ${name}`);
     }
@@ -80,6 +82,8 @@ test("Ren's commitment tool rejects unconfirmed steps before resolving a person 
   assert.equal((await confirmed.json()).saved, true);
   assert.equal(writes.length, 1);
   assert.equal(writes[0].ownershipConfirmed, true);
+  await post({ wish: "Open the statement", ownership_confirmed: true, user: "layla-scoped" });
+  assert.equal(writes[1].sessionId, "talk-id");
 });
 
 test("a completed talk is recorded before its explicitly kept step is linked", async () => {
@@ -97,14 +101,16 @@ test("a completed talk is recorded before its explicitly kept step is linked", a
 
 test("talk recording is idempotent and commitment links reject missing or other people's talks", async () => {
   const previous = process.env.SPROUTJAR_SERVER_KEY;
+  const now = Date.now;
   process.env.SPROUTJAR_SERVER_KEY = "ren-test-key";
   try {
     const user = { _id: "layla", name: "Layla" } as Doc<"users">;
-    const sessions = new Map<string, Record<string, unknown>>([["foreign", { _id: "foreign", userId: "someone-else", conversationId: "conv_other" }]]);
+    const sessions = new Map<string, Record<string, unknown>>([["foreign", { _id: "foreign", userId: "someone-else", conversationId: "conv_other" }], ["talk-id", { _id: "talk-id", userId: "layla", startedAt: 1 }]]);
     const steps: Record<string, unknown>[] = [];
     const ctx = { db: {
       query: () => ({ withIndex: () => ({ unique: async () => user, collect: async () => [...sessions.values()].filter((row) => row.userId === user._id) }) }),
       get: async (id: string) => sessions.get(id) ?? null,
+      patch: async (id: string, fields: Record<string, unknown>) => Object.assign(sessions.get(id)!, fields),
       insert: async (table: string, row: Record<string, unknown>) => {
         if (table === "sessions") { const id = `talk-${sessions.size}`; sessions.set(id, { ...row, _id: id }); return id; }
         steps.push(row); return `step-${steps.length}`;
@@ -113,25 +119,27 @@ test("talk recording is idempotent and commitment links reject missing or other 
     const caller = { serverKey: "ren-test-key", userKey: "layla" };
     const record = (recordCompletedSession as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordCompletedSession>) => Promise<Id<"sessions">> })._handler;
     const keep = (addCommitment as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.addCommitment>) => Promise<unknown> })._handler;
+    Date.now = () => 1000;
+    const step = { caller, sessionId: completedTalk.sessionId, wish: "Open the statement", outcome: "", obstacle: "", ifThenPlan: "", trigger: "Sunday", ownershipConfirmed: true, days: 7 };
+    await keep(ctx, step);
+    Date.now = () => 600000;
     const id = await record(ctx, { caller, ...completedTalk });
     assert.equal(await record(ctx, { caller, ...completedTalk }), id);
     assert.equal(sessions.size, 2);
-    assert.equal(sessions.get(id)?.summary, "");
-    assert.equal(Number(sessions.get(id)?.endedAt) - Number(sessions.get(id)?.startedAt), completedTalk.durationMs);
-    const step = { caller, sessionId: id, wish: "Open the statement", outcome: "", obstacle: "", ifThenPlan: "", trigger: "Sunday", ownershipConfirmed: true, days: 7 };
-    await keep(ctx, step);
+    assert.ok(Number(sessions.get(id)?.endedAt) >= Number(sessions.get(id)?.startedAt));
     const linked = steps.filter((commitment) => commitment.sessionId === id);
     assert.equal(linked[0].wish, "Open the statement");
-    const history = renderToStaticMarkup(<SessionImpact history={[]} talks={[{ id, agenda: completedTalk.agenda, startedAt: new Date(1), summary: "", mode: "voice", wish: String(linked[0].wish), status: String(linked[0].status) }]} currency="AED" />);
+    const history = renderToStaticMarkup(<SessionImpact history={[]} talks={[{ id, agenda: "A small step", startedAt: new Date(1), summary: "", mode: "voice", wish: String(linked[0].wish), status: String(linked[0].status) }]} currency="AED" />);
     assert.match(history, /Open the statement/);
     assert.doesNotMatch(history, /Nothing to do after this one/);
     for (const sessionId of ["missing", "foreign"]) await assert.rejects(() => keep(ctx, { ...step, sessionId: sessionId as Id<"sessions"> }), /talk isn't available/);
     assert.equal(steps.length, 1);
     await assert.rejects(() => record(ctx, { caller, ...completedTalk, conversationId: " " }), /Invalid talk/);
-    await assert.rejects(() => record(ctx, { caller, ...completedTalk, durationMs: NaN }), /Invalid talk/);
+    await assert.rejects(() => record(ctx, { caller, ...completedTalk, conversationId: "another-conversation" }), /different conversation/);
     await assert.rejects(() => record(ctx, { caller: { ...caller, userKey: "demo" }, ...completedTalk }), /read-only/);
     assert.equal(sessions.size, 2);
   } finally {
+    Date.now = now;
     if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous;
   }
 });
@@ -145,48 +153,35 @@ test("keeping a call step waits for its talk and recording errors offer a retry"
   assert.doesNotMatch(render({ sessionId: "talk-id" }), /<button disabled=""[^>]*>Keep this/);
 });
 
-test("completed talks adopt only this person's confirmed, unlinked steps within the original call window", async () => {
-  const previous = process.env.SPROUTJAR_SERVER_KEY;
-  const now = Date.now;
-  Date.now = () => 1_000_000;
-  process.env.SPROUTJAR_SERVER_KEY = "ren-test-key";
+test("call-scoped tokens link structurally even when a finish arrives late, without touching other calls", async () => {
+  const previous = process.env.SPROUTJAR_TOOL_API_KEY;
+  process.env.SPROUTJAR_TOOL_API_KEY = "fixture-key";
   try {
-    const rows = [
-      { _id: "during", userId: "layla", createdAt: 950000, ownershipConfirmed: true },
-      { _id: "start", userId: "layla", createdAt: 895000, ownershipConfirmed: true },
-      { _id: "end", userId: "layla", createdAt: 1005000, ownershipConfirmed: true },
-      { _id: "before", userId: "layla", createdAt: 894999, ownershipConfirmed: true },
-      { _id: "after", userId: "layla", createdAt: 1005001, ownershipConfirmed: true },
-      { _id: "foreign", userId: "other", createdAt: 950000, ownershipConfirmed: true },
-      { _id: "linked", userId: "layla", createdAt: 950000, ownershipConfirmed: true, sessionId: "old-talk" },
-      { _id: "unconfirmed", userId: "layla", createdAt: 950000, ownershipConfirmed: false },
-    ] as Record<string, unknown>[];
-    const sessions: Record<string, unknown>[] = [];
-    const ctx = { db: {
-      query: (table: string) => ({ withIndex: () => ({ unique: async () => ({ _id: "layla" }), collect: async () => table === "sessions" ? sessions : rows.filter((row) => row.userId === "layla") }) }),
-      insert: async (_table: string, row: Record<string, unknown>) => { sessions.push({ ...row, _id: "talk" }); return "talk"; },
-      patch: async (id: string, update: Record<string, unknown>) => Object.assign(rows.find((row) => row._id === id)!, update),
-    } } as unknown as MutationCtx;
-    const record = (recordCompletedSession as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordCompletedSession>) => Promise<Id<"sessions">> })._handler;
-    const args = { ...completedTalk, durationMs: 100000, caller: { serverKey: "ren-test-key", userKey: "layla" } };
-    const skewed = { ...args, startedAt: 44_100_000, endedAt: 44_200_000 };
-    assert.equal(await record(ctx, skewed), "talk");
-    assert.equal(sessions[0].startedAt, 900000);
-    assert.equal(sessions[0].endedAt, 1000000);
-    assert.deepEqual(rows.filter((row) => row.sessionId === "talk").map((row) => row._id), ["during", "start", "end"]);
-    rows.push({ _id: "late-arrival", userId: "layla", createdAt: 975000, ownershipConfirmed: true });
-    Date.now = () => 2_000_000;
-    await record(ctx, { ...args, durationMs: 500000 });
-    assert.equal(sessions.length, 1);
-    assert.equal(rows.find((row) => row._id === "late-arrival")?.sessionId, "talk");
-    assert.equal(rows.find((row) => row._id === "after")?.sessionId, undefined);
-    rows.length = 0;
-    assert.equal(await record(ctx, args), "talk");
-    await assert.rejects(() => record(ctx, { ...args, durationMs: -1 }), /Invalid talk/);
+    const token = renUserToken("layla", "talk-id");
+    assert.equal(readRenUserToken(token), "layla");
+    assert.equal(readRenSessionToken(token), "talk-id");
+    assert.equal(readRenSessionToken(renUserToken("layla")), null);
+    assert.equal(readRenUserToken(renUserToken("layla")), "layla");
+    assert.equal(readRenSessionToken(token.slice(0, -1) + (token.endsWith("x") ? "y" : "x")), null);
+    assert.equal(readRenSessionToken(""), null);
+    const talk = { sessionId: readRenSessionToken(token)!, conversationId: "conv_layla" };
+    const calls: unknown[] = [];
+    await recordRenTalk(talk, async (_url, init) => { calls.push(JSON.parse(String(init?.body))); return new Response('{"id":"talk-id"}', { status: 201 }); });
+    assert.deepEqual(calls, [{ sessionId: "talk-id", conversationId: "conv_layla" }]);
+    assert.ok(!("startedAt" in talk) && !("durationMs" in talk));
   } finally {
-    Date.now = now;
-    if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous;
+    if (previous === undefined) delete process.env.SPROUTJAR_TOOL_API_KEY; else process.env.SPROUTJAR_TOOL_API_KEY = previous;
   }
+});
+
+test("call start needs a server-issued ID and signed token before starting the SDK", async () => {
+  const data = { agenda: "A small step", agendaReason: "", technique: "Open", plannedMinutes: 20, contractChoice: "plan", mode: "voice" as const };
+  const calls: unknown[] = [];
+  assert.deepEqual(await startRenTalk(data, async (url, init) => { calls.push([String(url), JSON.parse(String(init?.body))]); return new Response('{"sessionId":"talk","userToken":"signed"}', { status: 201 }); }), { sessionId: "talk", userToken: "signed" });
+  assert.deepEqual(calls, [["/api/sessions/start", data]]);
+  for (const body of ["{}", '{"sessionId":"talk"}', "null"]) await assert.rejects(() => startRenTalk(data, async () => new Response(body, { status: 201 })), /couldn't start/);
+  await assert.rejects(() => startRenTalk(data, async () => new Response("{}", { status: 503 })), /couldn't start/);
+  await assert.rejects(() => startRenTalk(data, async () => { throw new Error("offline"); }), /offline/);
 });
 
 test("proposal fees retain currency precision without adding decimals to headline amounts", () => {

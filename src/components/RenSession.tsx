@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import type { Agenda } from "@/lib/agendas";
-import { appendRenLine, type RenLine, type RenTalkRecord } from "@/lib/ren";
+import { appendRenLine, startRenTalk, type RenLine, type RenTalkRecord } from "@/lib/ren";
 import { RenCall, type GlanceCard } from "@/components/RenCall";
 import { RenRoom } from "@/components/RenRoom";
 import { RenSample } from "@/components/RenSample";
@@ -55,22 +55,21 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
   const attempt = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const spoken = useRef<RenLine[]>([]);
-  const talk = useRef<Omit<RenTalkRecord, "durationMs"> | null>(null);
-  const connectedAt = useRef(0);
+  const talk = useRef<RenTalkRecord | null>(null);
+  const sessionId = useRef<string | null>(null);
 
   const finish = useCallback(() => {
     if (ended.current) return;
     ended.current = true;
     setStatus("idle");
-    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current ? { ...talk.current, durationMs: Math.max(0, performance.now() - connectedAt.current) } : null);
+    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current);
     router.refresh();
   }, [onEnded, router]);
 
   const conversation = useConversation({
     onConnect: ({ conversationId }) => {
       if (ended.current) return;
-      connectedAt.current = performance.now();
-      talk.current = { conversationId, agenda: agenda?.title ?? "Open conversation", agendaReason: agenda?.reason ?? "", technique: agenda?.technique ?? "Open", plannedMinutes: minutes, contractChoice: intent ?? "unstated", mode: typed ? "text" : "voice" };
+      talk.current = sessionId.current ? { conversationId, sessionId: sessionId.current } : null;
       connected.current = true;
       setHadCall(true);
       setStatus("live");
@@ -161,6 +160,7 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
     setStatus("connecting");
     spoken.current = [];
     talk.current = null;
+    sessionId.current = null;
     setLines([]);
     setGlance(null);
     pending.current = new AbortController();
@@ -175,12 +175,16 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
       const config = await response.json() as SessionConfig;
       if (!config.configured || !config.conversationToken) throw new Error("Ren can't take calls right now. Try again later, or try writing instead.");
       if (id !== attempt.current) return;
+      const prepared = await startRenTalk({ agenda: agenda?.title ?? "Open conversation", agendaReason: agenda?.reason ?? "", technique: agenda?.technique ?? "Open", plannedMinutes: minutes, contractChoice: intent ?? "unstated", mode: typed ? "text" : "voice" });
+      if (id !== attempt.current) return;
+      sessionId.current = prepared.sessionId;
       await conversation.startSession({
         conversationToken: config.conversationToken,
         connectionType: "webrtc",
         textOnly: typed,
         dynamicVariables: {
           ...config.dynamicVariables,
+          user_token: prepared.userToken,
           agenda_title: agenda?.title ?? "Open",
           agenda_reason: agenda?.reason ?? "They haven't picked an agenda. Ask where to start.",
           agenda_technique: agenda?.technique ?? "Open",

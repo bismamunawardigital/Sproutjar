@@ -191,7 +191,7 @@ export async function buildSnapshot(caller?: Caller) {
       createdAt: new Date(p.createdAt),
     })),
     beliefs: live.beliefs.map((b) => ({ ...b, id: b._id, namedOn: new Date(b.namedOn) })),
-    sessions: live.sessions.map((s) => ({
+    sessions: live.sessions.filter((s) => s.endedAt !== undefined).map((s) => ({
       ...s,
       id: s._id,
       startedAt: new Date(s.startedAt),

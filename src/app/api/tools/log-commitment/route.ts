@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { callerFromRenToken, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { readRenSessionToken } from "@/lib/ren-token";
 import { convexClient } from "@/lib/convex";
 import { assertToolKey } from "@/lib/tool-auth";
 import { currentUser } from "@/lib/user";
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
 
   const id = await convexClient().mutation(api.sproutjar.addCommitment, {
     caller,
+    sessionId: (readRenSessionToken(parsed.data.user) ?? undefined) as Id<"sessions"> | undefined,
     wish: parsed.data.wish,
     outcome: parsed.data.outcome,
     obstacle: parsed.data.obstacle,

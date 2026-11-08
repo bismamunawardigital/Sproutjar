@@ -50,16 +50,24 @@ export function wordsToKeep(words: string[]): string | null {
   return `${cut.slice(0, stop > 60 ? stop : 140).trim()}…`;
 }
 
-export type RenTalkRecord = {
-  conversationId: string;
+export type RenTalkStart = {
   agenda: string;
   agendaReason: string;
   technique: string;
   plannedMinutes: number;
   contractChoice: string;
   mode: "voice" | "text";
-  durationMs: number;
 };
+
+export type RenTalkRecord = { sessionId: string; conversationId: string };
+
+export async function startRenTalk(talk: RenTalkStart, request: typeof fetch = fetch): Promise<{ sessionId: string; userToken: string }> {
+  const response = await request("/api/sessions/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(talk) });
+  if (!response.ok) throw new Error("Ren couldn't start this talk. Try again.");
+  const result = await response.json();
+  if (typeof result?.sessionId !== "string" || !result.sessionId || typeof result.userToken !== "string" || !result.userToken) throw new Error("Ren couldn't start this talk. Try again.");
+  return result;
+}
 
 export async function recordRenTalk(talk: RenTalkRecord, request: typeof fetch = fetch): Promise<string> {
   const response = await request("/api/sessions", {
