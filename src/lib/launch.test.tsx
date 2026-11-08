@@ -10,6 +10,10 @@ import manifest from "../app/manifest";
 import { SystemPage } from "../components/SystemPage";
 import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
+import { LAYLA_SEED } from "./layla";
+import { Jar } from "../components/Jar";
+import { JarGlass } from "../components/JarGlass";
+import { seed } from "../../convex/sproutjar";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
 import { addCommitment, completeOnboarding, recordCompletedSession, recordReview, saveOnboardingCard, setCommitmentStatus, snapshot, updateProfile } from "../../convex/sproutjar";
@@ -57,6 +61,59 @@ function planFixture(debts = [{ id: "card", name: "A real card", issuer: "ADCB",
     growth: { stemPct: 0.3, leafPairs: 1, rootDepth: 1, sparks: false, cleared: false }, proposals: [], reviews: [], reviewCadence: "payday", payday: { day: 25, daysUntil: 10, isWindow: false }, jars: [], starterTarget: 5000, afterDebt: [],
   } as unknown as Snapshot;
 }
+
+test("route metadata carries distinct previews, canonical paths and private-route indexing controls", () => {
+  const routes = [["Today · Sproutjar", "/dashboard"], ["Your plan · Sproutjar", "/dashboard/plan"], ["Ren, your AI coach · Sproutjar", "/dashboard/ren"], ["You · Sproutjar", "/dashboard/you"], ["Privacy · Sproutjar", "/privacy"], ["Help · Sproutjar", "/help"]];
+  const descriptions = new Set();
+  for (const [title, path] of routes) {
+    const meta = pageMetadata(title);
+    assert.equal(meta.title, title);
+    assert.equal(meta.alternates?.canonical, path);
+    assert.equal(meta.openGraph?.title, title);
+    assert.equal(meta.twitter?.title, title);
+    descriptions.add(meta.description);
+  }
+  assert.equal(descriptions.size, routes.length);
+  assert.deepEqual(pageMetadata("Today · Sproutjar").robots, { index: false, follow: false });
+  assert.equal(pageMetadata("Custom", "An explicit description").description, "An explicit description");
+  assert.equal(pageMetadata("Custom").alternates, undefined);
+});
+
+test("chosen glass geometry is shared and repeated jars have unique SVG references", () => {
+  const glass = renderToStaticMarkup(<svg><JarGlass /><JarGlass lid /></svg>);
+  assert.match(glass, /width="190"/);
+  assert.match(glass, /M128 324/);
+  assert.match(glass, /width="206"/);
+  const html = renderToStaticMarkup(<><Jar pct={50} stage="sprout" /><Jar pct={50} stage="sprout" /></>);
+  const ids = [...html.matchAll(/clipPath id="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(new Set(ids).size, 2);
+  for (const pct of [0, -20, NaN, Infinity]) assert.doesNotMatch(renderToStaticMarkup(<Jar pct={pct} stage="seed" />), /NaN|Infinity|ellipse/);
+  assert.match(renderToStaticMarkup(<Jar pct={200} stage="grown" />), /height="68"/);
+});
+
+test("Layla's prototype seed preserves figures, eleven weeks, six dated talks and empty/error handling", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "seed-test-key";
+  try {
+    const rows: Record<string, Record<string, unknown>[]> = {};
+    const ctx = { db: { query: () => ({ withIndex: () => ({ unique: async () => null }) }), insert: async (table: string, data: Record<string, unknown>) => { (rows[table] ??= []).push(data); return `${table}-${rows[table].length}`; } } } as unknown as MutationCtx;
+    const run = (seed as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.seed>) => Promise<unknown> })._handler;
+    const args = { caller: { serverKey: "seed-test-key", userKey: "demo" }, ...LAYLA_SEED };
+    await assert.rejects(() => run(ctx, { ...args, caller: { ...args.caller, serverKey: "invalid" } }), /Not from the Sproutjar server/);
+    assert.deepEqual(rows, {});
+    await run(ctx, args);
+    assert.equal(rows.users[0].weeksActive, 11);
+    assert.equal(rows.sessions.length, 6);
+    assert.equal(rows.debts.reduce((sum, row) => sum + Number(row.balance), 0), 39100);
+    assert.equal(rows.jars.reduce((sum, row) => sum + Number(row.saved), 0), 3050);
+    for (const [i, session] of rows.sessions.entries()) {
+      const total = rows.balanceEntries.filter((entry) => entry.source === "seed_snapshot" && entry.loggedAt === session.startedAt).reduce((sum, entry) => sum + Number(entry.balance), 0);
+      assert.ok(Math.abs(total - LAYLA_SEED.sessions[i].balanceAtStart) < .001);
+    }
+    await run(ctx, { ...args, debts: [], jars: [], beliefs: [], commitments: [], sessions: [] });
+    assert.equal(rows.users.at(-1)?.weeksActive, 0);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
 
 test("Plan defaults to avalanche, preserves a chosen order, and keeps small figures precise", () => {
   assert.equal(planStrategy(undefined), "avalanche");

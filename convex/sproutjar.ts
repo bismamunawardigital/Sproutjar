@@ -883,12 +883,12 @@ type SeedCommitment = {
 };
 
 /** Weeks of history behind the demo. Everything dated in the seed hangs off this. */
-const HISTORY_WEEKS = 32;
+const HISTORY_WEEKS = 12;
 /** The newest weekly reading is this many days old. */
 const HISTORY_OFFSET_DAYS = 2;
 
 /**
- * Idempotent: wipes the demo user's rows and lays down Layla's thirty-two
+ * Idempotent: wipes the demo user's rows and lays down Layla's twelve
  * weeks again. Safe to run before a demo.
  */
 export const seed = mutation({
@@ -948,6 +948,7 @@ export const seed = mutation({
         contractChoice: v.string(),
         mode: v.optional(v.string()),
         daysAgo: v.number(),
+        balanceAtStart: v.optional(v.number()),
       }),
     ),
     commitments: v.array(
@@ -999,7 +1000,7 @@ export const seed = mutation({
       country: "AE",
       ...args.profile,
       strategy: planStrategy(args.profile.strategy),
-      weeksActive: HISTORY_WEEKS,
+      weeksActive: Math.floor(Math.max(0, ...args.sessions.map((session) => session.daysAgo)) / 7),
       upbringing: "Money was something the adults argued about after we went to bed.",
       moneyPurpose: "So my mother never has to ask anyone for anything.",
       goodDecision: "I stopped using two of the cards in March and I haven't touched them since.",
@@ -1016,6 +1017,7 @@ export const seed = mutation({
       newBorrowing: 0,
     }));
 
+    const seededDebts: { debtId: Id<"debts">; debt: SeedDebt }[] = [];
     for (const debt of args.debts as SeedDebt[]) {
       const { events, ...fields } = debt;
       const debtId = await ctx.db.insert("debts", {
@@ -1025,6 +1027,7 @@ export const seed = mutation({
         carryingBalance: true,
         status: "active",
       });
+      seededDebts.push({ debtId, debt });
 
       const lumps = events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
       const slips = events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
@@ -1075,6 +1078,18 @@ export const seed = mutation({
 
     const sessionIds: Id<"sessions">[] = [];
     for (const session of args.sessions) {
+      if (session.balanceAtStart !== undefined) {
+        const week = Math.max(0, Math.min(HISTORY_WEEKS, HISTORY_WEEKS - Math.round((session.daysAgo - HISTORY_OFFSET_DAYS) / 7)));
+        const balances = seededDebts.map(({ debt }) => seedBalanceAt(debt, week));
+        const total = balances.reduce((sum, balance) => sum + balance, 0);
+        if (total > 0) for (const [index, { debtId }] of seededDebts.entries()) {
+          await ctx.db.insert("balanceEntries", {
+            userId, debtId, balance: session.balanceAtStart * balances[index] / total,
+            amountPaid: 0, principalCleared: 0, interestCharged: 0, newBorrowing: 0,
+            source: "seed_snapshot", loggedAt: now - session.daysAgo * day,
+          });
+        }
+      }
       sessionIds.push(
         await ctx.db.insert("sessions", {
           userId,

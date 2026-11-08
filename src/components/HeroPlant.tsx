@@ -1,6 +1,8 @@
-const SOIL_LINE = 308;
+import { JarGlass } from "@/components/JarGlass";
+
+const SOIL_LINE = 324;
 const LID_LINE = 32;
-const STEM_LENGTH = 348;
+const STEM_LENGTH = 364;
 const ROOT_LENGTH = 128;
 
 const LEAF_SLOTS = [
@@ -35,7 +37,7 @@ export function HeroPlant({ className }: { className?: string }) {
 
   return (
     <svg
-      viewBox="0 -80 440 520"
+      viewBox="0 -80 440 530"
       className={className}
       role="img"
       aria-label="A plant sprouting out of a jar, because you can grow out of the jar you are in."
@@ -43,28 +45,14 @@ export function HeroPlant({ className }: { className?: string }) {
     >
       <g>
         {/* Jar */}
-        <rect
-          x="86"
-          y="132"
-          width="268"
-          height="300"
-          rx="34"
-          fill="#FDFCF8"
-          stroke="#C8DACB"
-          strokeWidth="3"
-        />
-
-        {/* Soil */}
-        <path
-          d="M89 308 H351 V398 C351 416 337 430 319 430 H121 C103 430 89 416 89 398 Z"
-          fill="#B98F63"
-        />
+        <JarGlass />
 
         {/* Roots */}
         {ROOT_PATHS.slice(0, rootCount).map((d, index) => (
           <path
             key={d}
             className="plant-root"
+            transform="translate(0,16)"
             d={d}
             fill="none"
             stroke="#7A6248"

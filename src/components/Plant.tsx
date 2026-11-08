@@ -1,5 +1,7 @@
-const STEM_LENGTH = 276;
-const SOIL_LINE = 308;
+import { JarGlass } from "@/components/JarGlass";
+
+const STEM_LENGTH = 292;
+const SOIL_LINE = 324;
 const LID_LINE = 32;
 const ROOT_LENGTH = 128;
 
@@ -66,13 +68,13 @@ export function Plant({ state, className }: { state: PlantState; className?: str
       }, ${rootCount} roots.`}
     >
       <g transform="translate(0,-8)">
-        <rect x="86" y="132" width="268" height="300" rx="34" fill="#FDFCF8" stroke="#C8DACB" strokeWidth="3" />
-        <path d="M89 308 H351 V398 C351 416 337 430 319 430 H121 C103 430 89 416 89 398 Z" fill="#B98F63" />
+        <JarGlass />
 
         {roots.map((d, index) => (
           <path
             key={d}
             className="plant-root"
+            transform="translate(0,16)"
             d={d}
             fill="none"
             stroke="#7A6248"
@@ -84,15 +86,7 @@ export function Plant({ state, className }: { state: PlantState; className?: str
           />
         ))}
 
-        <rect
-          x="78"
-          y="98"
-          width="284"
-          height="34"
-          rx="17"
-          fill="#C8DACB"
-          className={state.cleared ? "lid-tip" : undefined}
-        />
+        <JarGlass lid className={state.cleared ? "lid-tip" : undefined} />
 
         <path
           className="plant-stem"
@@ -107,16 +101,16 @@ export function Plant({ state, className }: { state: PlantState; className?: str
 
         {LEAF_SLOTS.map((_, index) => {
           const leaf = leafPosition(index, state.leafPairs);
-          if (!leaf.visible || leaf.y < stemTop) return null;
+          if (!leaf.visible || leaf.y + 16 < stemTop) return null;
           return (
             <g key={index}>
               <g className="leaf leaf-r" style={{ animationDelay: `${index * 160}ms` }}>
-                <g transform={`translate(226,${leaf.y}) rotate(${leaf.tilt}) scale(${leaf.scale})`}>
+                <g transform={`translate(226,${leaf.y + 16}) rotate(${leaf.tilt}) scale(${leaf.scale})`}>
                   <path d="M0 0 C 0 -24 20 -42 46 -44 C 48 -18 24 2 0 0 Z" fill="#6FBF88" />
                 </g>
               </g>
               <g className="leaf leaf-l" style={{ animationDelay: `${index * 160 + 80}ms` }}>
-                <g transform={`translate(214,${leaf.y + 10}) scale(-1,1) rotate(${leaf.tilt + 4}) scale(${leaf.scale})`}>
+                <g transform={`translate(214,${leaf.y + 26}) scale(-1,1) rotate(${leaf.tilt + 4}) scale(${leaf.scale})`}>
                   <path d="M0 0 C 0 -24 20 -42 46 -44 C 48 -18 24 2 0 0 Z" fill="#92D3A3" />
                 </g>
               </g>

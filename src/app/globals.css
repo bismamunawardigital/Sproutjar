@@ -37,11 +37,11 @@
   --color-danger: #b4453a;
   --color-danger-50: #f7e4e2;
 
-  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
-  --font-logo: var(--font-space-grotesk), ui-sans-serif, sans-serif;
+  --font-sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  --font-logo: var(--font-sans);
 
-  --radius-card: 16px;
-  --radius-sm: 10px;
+  --radius-card: 22px;
+  --radius-sm: 12px;
 
   --shadow-sh-1: 0 1px 2px rgba(34, 48, 42, 0.05);
   --shadow-sh-2: 0 4px 14px rgba(34, 48, 42, 0.09);
@@ -59,6 +59,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@layer base {
+  :where(a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"]) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  a[href] { display: inline-flex; align-items: center; }
+}
+
+.text-ink-300 { color: var(--color-ink-400); }
+.text-stem-500, .text-stem { color: var(--color-stem-700); }
+.text-soil { color: var(--color-root); }
+.bg-cream-2 :is(.text-ink-400, .label) { color: var(--color-ink-500); }
+.text-ink-900\/60 { color: var(--color-ink-900); }
+.bg-stem.text-white { color: var(--color-ink-900); }
+[data-clerk-dev-mode-notice] { color: var(--color-root); }
+.text-cream\/60, .text-cream\/50, .text-cream\/40,
+.text-white\/60, .text-white\/50, .text-white\/40 { color: rgb(242 237 228 / 80%); }
+
 /* Every figure is tabular and weight 800. */
 .n,
 td.num,
@@ -68,7 +86,7 @@ input[type="number"] {
 }
 
 .label {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   line-height: 1.4;
   letter-spacing: 0.08em;
@@ -82,7 +100,7 @@ input[type="number"] {
   gap: 4px;
   border-radius: 999px;
   padding: 3px 10px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -151,7 +169,7 @@ input[type="number"] {
 }
 .rise { animation: rise 420ms var(--ease-settle) both; }
 
-/* Ren's orb is the only gradient permitted in the system. */
+/* Glass and Ren's orb have depth. UI surfaces stay flat. */
 .ren-orb {
   background: radial-gradient(circle at 32% 28%, #92d3a3, #3d7a55 70%);
 }
@@ -173,7 +191,11 @@ input[type="number"] {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
+  .ren-level { transform: none !important; }
+  [data-reveal] { opacity: 1 !important; transform: none !important; filter: none !important; }
 }
 
 /* The sprout on the session close card grows once the person names their step. */

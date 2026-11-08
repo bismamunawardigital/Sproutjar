@@ -1,3 +1,7 @@
+"use client";
+
+import { useId } from "react";
+
 /**
  * A jar that fills. The fill level is the only thing that moves, so a deposit
  * reads as the liquid rising rather than a bar sliding across.
@@ -11,7 +15,8 @@ export function Jar({
   stage: "seed" | "sprout" | "sapling" | "grown";
   className?: string;
 }) {
-  const filled = Math.max(0, Math.min(100, pct));
+  const id = useId();
+  const filled = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
   const bodyTop = 26;
   const bodyBottom = 92;
   const height = ((bodyBottom - bodyTop) * filled) / 100;
@@ -21,14 +26,14 @@ export function Jar({
   return (
     <svg viewBox="0 0 64 100" className={className} aria-hidden>
       <defs>
-        <clipPath id={`jar-body-${filled}-${stage}`}>
+        <clipPath id={id}>
           <path d="M10 26 h44 v54 a12 12 0 0 1 -12 12 h-20 a12 12 0 0 1 -12 -12 z" />
         </clipPath>
       </defs>
 
       <rect x="8" y="14" width="48" height="10" rx="5" fill="#DED6C8" />
 
-      <g clipPath={`url(#jar-body-${filled}-${stage})`}>
+      <g clipPath={`url(#${id})`}>
         <rect x="10" y="26" width="44" height="66" fill="#FDFCF8" />
         <rect
           x="10"

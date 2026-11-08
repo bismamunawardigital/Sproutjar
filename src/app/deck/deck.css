@@ -1,7 +1,7 @@
 /* Slide styles ported from deck/deck.html. Every slide is authored at 1280x720 and scaled by .deck-stage. */
 .deck {
-  --cream: #F2EDE4; --card: #FDFCF8; --ink: #141D19; --ink-700: #2B3A33; --ink-500: #5C6A63; --ink-400: #7E8A84; --ink-300: #A7B0AB;
-  --stem-700: #2F6243; --stem: #5FA877; --leaf: #92D3A3; --soil: #B98F63; --root: #7A6248; --amber: #E8A94B; --rule: #E3DCCF; --pill: #22302A;
+  --cream: #F2EDE4; --card: #FDFCF8; --ink: #141D19; --ink-700: #2B3A33; --ink-500: #4A5C52; --ink-400: #5C6B62; --ink-300: #5C6B62;
+  --stem-700: #2F6243; --stem: #2F6243; --leaf: #92D3A3; --soil: #B98F63; --root: #7A6248; --amber: #E8A94B; --rule: #E3DCCF; --pill: #22302A;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -20,7 +20,8 @@
   .deck .deck-frame .slide { break-after: auto; page-break-after: auto; }
 }
 .deck .slide { width: 1280px; height: 720px; position: relative; overflow: hidden; page-break-after: always; break-after: page; background: var(--cream); padding: 64px 80px; display: flex; flex-direction: column; }
-.deck .slide.dark { background: var(--ink); color: var(--cream); }
+.deck .slide.dark { background: var(--ink); color: var(--cream); --stem: #92d3a3; --stem-700: #92d3a3; --ink-300: #d2d1c9; --ink-400: #d2d1c9; --ink-500: #d2d1c9; }
+.deck a[href] { min-width: calc(45px / var(--deck-scale, 1)); min-height: calc(45px / var(--deck-scale, 1)); }
 .deck .slide.dark .eyebrow { color: var(--leaf); }
 .deck .slide.dark .muted { color: #B9C2BD; }
 .deck .brand { position: absolute; top: 40px; left: 80px; display: flex; align-items: center; gap: 10px; font-family: var(--font-logo); font-weight: 700; font-size: 20px; letter-spacing: -0.03em; }
@@ -29,7 +30,7 @@
 .deck .slide { counter-increment: slide; }
 .deck .pageno::before { content: counter(slide, decimal-leading-zero); }
 .deck .pageno { position: absolute; bottom: 36px; right: 80px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink-300); font-variant-numeric: tabular-nums; }
-.deck .dark .pageno { color: #5C6A63; }
+.deck .dark .pageno { color: #d2d1c9; }
 .deck .foot { position: absolute; bottom: 36px; left: 80px; font-size: 12px; line-height: 1.4; color: var(--ink-400); max-width: 900px; }
 .deck .dark .foot { color: #8A968F; }
 .deck .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--stem-700); margin-bottom: 14px; }
@@ -80,6 +81,7 @@
 .deck ul.plain li { font-size: 18px; line-height: 1.45; padding: 12px 0; border-bottom: 1px solid var(--rule); display: flex; gap: 14px; }
 .deck .dark ul.plain li { border-color: #2E3B35; }
 .deck ul.plain li .b { color: var(--stem); font-weight: 800; flex: 0 0 22px; }
+.deck .card[style*="background:var(--ink)"] ul.plain li .b { color: var(--leaf); }
 .deck .s3 ul.plain li { font-size: 16.5px; padding: 10px 0; }
 .deck .s6 ul.plain li { font-size: 13.5px; padding: 7px 0; line-height: 1.4; }
 .deck .s6 .card { padding: 18px 20px; }

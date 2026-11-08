@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { JarGlass } from "@/components/JarGlass";
 
 const LEAVES: { pair: string; y: number; rotate: number; scale: number }[] = [
   { pair: "p1", y: 280, rotate: -10, scale: 0.68 },
@@ -49,40 +50,25 @@ export function GrowthAnimation({ caption = "outgrown the jar" }: { caption?: st
         >
           <rect x="0" y="0" width="440" height="580" rx="14" fill="#F2EDE4" />
           <g transform="translate(0,78)">
-            <g className="sj-jar">
-              <rect
-                x="86"
-                y="132"
-                width="268"
-                height="300"
-                rx="34"
-                fill="#FDFCF8"
-                stroke="#C8DACB"
-                strokeWidth="3"
-              />
-              <path
-                d="M89 308 H351 V398 C351 416 337 430 319 430 H121 C103 430 89 416 89 398 Z"
-                fill="#B98F63"
-              />
-            </g>
+            <JarGlass className="sj-jar" />
 
-            <path className="sj-root sj-r1" d="M220 310 L220 404" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
-            <path className="sj-root sj-r2" d="M220 310 C 204 332 193 356 188 400" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
-            <path className="sj-root sj-r3" d="M220 310 C 236 332 247 356 252 400" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
+            <path className="sj-root sj-r1" d="M220 326 L220 412" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
+            <path className="sj-root sj-r2" d="M220 326 C 204 346 193 368 188 406" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
+            <path className="sj-root sj-r3" d="M220 326 C 236 346 247 368 252 406" fill="none" stroke="#7A6248" strokeWidth="6" strokeLinecap="round" />
 
-            <rect className="sj-lid" x="78" y="98" width="284" height="34" rx="17" fill="#CDDCCD" />
+            <JarGlass lid className="sj-lid" />
 
             <g className="sj-plant">
-              <path className="sj-stem" d="M220 308 L220 32" fill="none" stroke="#5FA877" strokeWidth="12" strokeLinecap="round" />
+              <path className="sj-stem" d="M220 324 L220 48" fill="none" stroke="#5FA877" strokeWidth="12" strokeLinecap="round" />
               {LEAVES.map((leaf) => (
                 <g key={leaf.pair}>
                   <g className={`sj-leaf sj-leafR sj-${leaf.pair}a`}>
-                    <g transform={`translate(226,${leaf.y}) rotate(${leaf.rotate}) scale(${leaf.scale})`}>
+                    <g transform={`translate(226,${leaf.y + 16}) rotate(${leaf.rotate}) scale(${leaf.scale})`}>
                       <path d={LEAF} fill="#6FBF88" />
                     </g>
                   </g>
                   <g className={`sj-leaf sj-leafL sj-${leaf.pair}b`}>
-                    <g transform={`translate(214,${leaf.y + 10}) scale(-1,1) rotate(${leaf.rotate + 4}) scale(${leaf.scale})`}>
+                    <g transform={`translate(214,${leaf.y + 26}) scale(-1,1) rotate(${leaf.rotate + 4}) scale(${leaf.scale})`}>
                       <path d={LEAF} fill="#92D3A3" />
                     </g>
                   </g>

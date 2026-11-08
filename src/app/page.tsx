@@ -200,7 +200,7 @@ function StarterCard() {
       <div className="mt-5 flex items-start gap-3 rounded-sm bg-ink-800 p-4 text-cream">
         <span className="ren-orb orb-listening mt-0.5 h-8 w-8 shrink-0 rounded-full" aria-hidden />
         <div className="min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">Ren suggests</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-leaf-300">Ren suggests</p>
           <p className="mt-1 text-[15px] font-bold leading-snug">Find what knocks the month over</p>
           <p className="mt-1 text-[13px] leading-relaxed text-cream/75">
             Look through your last three months with Ren and spot the one thing that keeps throwing the plan off.
