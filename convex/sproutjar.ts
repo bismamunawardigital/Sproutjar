@@ -5,6 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
+import { planReviewDays, planReviewSplit, planStrategy } from "../src/lib/plan";
 import { onboardingAnswers, onboardingProgress } from "./onboarding";
 import { INITIAL_ONBOARDING, onboardingAnswersSchema, onboardingProgressSchema } from "../src/lib/onboarding";
 
@@ -82,7 +83,7 @@ export const ensureUser = mutation({
       country: "AE",
       monthlyIncome: 0,
       monthlyEssentials: 0,
-      strategy: "snowball",
+      strategy: "avalanche",
       weeksActive: 0,
       upbringing: "",
       moneyPurpose: "",
@@ -177,6 +178,7 @@ export const snapshot = query({
       debts: debts
         .filter((d) => d.status === "active")
         .sort((a, b) => a.balance - b.balance),
+      settledDebts: debts.filter((d) => d.status === "settled"),
       jars,
       commitments: commitments.sort((a, b) => b.createdAt - a.createdAt),
       beliefs: beliefs.filter((b) => b.status === "active"),
@@ -424,7 +426,7 @@ export const recordReview = mutation({
       v.object({
         debtId: v.id("debts"),
         paid: v.number(),
-        newBorrowing: v.number(),
+        newBorrowing: v.optional(v.number()),
         balance: v.number(),
       }),
     ),
@@ -448,10 +450,11 @@ export const recordReview = mutation({
     // what was handed over, `reduction` what came off the card (an overpayment
     // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
-    for (const entry of await ctx.db
+    const balanceEntries = await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect()) {
+      .collect();
+    for (const entry of balanceEntries) {
       if (!isPaymentEntry(entry) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
@@ -460,7 +463,7 @@ export const recordReview = mutation({
       });
     }
     const attack = debtAttackFor(user).amount;
-    const strategy = user.strategy === "avalanche" ? "avalanche" : "snowball";
+    const strategy = planStrategy(user.strategy);
     const debtFreeBefore = buildPayoffPlan(active.map(engineInput), attack, strategy).debtFreeOn;
 
     const reviewId = await ctx.db.insert("reviews", {
@@ -478,19 +481,17 @@ export const recordReview = mutation({
       completedAt: now,
     });
 
-    const totals = { openingDebt: 0, closingDebt: 0, paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0 };
+    const totals = { openingDebt: 0, closingDebt: 0, paid: 0, principalRepaid: 0, interestCharged: 0, newBorrowing: 0, estimatedSplit: false };
     for (const entry of args.entries) {
       const debt = active.find((d) => d._id === entry.debtId);
       if (!debt) continue;
       const logged = loggedSince.get(debt._id) ?? { paid: 0, reduction: 0 };
       // The statement covers the logged payments too; a blank field means "just those".
       const paid = Math.max(0, entry.paid, logged.paid);
-      const newBorrowing = Math.max(0, entry.newBorrowing);
       const balance = Math.max(0, entry.balance);
       const opening = debt.balance + logged.reduction;
-      // What the card would stand at if no interest had been charged.
-      const expected = Math.max(0, opening - paid + newBorrowing);
-      const interestCharged = Math.max(0, balance - expected);
+      const days = planReviewDays(debt._id, debt._creationTime, balanceEntries, now);
+      const { newBorrowing, interestCharged, estimatedSplit } = planReviewSplit(opening, paid, balance, debt.monthlyRate, days, entry.newBorrowing);
       const principalRepaid = Math.max(0, Math.min(paid, opening + newBorrowing) - interestCharged);
 
       totals.openingDebt += opening;
@@ -499,6 +500,7 @@ export const recordReview = mutation({
       totals.principalRepaid += principalRepaid;
       totals.interestCharged += interestCharged;
       totals.newBorrowing += newBorrowing;
+      totals.estimatedSplit ||= estimatedSplit;
 
       debt.balance = balance;
       await ctx.db.patch(debt._id, {
@@ -516,6 +518,7 @@ export const recordReview = mutation({
         // interest found here takes some of that back so the history sums right.
         principalCleared: principalRepaid - logged.reduction,
         statementPaid: paid,
+        estimatedSplit,
         interestCharged,
         newBorrowing,
         reviewId,
@@ -556,10 +559,18 @@ export const updateProfile = mutation({
     goodDecision: v.optional(v.string()),
     upbringing: v.optional(v.string()),
     strategy: v.optional(v.string()),
+    acknowledgeDebtFree: v.optional(v.boolean()),
   },
-  handler: async (ctx, { caller, ...fields }) => {
+  handler: async (ctx, { caller, acknowledgeDebtFree, ...fields }) => {
     const user = await callerUser(ctx, caller);
     const patch = Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
+    if (acknowledgeDebtFree && !user.debtFreeAcknowledgedAt) {
+      if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+      const debts = await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+      const recorded = debts.filter((debt) => debt.status === "active" || debt.status === "settled");
+      if (!recorded.some((debt) => debt.openingBalance > 0) || recorded.some((debt) => debt.status === "active" && debt.balance > 0)) throw new Error("Clear the cards before acknowledging this moment.");
+      patch.debtFreeAcknowledgedAt = Date.now();
+    }
     await ctx.db.patch(user._id, patch);
     return ctx.db.get(user._id);
   },
@@ -987,7 +998,7 @@ export const seed = mutation({
       email: DEMO_EMAIL,
       country: "AE",
       ...args.profile,
-      strategy: args.profile.strategy ?? "snowball",
+      strategy: planStrategy(args.profile.strategy),
       weeksActive: HISTORY_WEEKS,
       upbringing: "Money was something the adults argued about after we went to bed.",
       moneyPurpose: "So my mother never has to ask anyone for anything.",
@@ -1108,7 +1119,7 @@ export const seed = mutation({
           .map((d, i) => ({ ...engineInputFromSeed(d, i), balance: balances.get(d.name) ?? 0 }))
           .filter((d) => d.balance > 0),
         args.profile.debtAttack,
-        "snowball",
+        planStrategy(args.profile.strategy),
         new Date(weekAt(review.toWeek)),
       ).debtFreeOn;
     const balancesAt = (week: number) =>

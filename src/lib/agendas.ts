@@ -120,6 +120,7 @@ export type AgendaContext = {
   sessionsHeld: number;
   /** The last review's four numbers, when there has been one. */
   lastReview?: {
+    estimatedSplit?: boolean;
     completedAt: Date;
     principalRepaid: number;
     interestCharged: number;
@@ -178,7 +179,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
     generated.push({
       id: "review-gap",
       title: "What went on the cards last month",
-      reason: `Your ${monthName(review.completedAt)} review shows ${money(
+      reason: `${review.estimatedSplit ? "Estimated split: your" : "Your"} ${monthName(review.completedAt)} review shows ${money(
         review.newBorrowing,
       )} new on a card while ${money(review.principalRepaid)} came off. Not a verdict. What was that week like?`,
       technique: "Working out what happened",
@@ -192,7 +193,7 @@ export function generatedAgendas(context: AgendaContext): Agenda[] {
     generated.push({
       id: "the-price",
       title: "Whether the debt could cost less",
-      reason: `Last month ${money(review.interestCharged)} went on interest and ${money(
+      reason: `${review.estimatedSplit ? "Estimated split: last" : "Last"} month ${money(review.interestCharged)} went on interest and ${money(
         review.principalRepaid,
       )} came off the balance. When the bank is ahead of you, moving a balance to a lower rate is worth exploring. Nothing moves unless you decide it does.`,
       technique: "Getting clear",

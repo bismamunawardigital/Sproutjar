@@ -27,6 +27,7 @@ const profileSchema = z.object({
   goodDecision: z.string().max(300).optional(),
   upbringing: z.string().max(300).optional(),
   strategy: z.enum(["snowball", "avalanche"]).optional(),
+  acknowledgeDebtFree: z.literal(true).optional(),
 });
 
 export async function GET() {

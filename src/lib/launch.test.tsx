@@ -12,7 +12,7 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { addCommitment, completeOnboarding, recordCompletedSession, saveOnboardingCard, setCommitmentStatus, snapshot } from "../../convex/sproutjar";
+import { addCommitment, completeOnboarding, recordCompletedSession, recordReview, saveOnboardingCard, setCommitmentStatus, snapshot, updateProfile } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
@@ -40,6 +40,189 @@ import { PendingTransfers } from "../components/PendingTransfers";
 import { appendRenLine, decideRenProposal, firstCallAgendas, keepRenStep, recordRenTalk, startRenTalk, wordsToKeep, type RenTalkRecord } from "./ren";
 import { readRenSessionToken, readRenUserToken, renUserToken } from "./ren-token";
 import { renAgendasFor } from "./session-agendas";
+import { PlanScreen } from "../components/PlanScreen";
+import { GrowthTabs } from "../components/GrowthTabs";
+import { planMoney, planStrategy, planReviewDays, planReviewEntry, planReviewSplit, savePlanChange } from "./plan";
+import { compareStrategies, minimumsOnlyOutlook } from "./debt-engine";
+
+function planFixture(debts = [{ id: "card", name: "A real card", issuer: "ADCB", kind: "credit_card", balance: 1000, openingBalance: 1500, monthlyRate: 0.0325, minimumPayment: 50, isEstimated: true, estimatedFields: "rate", touchedSinceReview: false, lastReviewed: null }], monthly = 200, openingPrincipal = 1500) {
+  return {
+    user: { name: "Layla" }, country: { currency: "AED" }, horizon: debts.some((debt) => debt.balance > 0) ? "clearing" : "building", debts,
+    openingPrincipal, totals: { debt: debts.reduce((sum, debt) => sum + debt.balance, 0) }, strategy: "avalanche", attack: { amount: monthly, source: "chosen" }, split: { toDebt: monthly },
+    plan: buildPayoffPlan(debts, monthly, "avalanche", new Date("2026-11-01"), monthly), comparison: compareStrategies(debts, monthly, new Date("2026-11-01"), monthly), minimumsOnly: minimumsOnlyOutlook(debts),
+    growth: { stemPct: 0.3, leafPairs: 1, rootDepth: 1, sparks: false, cleared: false }, proposals: [], reviews: [], reviewCadence: "payday", payday: { day: 25, daysUntil: 10, isWindow: false }, jars: [], starterTarget: 5000, afterDebt: [],
+  } as unknown as Snapshot;
+}
+
+test("Plan defaults to avalanche, preserves a chosen order, and keeps small figures precise", () => {
+  assert.equal(planStrategy(undefined), "avalanche");
+  assert.equal(planStrategy("unknown"), "avalanche");
+  assert.equal(planStrategy("snowball"), "snowball");
+  assert.equal(planStrategy("avalanche"), "avalanche");
+  assert.match(planMoney(12400.34, "AED"), /12,400/);
+  assert.match(planMoney(0.3, "KWD"), /0\.300/);
+  assert.match(planMoney(-0.3, "KWD"), /-0\.300/);
+  assert.match(planMoney(0.25, "AED"), /0\.25/);
+  assert.match(planMoney(0, "AED"), /0/);
+});
+
+test("Plan writes use existing APIs and surface rejected, empty and offline responses", async () => {
+  const calls: { url: string; method?: string; body: unknown }[] = [];
+  const request: typeof fetch = async (url, init) => { calls.push({ url: String(url), method: init?.method, body: init?.body ? JSON.parse(String(init.body)) : undefined }); return new Response('{"id":"jar"}', { status: 201 }); };
+  assert.deepEqual(await savePlanChange("/api/jars", "POST", { name: "A real goal", target: 5000 }, request), { id: "jar" });
+  await savePlanChange("/api/jars/jar", "DELETE", undefined, request);
+  assert.deepEqual(calls, [{ url: "/api/jars", method: "POST", body: { name: "A real goal", target: 5000 } }, { url: "/api/jars/jar", method: "DELETE", body: undefined }]);
+  assert.deepEqual(await savePlanChange("/api/profile", "PATCH", {}, async () => new Response(null, { status: 204 })), {});
+  await assert.rejects(() => savePlanChange("/api/debts", "POST", {}, async () => new Response('{"error":"Invalid debt"}', { status: 400 })), /Invalid debt/);
+  for (const body of ["", "null", "{}"]) await assert.rejects(() => savePlanChange("/api/reviews", "POST", {}, async () => new Response(body, { status: 503 })), /didn't save/);
+  await assert.rejects(() => savePlanChange("/api/jars", "POST", {}, async () => { throw new Error("offline"); }), /offline/);
+});
+
+test("review defaults follow a payment or a newly added card without replacing an explicit reading", () => {
+  const drafts = {};
+  assert.equal(planReviewEntry({ id: "card", balance: 1000 }, drafts).balance, "1000");
+  assert.equal(planReviewEntry({ id: "card", balance: 990 }, drafts).balance, "990");
+  assert.equal(planReviewEntry({ id: "new", balance: 500 }, drafts).balance, "500");
+  assert.deepEqual(planReviewEntry({ id: "card", balance: 990 }, { card: { balance: "1010", paid: "10", newBorrowing: "" } }), { balance: "1010", paid: "10", newBorrowing: "" });
+  assert.equal(planReviewEntry({ id: "card", balance: 0 }, drafts).balance, "0");
+});
+
+test("unknown spending estimates only the engine's interest, with editable and empty splits", () => {
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12), { interestCharged: 30, newBorrowing: 470, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 100, 1100, 0.03, 365 / 12), { interestCharged: 30, newBorrowing: 170, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12, 450), { interestCharged: 50, newBorrowing: 450, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12, 0), { interestCharged: 500, newBorrowing: 0, estimatedSplit: false });
+  for (const balance of [900, 1000]) assert.deepEqual(planReviewSplit(1000, 0, balance, 0.03, 365 / 12), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(0, 0, 0, 0.03, 7), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0, 7), { interestCharged: 0, newBorrowing: 500, estimatedSplit: true });
+});
+
+test("weekly interest uses elapsed days for this card's reading, not a full month or another card's review", () => {
+  const day = 86_400_000, now = 30 * day;
+  const row = (debtId: string, source: string, daysAgo: number) => ({ debtId, source, loggedAt: now - daysAgo * day, amountPaid: 0, balance: 1000 });
+  const readings = [row("card", "review", 7), row("card", "payment", 1), row("other", "review", 0)];
+  assert.equal(planReviewDays("card", 0, readings, now), 7);
+  assert.equal(planReviewDays("card", now - 7 * day, [], now), 7);
+  assert.equal(planReviewDays("card", undefined, [], now), 0);
+  assert.equal(planReviewDays("card", 0, [...readings, row("card", "self_report", 2)], now), 2);
+  assert.equal(planReviewDays("card", 0, [row("card", "review", -1)], now), 0);
+  const split = planReviewSplit(1000, 0, 1500, 0.03, planReviewDays("card", 0, readings, now));
+  assert.ok(Math.abs(split.interestCharged - 1000 * (0.03 * 12 / 365) * 7) < 1e-9);
+  assert.ok(Math.abs(split.newBorrowing - (500 - split.interestCharged)) < 1e-9);
+  assert.equal(planReviewSplit(1000, 0, 1001, 0.03, 7).interestCharged, 1);
+  assert.equal(planReviewSplit(1000, 0, 1500, 0.03, 0).interestCharged, 0);
+});
+
+test("review records an unexplained rise as an Estimated split, preserves explicit readings, and rejects invalid callers", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
+  try {
+    for (const days of [365 / 12, 7]) for (const spending of [undefined, 450, 0]) {
+      const debt = { _id: "card", _creationTime: Date.now() - days * 86_400_000, userId: "layla", status: "active", name: "Card", issuer: "Bank", balance: 1000, monthlyRate: 0.03, minimumPayment: 50 };
+      const user = { _id: "layla", monthlyIncome: 2000, monthlyEssentials: 1000, debtAttack: 200, debtAttackSource: "chosen", strategy: "avalanche", reviewCadence: "payday" };
+      const inserted: Record<string, Record<string, unknown>> = {};
+      const ctx = { db: {
+        query: (table: string) => ({ withIndex: () => ({ unique: async () => user, collect: async () => table === "debts" ? [debt] : [] }) }),
+        insert: async (table: string, fields: Record<string, unknown>) => { inserted[table] = { ...fields }; return table; },
+        patch: async (id: string, fields: Record<string, unknown>) => { Object.assign(id === "card" ? debt : inserted[id], fields); },
+      } } as unknown as MutationCtx;
+      const run = (recordReview as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordReview>) => Promise<unknown> })._handler;
+      const args = { caller: { serverKey: "plan-test-key", userKey: "layla" }, cadence: "payday", reflection: "", entries: [{ debtId: "card" as Id<"debts">, paid: 0, balance: 1500, ...(spending === undefined ? {} : { newBorrowing: spending }) }] };
+      await assert.rejects(() => run(ctx, { ...args, caller: { ...args.caller, serverKey: "invalid" } }), /Not from the Sproutjar server/);
+      assert.deepEqual(inserted, {});
+      await run(ctx, args);
+      const expected = planReviewSplit(1000, 0, 1500, 0.03, planReviewDays("card", debt._creationTime, [], Number(inserted.reviews.completedAt)), spending);
+      if (days === 7 && spending === undefined) assert.ok(Number(inserted.reviews.interestCharged) < 7);
+      for (const table of ["reviews", "balanceEntries"]) for (const key of ["interestCharged", "newBorrowing", "estimatedSplit"] as const) assert.equal(inserted[table][key], expected[key]);
+      assert.equal(debt.balance, 1500);
+    }
+    const topics = generatedAgendas({ name: "Layla", currency: "AED", monthlyBleed: 0, sessionsHeld: 2, lastReview: { completedAt: new Date(), principalRepaid: 0, interestCharged: 30, newBorrowing: 470, reflection: "", estimatedSplit: true } });
+    for (const topic of topics.filter((topic) => ["review-gap", "the-price"].includes(topic.id))) assert.match(topic.reason, /Estimated split/);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
+
+test("debt-free acknowledgement persists once for its owner and gates a fresh Plan render", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
+  try {
+    const user = { _id: "layla", debtFreeAcknowledgedAt: undefined as number | undefined };
+    const other = { _id: "other", debtFreeAcknowledgedAt: undefined as number | undefined };
+    let debts = [{ status: "active", balance: 100, openingBalance: 1500 }];
+    const patches: string[] = [];
+    const ctx = { db: {
+      query: (table: string) => ({ withIndex: () => ({ unique: async () => user, collect: async () => table === "debts" ? debts : [] }) }),
+      patch: async (id: string, fields: Record<string, unknown>) => { patches.push(id); Object.assign(user, fields); },
+      get: async () => ({ ...user }),
+    } } as unknown as MutationCtx;
+    const run = (updateProfile as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.updateProfile>) => Promise<Doc<"users"> | null> })._handler;
+    const caller = { serverKey: "plan-test-key", userKey: "layla" };
+    await assert.rejects(() => run(ctx, { caller, acknowledgeDebtFree: true }), /Clear the cards/);
+    debts = [];
+    await assert.rejects(() => run(ctx, { caller, acknowledgeDebtFree: true }), /Clear the cards/);
+    debts = [{ status: "settled", balance: 0, openingBalance: 1500 }];
+    await assert.rejects(() => run(ctx, { caller: { ...caller, userKey: "demo" }, acknowledgeDebtFree: true }), /read-only/);
+    await assert.rejects(() => run(ctx, { caller: { ...caller, serverKey: "invalid" }, acknowledgeDebtFree: true }), /Not from the Sproutjar server/);
+    assert.deepEqual(patches, []);
+    const saved = await run(ctx, { caller, acknowledgeDebtFree: true });
+    assert.ok(saved?.debtFreeAcknowledgedAt);
+    const again = await run(ctx, { caller, acknowledgeDebtFree: true });
+    assert.equal(again?.debtFreeAcknowledgedAt, saved.debtFreeAcknowledgedAt);
+    assert.ok(patches.every((id) => id === "layla"));
+    assert.equal(other.debtFreeAcknowledgedAt, undefined);
+    const render = (acknowledgedAt?: number) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><GrowthTabs moment={<p>All clear moment</p>} clearing={<p>Clearing data</p>} building={<p>Building data</p>} initialSegment="building" acknowledgedAt={acknowledgedAt} /></AppRouterContext.Provider>);
+    assert.match(render(other.debtFreeAcknowledgedAt), /All clear moment/);
+    assert.doesNotMatch(render(saved.debtFreeAcknowledgedAt), /All clear moment|See where it goes/);
+    assert.match(render(saved.debtFreeAcknowledgedAt), /Building data/);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
+
+test("statement-cleared cards remain available for the Plan's history without reopening their debt", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
+  try {
+    const debts = [{ _id: "open", status: "active", balance: 100, openingBalance: 200 }, { _id: "closed", status: "settled", balance: 0, openingBalance: 1500 }, { _id: "removed", status: "removed", balance: 0, openingBalance: 900 }];
+    const ctx = { db: { query: (table: string) => ({ withIndex: () => ({ unique: async () => ({ _id: "layla" }), collect: async () => table === "debts" ? debts : [] }) }) } } as unknown as QueryCtx;
+    const read = (snapshot as unknown as { _handler: (ctx: QueryCtx, args: FunctionArgs<typeof api.sproutjar.snapshot>) => Promise<FunctionReturnType<typeof api.sproutjar.snapshot>> })._handler;
+    const data = await read(ctx, { caller: { serverKey: "plan-test-key", userKey: "layla" } });
+    assert.deepEqual(data.debts.map((debt) => debt._id), ["open"]);
+    assert.deepEqual(data.settledDebts.map((debt) => debt._id), ["closed"]);
+    assert.equal(data.settledDebts[0].balance, 0);
+    assert.equal(data.debts.reduce((sum, debt) => sum + debt.openingBalance, 0) + data.settledDebts.reduce((sum, debt) => sum + debt.openingBalance, 0), 1700);
+  } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }
+});
+
+test("Plan maps live payoff figures, labelled estimates and cards without inventing bank linking", () => {
+  const snap = planFixture();
+  const render = (snapshot: Snapshot, readOnly = false) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><PlanScreen snap={snapshot} readOnly={readOnly} /></AppRouterContext.Provider>);
+  const html = render(snap);
+  for (const text of ["Left to pay", "Clear by", snap.plan.debtFreeOn, "Estimated", "A real card", "I paid this", "Read a statement", "How it plays out", "Family support stays protected", "Your review"]) assert.ok(html.includes(text), text);
+  assert.doesNotMatch(html, /Connect your bank|Which card goes first|\bWe\b|\bwe\b/);
+  const multi = planFixture([...snap.debts, { ...snap.debts[0], id: "second", name: "Another card", balance: 300 }] as Parameters<typeof planFixture>[0]);
+  assert.match(render(multi), /Which card goes first.*Most expensive first.*Smallest one first/);
+  assert.match(render(multi, true), /Layla.*read-only/);
+  assert.match(render(multi, true), /<fieldset disabled=""/);
+});
+
+test("Plan handles empty, shortfall, stalled and debt-free states without fictitious dates or payments", () => {
+  const render = (snapshot: Snapshot) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><PlanScreen snap={snapshot} readOnly={false} /></AppRouterContext.Provider>);
+  const empty = planFixture([], 0, 0);
+  const html = render(empty);
+  assert.match(html, /No jar yet/);
+  assert.doesNotMatch(html, /debt-free, Layla|months to fill|0 a month can/);
+  assert.match(render({ ...empty, horizon: "clearing" }), /Nothing here yet/);
+  const shortfall = render(planFixture(undefined, 10));
+  assert.match(shortfall, /No date yet on these numbers/);
+  assert.match(shortfall, /I paid this/);
+  assert.doesNotMatch(shortfall, /Pay this month|All clear,|600 months/);
+  const stalled = planFixture(); stalled.debts[0].minimumPayment = 10;
+  assert.match(render(stalled), /minimum on A real card doesn&#x27;t cover its interest/);
+  const free = planFixture(); free.debts[0].balance = 0; free.totals.debt = 0; free.horizon = "building";
+  const freeHtml = render(free);
+  assert.match(freeHtml, /debt-free, Layla/);
+  assert.match(freeHtml, /What happens now/);
+  assert.match(freeHtml, /See where it goes/);
+  assert.doesNotMatch(freeHtml, /Pay this month/);
+});
 
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 

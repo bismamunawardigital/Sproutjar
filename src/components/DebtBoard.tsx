@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StatementImport, type StatementReading } from "@/components/StatementImport";
-import { formatMoney, formatRate } from "@/lib/money";
+import { formatRate } from "@/lib/money";
+import { planMoney as formatMoney, savePlanChange } from "@/lib/plan";
+import { paymentPresets } from "@/lib/today";
+import { Plant, type PlantState } from "@/components/Plant";
 
 export type DebtRow = {
   id: string;
@@ -12,6 +15,7 @@ export type DebtRow = {
   kind: string;
   provider?: string;
   balance: number;
+  paidSinceReview?: number;
   openingBalance: number;
   monthlyRate: number;
   minimumPayment: number;
@@ -86,11 +90,11 @@ function payload(form: Form) {
     kind: form.kind,
     provider: form.kind === "bnpl" && form.provider ? form.provider : undefined,
     balance: Number(form.balance),
-    monthlyRate: Number(form.monthlyRatePct) / 100,
-    minimumPayment: Number(form.minimumPayment),
+    monthlyRate: form.monthlyRatePct.trim() ? Number(form.monthlyRatePct) / 100 : 0.0325,
+    minimumPayment: form.minimumPayment.trim() ? Number(form.minimumPayment) : Number(form.balance) * 0.05,
     dueDay: form.dueDay ? Number(form.dueDay) : undefined,
     statementDay: form.statementDay ? Number(form.statementDay) : undefined,
-    estimatedFields: form.estimated.join(","),
+    estimatedFields: [...new Set([...form.estimated, ...(!form.monthlyRatePct.trim() ? ["rate"] : []), ...(!form.minimumPayment.trim() ? ["minimum"] : [])])].join(","),
   };
 }
 
@@ -107,19 +111,27 @@ function estimatedLabel(fields: string | undefined): string {
     .filter(Boolean)
     .map((k) => ESTIMABLE.find((e) => e.key === k)?.label ?? k);
   if (names.length === 0) return "Estimated";
-  return `Guessed ${names.join(" and ")}`;
+  return `Estimated: ${names.join(" and ")}`;
 }
 
 export function DebtBoard({
   debts,
   currency,
   focusName,
+  payments = [],
+  growth,
+  readOnly = false,
 }: {
   debts: DebtRow[];
   currency: string;
   focusName: string | null;
+  payments?: { id: string; amount: number }[];
+  growth?: PlantState;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [paidId, setPaidId] = useState<string | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [busy, setBusy] = useState(false);
@@ -132,28 +144,29 @@ export function DebtBoard({
   const settled = debts.filter((debt) => debt.balance <= 0);
 
   function startNew() {
+    setFormError(null); setImporting(false);
     setForm(EMPTY);
     setEditing(editing === "new" ? null : "new");
   }
 
   function startEdit(debt: DebtRow) {
+    setFormError(null); setImporting(false);
     setForm(formFor(debt));
     setEditing(debt.id);
   }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (readOnly || busy) return;
+    setFormError(null);
+    const fields = payload(form);
+    if (!fields.name.trim() || !Number.isFinite(fields.balance) || fields.balance <= 0 || !Number.isFinite(fields.monthlyRate) || fields.monthlyRate < 0 || fields.monthlyRate > 1 || !Number.isFinite(fields.minimumPayment) || fields.minimumPayment < 0) { setFormError("Add a name, a balance above zero, and valid rate and minimum figures."); return; }
     setBusy(true);
-    const isNew = editing === "new";
-    await fetch(isNew ? "/api/debts" : `/api/debts/${editing}`, {
-      method: isNew ? "POST" : "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload(form)),
-    });
-    setForm(EMPTY);
-    setEditing(null);
-    setBusy(false);
-    router.refresh();
+    try {
+      await savePlanChange(editing === "new" ? "/api/debts" : `/api/debts/${editing}`, editing === "new" ? "POST" : "PATCH", fields);
+      setForm(EMPTY); setEditing(null); router.refresh();
+    } catch { setFormError("That didn't save. Your figures are still here. Try again."); }
+    finally { setBusy(false); }
   }
 
   function fromStatement(reading: StatementReading) {
@@ -171,35 +184,19 @@ export function DebtBoard({
     setEditing("new");
   }
 
-  /** "Cleared it" is a payment of what was left, so the review and the history see it as one. */
-  async function settleDebt(debt: DebtRow) {
-    setAsking(null);
-    const response = await fetch(`/api/debts/${debt.id}/payments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: debt.balance }),
-    }).catch(() => null);
-    if (!response?.ok) {
-      const data = response ? ((await response.json().catch(() => ({}))) as { error?: string }) : {};
-      setPayError(data.error ?? "That did not save. Check your connection and try again.");
-      setPayAmount(String(debt.balance));
-      setPaying(debt.id);
-      return;
-    }
-    router.refresh();
-  }
-
   function startPaying(debt: DebtRow) {
     setAsking(null);
     setPayError(null);
-    setPayAmount(String(Math.min(debt.minimumPayment, debt.balance) || ""));
+    const planned = payments.find((row) => row.id === debt.id);
+    setPayAmount(planned ? String(Math.round(planned.amount * 1000) / 1000) : "");
     setPaying(debt.id);
   }
 
   async function logPayment(event: React.FormEvent, debt: DebtRow) {
     event.preventDefault();
-    const amount = Number(payAmount.replace(/[^0-9.]/g, ""));
-    if (!(amount > 0)) {
+    if (readOnly || busy) return;
+    const amount = Number(payAmount);
+    if (!Number.isFinite(amount) || !(amount > 0)) {
       setPayError("How much went to it?");
       return;
     }
@@ -221,17 +218,20 @@ export function DebtBoard({
       return;
     }
     setPaying(null);
+    setPaidId(debt.id);
     router.refresh();
   }
 
   async function removeDebt(id: string) {
-    setAsking(null);
-    await fetch(`/api/debts/${id}`, { method: "DELETE" });
-    router.refresh();
+    if (readOnly || busy) return;
+    setBusy(true); setFormError(null);
+    try { await savePlanChange(`/api/debts/${encodeURIComponent(id)}`, "DELETE"); setAsking(null); setEditing(null); router.refresh(); }
+    catch { setFormError("That didn't remove the card. Try again."); }
+    finally { setBusy(false); }
   }
 
   const input =
-    "mt-1 w-full rounded-sm border border-rule bg-card px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
+    "mt-1 min-h-11 w-full rounded-sm border border-rule bg-card px-3 py-2 text-[15px] text-ink-800 outline-none focus:border-stem";
 
   const editor = (
     <form onSubmit={save} className="mt-4 grid gap-3 rounded-sm bg-cream p-4 sm:grid-cols-2">
@@ -271,8 +271,8 @@ export function DebtBoard({
           ["name", "What you call it", "text", true],
           ["issuer", form.kind === "bnpl" ? "Shop or app it was for" : "Which bank", "text", false],
           ["balance", `What you owe on it (${currency})`, "number", true],
-          ["monthlyRatePct", "Monthly interest %", "number", true],
-          ["minimumPayment", `Minimum payment (${currency})`, "number", true],
+          ["monthlyRatePct", "Monthly interest %", "number", false],
+          ["minimumPayment", `Minimum payment (${currency})`, "number", false],
           ["dueDay", "Payment due on the (day of month)", "number", false],
           ["statementDay", "Statement arrives on the (day of month)", "number", false],
         ] as const
@@ -311,7 +311,7 @@ export function DebtBoard({
                       : [...form.estimated, e.key],
                   })
                 }
-                className={`rounded-full border px-3 py-1 text-[12px] font-bold transition ${
+                className={`min-h-11 rounded-full border px-3 py-1 text-[12px] font-bold transition ${
                   on
                     ? "border-ink-800 bg-ink-800 text-cream"
                     : "border-rule text-ink-500 hover:border-ink-300"
@@ -327,18 +327,21 @@ export function DebtBoard({
           when you replace it.
         </p>
       </fieldset>
+      <p className="text-[12px] text-ink-400 sm:col-span-2">Blank rate: 3.25% a month, Estimated. Blank minimum: 5% of the balance, Estimated. Check both against the statement.</p>
+      {form.balance && form.monthlyRatePct && Number(form.minimumPayment) > 0 && Number(form.minimumPayment) <= Number(form.balance) * Number(form.monthlyRatePct) / 100 ? <p role="status" className="rounded-card bg-amber/10 p-3 text-[14px] sm:col-span-2">This minimum doesn&apos;t cover the Estimated interest. Worth checking against your statement.</p> : null}
+      {editing !== "new" ? <div className="sm:col-span-2">{asking === editing ? <><p className="text-[14px]">Remove this card only if it was added by mistake. If it is paid off, record the payment instead.</p><button type="button" onClick={() => void removeDebt(editing!)} className="min-h-11 text-[14px] font-bold">Yes, remove this card</button><button type="button" onClick={() => setAsking(null)} className="min-h-11 px-4 text-[14px]">Keep it</button></> : <button type="button" onClick={() => setAsking(editing)} className="min-h-11 text-[14px] font-bold text-ink-500">Remove this card</button>}</div> : null}
       <div className="flex items-center gap-3 sm:col-span-2">
         <button
           type="submit"
           disabled={busy}
-          className="rounded-full bg-ink-800 px-4 py-2.5 text-sm font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
+          className="min-h-11 rounded-full bg-ink-800 px-4 py-2.5 text-sm font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
         >
           {busy ? "Saving" : editing === "new" ? "Save it" : "Save changes"}
         </button>
         <button
           type="button"
           onClick={() => setEditing(null)}
-          className="text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
+          className="min-h-11 text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
         >
           Never mind
         </button>
@@ -347,8 +350,10 @@ export function DebtBoard({
   );
 
   return (
-    <section className="rounded-card border border-rule bg-card p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3">
+    <section className="rounded-card border border-rule bg-card p-5 sm:p-6"><fieldset disabled={readOnly || busy} className="min-w-0">
+      {formError ? <p role="alert" className="mb-4 text-[14px] text-root">{formError}</p> : null}
+      {debts.some((debt) => debt.id === paidId && debt.balance <= 0) ? <div role="status" className="mb-5 rounded-card bg-leaf-50 p-5 text-center">{growth ? <Plant state={growth} className="mx-auto mb-4 w-24" /> : null}<p className="label">Cleared</p><h3 className="mt-2 text-[24px] font-bold">{debts.find((debt) => debt.id === paidId)?.name} is paid off.</h3><p className="mt-2 text-[14px]">The stem keeps this. Your plan has been worked out again.</p><button onClick={() => setPaidId(null)} className="min-h-11 font-bold text-stem-700">Keep going</button></div> : null}
+      <div className="flex flex-col items-start gap-3">
         <p className="label">Your cards</p>
         <div className="flex items-center gap-2">
           <button
@@ -357,14 +362,14 @@ export function DebtBoard({
               setEditing(null);
             }}
             aria-expanded={importing}
-            className="rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
+            className="min-h-11 rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
           >
-            Connect your bank
+            Read a statement
           </button>
           <button
             onClick={startNew}
             aria-expanded={editing === "new"}
-            className="rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
+            className="min-h-11 rounded-full border border-rule px-3.5 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-ink-300"
           >
             {editing === "new" ? "Never mind" : "Add a card"}
           </button>
@@ -384,158 +389,21 @@ export function DebtBoard({
         </p>
       ) : null}
 
-      <div className="mt-4 divide-y divide-rule">
-        {openCards.map((debt) => {
-          const bleed = debt.balance * debt.monthlyRate;
-          const cleared = Math.max(0, debt.openingBalance - debt.balance);
-          const isFocus = debt.name === focusName;
-          const kind = KINDS.find((k) => k.key === debt.kind);
-          return (
-            <div key={debt.id} className="py-4 first:pt-0">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 text-[15px] font-bold text-ink-900">
-                    {debt.name}
-                    {isFocus ? <span className="chip c-grow">Start here</span> : null}
-                    {debt.kind === "bnpl" ? (
-                      <span className="chip c-neutral">{debt.provider ?? "Pay later"}</span>
-                    ) : null}
-                    {debt.isEstimated ? (
-                      <span className="chip c-neutral" title="Replace it from the statement when you can">
-                        {estimatedLabel(debt.estimatedFields)}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-1 text-[13px] text-ink-400">
-                    {debt.issuer}
-                    {kind && debt.kind !== "credit_card" ? ` · ${kind.label}` : ""} ·{" "}
-                    {formatRate(debt.monthlyRate)}
-                    {debt.isIslamic ? " profit rate" : ""}
-                  </p>
-                  <p className="mt-1 text-[13px] text-ink-400">
-                    {debt.lastReviewed ? (
-                      <span className="text-root">
-                        <span className="n">{formatMoney(debt.lastReviewed.interestCharged, currency)}</span>{" "}
-                        interest on the last statement
-                      </span>
-                    ) : (
-                      <span className="text-root">
-                        about <span className="n">{formatMoney(bleed, currency)}</span> interest this month
-                      </span>
-                    )}
-                    {cleared > 0 ? (
-                      <>
-                        {" · "}
-                        <span className="text-stem-700">
-                          <span className="n">{formatMoney(cleared, currency)}</span> paid off
-                        </span>
-                      </>
-                    ) : null}
-                  </p>
-                  {debt.dueDay || debt.statementDay ? (
-                    <p className="mt-1 text-[13px] text-ink-400">
-                      {debt.dueDay ? `Due on the ${ordinal(debt.dueDay)}` : null}
-                      {debt.dueDay && debt.statementDay ? " · " : null}
-                      {debt.statementDay ? `statement on the ${ordinal(debt.statementDay)}` : null}
-                      {" · "}minimum{" "}
-                      <span className="n">{formatMoney(debt.minimumPayment, currency)}</span>
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[13px] text-ink-400">
-                      Minimum <span className="n">{formatMoney(debt.minimumPayment, currency)}</span>
-                      {" · "}
-                      <button
-                        onClick={() => startEdit(debt)}
-                        className="font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem"
-                      >
-                        add the due date
-                      </button>
-                    </p>
-                  )}
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="n text-[19px] text-ink-900">{formatMoney(debt.balance, currency)}</p>
-                  {asking === debt.id ? (
-                    <div className="mt-1.5 flex items-center justify-end gap-2">
-                      <span className="text-[12px] text-ink-400">Cleared it?</span>
-                      <button
-                        onClick={() => settleDebt(debt)}
-                        className="rounded-full bg-stem-600 px-3 py-1 text-[12px] font-bold text-white transition hover:bg-stem-700"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setAsking(null)}
-                        className="text-[12px] font-bold text-ink-300 transition hover:text-ink-500"
-                      >
-                        Not yet
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mt-1.5 flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => (editing === debt.id ? setEditing(null) : startEdit(debt))}
-                        aria-expanded={editing === debt.id}
-                        className="rounded-full border border-rule px-3 py-1 text-[12px] font-bold text-ink-500 transition hover:border-ink-300 hover:text-ink-700"
-                      >
-                        {editing === debt.id ? "Close" : "Edit"}
-                      </button>
-                      <button
-                        onClick={() => (paying === debt.id ? setPaying(null) : startPaying(debt))}
-                        aria-expanded={paying === debt.id}
-                        className="rounded-full bg-stem-600 px-3 py-1 text-[12px] font-bold text-white transition hover:bg-stem-700"
-                      >
-                        I paid this
-                      </button>
-                      <button
-                        onClick={() => setAsking(debt.id)}
-                        className="rounded-full border border-rule px-3 py-1 text-[12px] font-bold text-ink-500 transition hover:border-stem hover:text-stem-700"
-                      >
-                        Settled
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {paying === debt.id ? (
-                <form onSubmit={(event) => logPayment(event, debt)} className="mt-4 rounded-sm bg-cream p-4">
-                  <label className="block text-[12px] font-bold text-ink-500">
-                    How much did you pay to {debt.name}? ({currency})
-                    <input
-                      value={payAmount}
-                      onChange={(e) => setPayAmount(e.target.value)}
-                      inputMode="decimal"
-                      autoFocus
-                      className={input}
-                    />
-                  </label>
-                  <p className="mt-2 text-[12px] text-ink-300">
-                    Comes straight off the balance. Interest gets squared up at your payday review.
-                  </p>
-                  {payError ? <p className="mt-2 text-[13px] text-root">{payError}</p> : null}
-                  <div className="mt-3 flex items-center gap-3">
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      className="rounded-full bg-ink-800 px-4 py-2 text-[13px] font-bold text-cream transition hover:bg-ink-700 disabled:opacity-60"
-                    >
-                      {busy ? "Saving" : "Log it"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaying(null)}
-                      className="text-[13px] font-bold text-ink-300 transition hover:text-ink-500"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : null}
-              {editing === debt.id ? editor : null}
-            </div>
-          );
-        })}
-      </div>
+      <div className="mt-4 divide-y divide-rule">{openCards.map((debt) => {
+        const planned = payments.find((row) => row.id === debt.id);
+        const cleared = Math.max(0, debt.openingBalance - debt.balance);
+        const presets = planned ? paymentPresets({ ...debt, amount: planned.amount }) : [{ label: "All of it", value: String(debt.balance) }];
+        return <article key={debt.id} className="py-5 first:pt-0">
+          <div className="flex items-start justify-between gap-3"><h3 className="text-[17px] font-bold">{debt.name}</h3><b className="n shrink-0 text-[18px]">{formatMoney(debt.balance, currency)}</b></div>
+          <div className="mt-2 flex flex-wrap gap-2">{debt.name === focusName && openCards.length > 1 ? <span className="chip c-grow">Start here</span> : null}{debt.isEstimated ? <span className="chip c-neutral">{estimatedLabel(debt.estimatedFields)}</span> : null}{debt.kind !== "credit_card" ? <span className="chip c-neutral">{KINDS.find((kind) => kind.key === debt.kind)?.label}{debt.provider ? ` · ${debt.provider}` : ""}</span> : null}</div>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-400">{formatRate(debt.monthlyRate)}{debt.isIslamic ? " profit rate" : ""}, Estimated {formatMoney(debt.balance * debt.monthlyRate, currency)} interest · minimum {formatMoney(debt.minimumPayment, currency)}{debt.dueDay ? ` · due on the ${ordinal(debt.dueDay)}` : ""}{debt.statementDay ? ` · statement on the ${ordinal(debt.statementDay)}` : ""}{cleared > 0 ? ` · ${formatMoney(cleared, currency)} paid off` : ""}</p>
+          {(debt.paidSinceReview ?? 0) > 0 ? <p className="mt-2 text-[13px] text-stem-700">{formatMoney(debt.paidSinceReview!, currency)} logged since your last review</p> : null}
+          {!debt.dueDay ? <button className="min-h-11 text-[13px] font-bold text-stem-700 underline" onClick={() => startEdit(debt)}>Add the due date</button> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-card bg-cream p-3"><div className="min-w-0 flex-1"><p className="text-[12px] text-ink-400">{planned ? "Pay this month · Estimated" : "No payment figure yet"}</p>{planned ? <b className="n text-[17px]">{formatMoney(planned.amount, currency)}</b> : null}</div><button onClick={() => paying === debt.id ? setPaying(null) : startPaying(debt)} className="min-h-11 rounded-full bg-ink-800 px-4 text-[13px] font-bold text-cream">I paid this</button><button aria-label={`Edit ${debt.name}`} onClick={() => editing === debt.id ? setEditing(null) : startEdit(debt)} className="min-h-11 rounded-full border border-rule px-3 text-[13px] font-bold">Edit</button></div>
+          {paying === debt.id ? <form onSubmit={(event) => void logPayment(event, debt)} className="mt-4 space-y-3 rounded-card border border-rule p-4"><h4 className="text-[19px] font-bold">Paid to {debt.name}</h4><p className="text-[13px] text-ink-400">This records it. You make the payment with your bank.</p><div className="flex flex-wrap gap-2">{presets.map((preset) => <button type="button" key={preset.label} className="min-h-11 rounded-full border border-rule px-3 text-[13px]" onClick={() => setPayAmount(preset.value)}>{preset.label}</button>)}</div><label className="block text-[14px] font-bold">Amount ({currency})<input inputMode="decimal" className={input} value={payAmount} onChange={(event) => setPayAmount(event.target.value)} /></label>{payError ? <p role="alert" className="text-[14px] text-root">{payError}</p> : null}<button className="min-h-11 rounded-full bg-ink-800 px-4 text-[14px] font-bold text-cream">Log it</button><button type="button" className="min-h-11 px-4 text-[14px]" onClick={() => setPaying(null)}>Cancel</button></form> : null}
+          {editing === debt.id ? editor : null}
+        </article>;
+      })}</div>
 
       {settled.length > 0 ? (
         <div className="mt-5 rounded-sm bg-cream px-4 py-4">
@@ -553,13 +421,13 @@ export function DebtBoard({
                   <span className="flex shrink-0 items-center gap-2">
                     <button
                       onClick={() => removeDebt(debt.id)}
-                      className="text-[12px] font-bold text-root transition hover:opacity-80"
+                      className="min-h-11 text-[12px] font-bold text-root transition hover:opacity-80"
                     >
                       Remove it
                     </button>
                     <button
                       onClick={() => setAsking(null)}
-                      className="text-[12px] font-bold text-ink-300 transition hover:text-ink-500"
+                      className="min-h-11 text-[12px] font-bold text-ink-300 transition hover:text-ink-500"
                     >
                       Keep
                     </button>
@@ -567,7 +435,7 @@ export function DebtBoard({
                 ) : (
                   <button
                     onClick={() => setAsking(debt.id)}
-                    className="shrink-0 text-[12px] text-ink-300 transition hover:text-ink-500"
+                    className="min-h-11 shrink-0 text-[12px] text-ink-300 transition hover:text-ink-500"
                   >
                     Remove
                   </button>
@@ -577,6 +445,6 @@ export function DebtBoard({
           </ul>
         </div>
       ) : null}
-    </section>
+    </fieldset></section>
   );
 }

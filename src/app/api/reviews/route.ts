@@ -16,7 +16,7 @@ const reviewSchema = z.object({
       z.object({
         debtId: z.string().min(1),
         paid: z.coerce.number().nonnegative(),
-        newBorrowing: z.coerce.number().nonnegative(),
+        newBorrowing: z.coerce.number().nonnegative().optional(),
         balance: z.coerce.number().nonnegative(),
       }),
     )
