@@ -31,9 +31,9 @@ export function RenSample() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 id="ren-sample-heading" className="text-[16px] font-bold text-cream">
-            Hear a real session
+            Listen to a sample
           </h2>
-          <p className="mt-1 text-[12px] text-cream/60">A short moment with Ren and Layla</p>
+          <p className="mt-1 text-[12px] text-cream/60">An AI-voiced example with Ren and Layla</p>
         </div>
         <button
           type="button"

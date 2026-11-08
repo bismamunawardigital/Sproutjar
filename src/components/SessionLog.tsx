@@ -49,7 +49,7 @@ export function SessionLog({ sessions }: { sessions: SessionEntry[] }) {
             <button
               onClick={() => setOpen(isOpen ? null : session.id)}
               aria-expanded={isOpen}
-              className="flex w-full items-baseline justify-between gap-3 text-left"
+              className="flex min-h-11 w-full items-baseline justify-between gap-3 text-left"
             >
               <span className="text-[15px] font-bold text-ink-900">{session.agenda}</span>
               <span className="shrink-0 text-[12px] text-ink-300">{session.on}</span>
@@ -105,7 +105,7 @@ export function SessionLog({ sessions }: { sessions: SessionEntry[] }) {
 
             <button
               onClick={() => setOpen(isOpen ? null : session.id)}
-              className="mt-2 text-[12px] font-bold text-stem-700 transition hover:opacity-80"
+              className="mt-2 min-h-11 min-w-11 text-[12px] font-bold text-stem-700 transition hover:opacity-80"
             >
               {isOpen ? "Close" : "What was said"}
             </button>

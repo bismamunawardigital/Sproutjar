@@ -26,6 +26,10 @@ import { plantState } from "./plant";
 import { TodayHero } from "../components/TodayHero";
 import { HomeAgendas } from "../components/HomeAgendas";
 import { Plant } from "../components/Plant";
+import { YouScreen } from "../components/YouScreen";
+import { ProfileForm } from "../components/ProfileForm";
+import { deletionConfirmed, deleteSproutjarAccount } from "./you";
+import AccountDeletedPage from "../app/account-deleted/page";
 import { PaydayInvitation } from "../components/PaydayInvitation";
 import type { Snapshot } from "./user";
 import { agendasFor, requestedAgenda } from "./session-agendas";
@@ -64,6 +68,49 @@ test("Plan defaults to avalanche, preserves a chosen order, and keeps small figu
   assert.match(planMoney(-0.3, "KWD"), /-0\.300/);
   assert.match(planMoney(0.25, "AED"), /0\.25/);
   assert.match(planMoney(0, "AED"), /0/);
+});
+
+test("You maps live story, totals and the empty story without inventing talks", () => {
+  const snap = { ...planFixture(), country: { currency: "AED", name: "United Arab Emirates" }, user: { name: "Layla", weeksActive: 14, monthlyIncome: 12000, monthlyEssentials: 3000, moneyPurpose: "A home with room to breathe" }, totals: { debt: 1000, saved: 750 }, cleared: 500, sessions: [], beliefs: [], monthlyBleed: 32.5 } as unknown as Snapshot;
+  const render = (data: Snapshot, readOnly = false) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><YouScreen snap={data} readOnly={readOnly} account={<p>Account controls</p>} /></AppRouterContext.Provider>);
+  const html = render(snap);
+  assert.match(html, /Your story/);
+  assert.match(html, /Numbers &amp; settings/);
+  assert.match(html, /A home with room to breathe/);
+  assert.match(html, /750/);
+  assert.match(html, /14 weeks in/);
+  assert.doesNotMatch(html, /Your talks with Ren/);
+  const empty = render({ ...snap, user: { ...snap.user, moneyPurpose: "", goodDecision: "", upbringing: "", weeksActive: 0 } }, true);
+  assert.match(empty, /Day one/);
+  assert.equal((empty.match(/Nothing yet\. It comes up on calls/g) ?? []).length, 3);
+  assert.equal((empty.match(/disabled=""/g) ?? []).length, 3);
+});
+
+test("You's profile editor protects demo writes and preserves the avalanche fallback", () => {
+  const html = renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><ProfileForm initial={{ name: "Layla", country: "AE", monthlyIncome: 12000, monthlyEssentials: 3000, remittances: 1000, strategy: "unknown" }} currency="AED" readOnly /></AppRouterContext.Provider>);
+  assert.match(html, /fieldset disabled=""/);
+  assert.match(html, /Family support \/ sent home · protected/);
+  assert.match(html, /value="avalanche" selected=""/);
+  assert.match(html, /Changing it does not convert saved amounts/);
+});
+
+test("You preserves a deliberately chosen zero monthly card figure", () => {
+  const html = renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><ProfileForm initial={{ name: "Layla", country: "AE", monthlyIncome: 12000, monthlyEssentials: 3000, debtAttackSource: "chosen", debtAttack: 0, strategy: "avalanche" }} currency="AED" /></AppRouterContext.Provider>);
+  assert.match(html, /value="0"/);
+  assert.match(html, /The plan runs on[\s\S]*?AED 0/);
+});
+
+test("account deletion requires an explicit word and surfaces server and network failures", async () => {
+  assert.equal(deletionConfirmed(" delete "), true);
+  assert.equal(deletionConfirmed("DELETE"), true);
+  for (const word of ["", "yes", "delete everything", "deleted"]) assert.equal(deletionConfirmed(word), false);
+  const result = await deleteSproutjarAccount(async (url, init) => { assert.equal(url, "/api/account"); assert.equal(init?.method, "DELETE"); assert.equal(init?.body, undefined); return new Response('{"deleted":true}'); });
+  assert.deepEqual(result, { deleted: true });
+  await assert.rejects(() => deleteSproutjarAccount(async () => new Response('{"error":"Sign-in did not close. Retry."}', { status: 500 })), /Retry/);
+  await assert.rejects(() => deleteSproutjarAccount(async () => { throw new Error("Network unavailable"); }), /Network unavailable/);
+  const html = renderToStaticMarkup(<AccountDeletedPage />);
+  assert.match(html, /It&#x27;s gone/);
+  assert.match(html, /href="\/delete-public"/);
 });
 
 test("Plan writes use existing APIs and surface rejected, empty and offline responses", async () => {
