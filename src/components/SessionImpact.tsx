@@ -1,139 +1,46 @@
-import { formatMoneyShort } from "@/lib/money";
+import { formatMoney as formatExactMoney, formatMoneyShort as formatMoney } from "@/lib/money";
 import type { HistoryPoint } from "@/lib/user";
 
-type Talk = {
-  id: string;
-  agenda: string;
-  mode: string;
-  startedAt: Date;
-  wish: string | null;
-  status: string | null;
-};
+type Talk = { id: string; agenda: string; mode: string; startedAt: Date; summary: string; wish: string | null; status: string | null };
 
-/** Every row says where its commitment stands, in the same words Today uses. */
 function statusChip(status: string | null): { label: string; tone: string } {
   switch (status) {
-    case "kept":
-      return { label: "Done", tone: "c-grow" };
-    case "partial":
-      return { label: "Partly done", tone: "c-amber" };
-    case "missed":
-      return { label: "Another time", tone: "c-neutral" };
-    case "open":
-      return { label: "Still open", tone: "c-neutral" };
-    default:
-      return { label: "Nothing to carry", tone: "c-neutral" };
+    case "kept": return { label: "Done", tone: "c-grow" };
+    case "partial": return { label: "Partly", tone: "c-amber" };
+    case "missed": return { label: "Another time", tone: "c-neutral" };
+    case "open": return { label: "Open", tone: "c-neutral" };
+    default: return { label: "Nothing to carry", tone: "c-neutral" };
   }
 }
 
-const W = 320;
-const H = 84;
+export function SessionImpact({ history, talks, currency }: { history: HistoryPoint[]; talks: Talk[]; currency: string }) {
+  return (
+    <div className="space-y-5">
+      {talks.length > 0 ? <HistoryChart history={history} talks={talks} currency={currency} /> : null}
+      <section className="rounded-card border border-rule bg-card p-5">
+        <h2 className="label">Your talks</h2>
+        {talks.length === 0 ? <p className="mt-3 text-[14px] leading-relaxed text-ink-500">Your talks with Ren will show up here, with what you chose to do after each one.</p> : <><p className="mt-2 text-[13px] text-ink-400">Each talk adds a root. They only go down.</p><div className="mt-3 divide-y divide-rule">{talks.map((talk) => <details key={talk.id} className="py-2"><summary className="min-h-11 cursor-pointer py-2 text-[14px] text-ink-900"><span className="font-bold">{talk.agenda}</span><span className="mt-2 flex flex-wrap items-center gap-2"><span className={`chip ${statusChip(talk.status).tone}`}>{statusChip(talk.status).label}</span>{talk.mode === "text" ? <span className="chip c-neutral">Typed</span> : null}<span className="ml-auto text-[12px] text-ink-400">{talk.startedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span></span></summary><div className="pb-3 pt-2 text-[14px] leading-relaxed text-ink-500"><p className="label">Saved summary</p><p className="mt-2 whitespace-pre-line">{talk.summary || "No summary was saved for this talk."}</p><p className="mt-3 font-bold text-ink-700">{talk.wish ?? "Nothing to do after this one."}</p></div></details>)}</div></>}
+      </section>
+    </div>
+  );
+}
 
-/**
- * The line is the argument: talking moved money. Session marks sit on it so the
- * drop reads as something the person did, not something that happened to them.
- */
-export function SessionImpact({
-  history,
-  talks,
-  currency,
-}: {
-  history: HistoryPoint[];
-  talks: Talk[];
-  currency: string;
-}) {
-  if (history.length < 2 || talks.length === 0) return null;
-
-  const first = history[0];
-  const last = history[history.length - 1];
-  const moved = first.total - last.total;
+function HistoryChart({ history, talks, currency }: { history: HistoryPoint[]; talks: Talk[]; currency: string }) {
+  if (history.length < 2) return null;
+  const first = history[0], last = history[history.length - 1];
+  const change = last.total - first.total;
+  const amount = Math.abs(change) > 0 && Math.abs(change) < 1 ? formatExactMoney(Math.abs(change), currency) : formatMoney(Math.abs(change), currency);
+  const heading = change > 0 ? "Recorded balance increased" : change < 0 ? "Cleared while coaching with Ren" : "Recorded balance unchanged";
   const highest = Math.max(...history.map((point) => point.total));
   const lowest = Math.min(...history.map((point) => point.total));
-  const span = Math.max(1, highest - lowest);
-  const startMs = first.at.getTime();
-  const endMs = Math.max(last.at.getTime(), startMs + 1);
-
-  const x = (at: Date) => ((at.getTime() - startMs) / (endMs - startMs)) * W;
-  const y = (total: number) => H - 8 - ((total - lowest) / span) * (H - 20);
-
+  const span = Math.max(1, highest - lowest), W = 320, H = 84;
+  const startMs = first.at.getTime(), endMs = Math.max(last.at.getTime(), startMs + 1);
+  const x = (at: Date) => Math.max(4, Math.min(W - 4, (at.getTime() - startMs) / (endMs - startMs) * W));
+  const y = (total: number) => H - 8 - (total - lowest) / span * (H - 20);
   const line = history.map((point) => `${x(point.at)},${y(point.total)}`).join(" ");
-  const area = `${line} ${W},${H} 0,${H}`;
-
-  const marks = talks
-    .filter((talk) => talk.startedAt.getTime() >= startMs && talk.startedAt.getTime() <= endMs)
-    .map((talk) => {
-      const nearest = history.reduce((best, point) =>
-        Math.abs(point.at.getTime() - talk.startedAt.getTime()) <
-        Math.abs(best.at.getTime() - talk.startedAt.getTime())
-          ? point
-          : best,
-      );
-      return { id: talk.id, cx: x(talk.startedAt), cy: y(nearest.total) };
-    });
-
-  return (
-    <section className="overflow-hidden rounded-card border border-rule bg-card">
-      <div className="px-5 pt-5">
-        <p className="label">Cleared while coaching with Ren</p>
-        <p className="mt-2 text-[26px] font-bold leading-none text-stem-700">
-          <span className="n">{formatMoneyShort(moved, currency)}</span>
-        </p>
-        <p className="mt-1.5 text-[13px] text-ink-400">
-          cleared while coaching with Ren, across{" "}
-          <span className="n">{talks.length}</span> conversations.
-        </p>
-      </div>
-
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="mt-3 h-24 w-full"
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`Total owed falling from ${Math.round(first.total)} to ${Math.round(last.total)} ${currency}.`}
-      >
-        <polygon points={area} fill="var(--color-leaf-100)" opacity="0.7" />
-        <polyline
-          points={line}
-          fill="none"
-          stroke="var(--color-stem-600)"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        {marks.map((mark) => (
-          <circle key={mark.id} cx={mark.cx} cy={mark.cy} r="3.5" fill="var(--color-stem-600)" />
-        ))}
-      </svg>
-
-      <div className="flex items-baseline justify-between px-5 text-[12px] text-ink-300">
-        <span className="n">{formatMoneyShort(first.total, currency)}</span>
-        <span>each dot marks a talk</span>
-        <span className="n">{formatMoneyShort(last.total, currency)}</span>
-      </div>
-
-      <ul className="mt-4 divide-y divide-rule border-t border-rule">
-        {talks.slice(0, 6).map((talk) => (
-          <li key={talk.id} className="flex items-start gap-3 px-5 py-3.5">
-            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-stem" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-bold leading-snug text-ink-900">{talk.agenda}</p>
-              <p className="mt-0.5 text-[13px] text-ink-400">
-                {talk.wish ?? "Thinking out loud. Nothing to do after it."}
-              </p>
-              <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span className={`chip ${statusChip(talk.status).tone}`}>
-                  {statusChip(talk.status).label}
-                </span>
-                {talk.mode === "text" ? <span className="chip c-neutral">Typed</span> : null}
-              </p>
-            </div>
-            <span className="shrink-0 text-[12px] text-ink-300">
-              {talk.startedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
+  const marks = talks.filter((talk) => talk.startedAt.getTime() >= startMs && talk.startedAt.getTime() <= endMs).map((talk) => {
+    const nearest = history.reduce((best, point) => Math.abs(point.at.getTime() - talk.startedAt.getTime()) < Math.abs(best.at.getTime() - talk.startedAt.getTime()) ? point : best);
+    return { id: talk.id, cx: x(talk.startedAt), cy: y(nearest.total) };
+  });
+  return <section className="rounded-card border border-rule bg-card p-5"><p className="label">{heading}</p><p className={`n mt-2 text-[30px] font-bold ${change < 0 ? "text-stem-700" : "text-ink-900"}`}>{amount}</p><p className="mt-1 text-[13px] text-ink-400">across {talks.length} conversation{talks.length === 1 ? "" : "s"}.</p><svg viewBox={`0 0 ${W} ${H}`} className="mt-4 h-24 w-full" role="img" aria-label={`Recorded balance from ${formatMoney(first.total, currency)} to ${formatMoney(last.total, currency)}. Each dot marks a talk.`}><polyline points={line} fill="none" stroke="var(--color-stem-600)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />{marks.map((mark) => <circle key={mark.id} cx={mark.cx} cy={mark.cy} r="3.5" fill="var(--color-stem-600)" />)}</svg><div className="flex justify-between text-[12px] text-ink-400"><span>{formatMoney(first.total, currency)}</span><span>{formatMoney(last.total, currency)}</span></div></section>;
 }

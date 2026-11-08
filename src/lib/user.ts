@@ -143,7 +143,7 @@ export async function buildSnapshot(caller?: Caller) {
   const growth = plantState({
     openingPrincipal,
     currentPrincipal,
-    sessionsHeld: live.sessions.length,
+    sessionsHeld: live.completedSessionCount,
     checkins: live.commitments.filter((c) => c.checkedInAt !== undefined).length,
     commitmentsKept,
     weeksActive: user.weeksActive,

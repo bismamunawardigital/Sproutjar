@@ -170,6 +170,7 @@ export const snapshot = query({
     const user = await callerUser(ctx, caller);
     const { debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews } =
       await rowsFor(ctx, user._id);
+    const completedSessions = sessions.filter((session) => session.endedAt !== undefined);
 
     return {
       user,
@@ -179,7 +180,8 @@ export const snapshot = query({
       jars,
       commitments: commitments.sort((a, b) => b.createdAt - a.createdAt),
       beliefs: beliefs.filter((b) => b.status === "active"),
-      sessions: sessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
+      sessions: completedSessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
+      completedSessionCount: completedSessions.length,
       balanceEntries: balanceEntries.sort((a, b) => a.loggedAt - b.loggedAt),
       proposals: proposals
         .filter((p) => p.status === "pending")
@@ -637,6 +639,7 @@ export const jarByName = query({
 export const addCommitment = mutation({
   args: {
     caller: callerArg,
+    sessionId: v.optional(v.id("sessions")),
     wish: v.string(),
     outcome: v.string(),
     obstacle: v.string(),
@@ -647,6 +650,10 @@ export const addCommitment = mutation({
   },
   handler: async (ctx, { caller, days, ...rest }) => {
     const user = await callerUser(ctx, caller);
+    if (rest.sessionId) {
+      const session = await ctx.db.get(rest.sessionId);
+      if (!session || session.userId !== user._id) throw new Error("That talk isn't available.");
+    }
     return ctx.db.insert("commitments", {
       ...rest,
       userId: user._id,
@@ -820,6 +827,20 @@ export const endSession = mutation({
     if (!session || session.userId !== user._id) return null;
     await ctx.db.patch(id, { summary, closingReflection, endedAt: Date.now() });
     return id;
+  },
+});
+
+export const recordCompletedSession = mutation({
+  args: { caller: callerArg, sessionId: v.id("sessions"), conversationId: v.string() },
+  handler: async (ctx, { caller, sessionId, conversationId }) => {
+    const user = await callerUser(ctx, caller);
+    if (caller.userKey === "demo") throw new Error("The demo is read-only.");
+    if (!conversationId.trim()) throw new Error("Invalid talk.");
+    const session = await ctx.db.get(sessionId);
+    if (!session || session.userId !== user._id) throw new Error("That talk isn't available.");
+    if (session.conversationId && session.conversationId !== conversationId) throw new Error("That talk belongs to a different conversation.");
+    if (session.endedAt === undefined) await ctx.db.patch(sessionId, { conversationId, endedAt: Date.now() });
+    return sessionId;
   },
 });
 

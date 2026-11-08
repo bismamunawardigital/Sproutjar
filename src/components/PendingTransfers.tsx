@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMoney, formatRate } from "@/lib/money";
+import { formatMoney as formatExactMoney, formatMoneyShort as formatMoney, formatRate } from "@/lib/money";
+import { decideRenProposal } from "@/lib/ren";
 
 export type PendingTransfer = {
   id: string;
@@ -64,30 +65,38 @@ export function PendingTransfers({
   transfers,
   currency,
   monthlyAttack,
+  readOnly = false,
 }: {
   transfers: PendingTransfer[];
   currency: string;
   monthlyAttack: number;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   if (transfers.length === 0) return null;
 
   async function decide(id: string, action: "apply" | "discard") {
+    if (busy || readOnly) return;
     setBusy(id);
-    await fetch(`/api/proposals/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    setBusy(null);
-    router.refresh();
+    setError(null);
+    try {
+      await decideRenProposal(id, action);
+      router.refresh();
+    } catch {
+      setError("That didn't save. The proposal is still here. Try again.");
+    } finally {
+      setBusy(null);
+    }
   }
 
   return (
     <section className="rounded-card border border-stem/30 bg-card p-5 sm:p-6">
       <p className="label">Explored with Ren · still a proposal</p>
+      {error ? <p role="alert" className="mt-3 text-[14px] text-ink-600">{error}</p> : null}
+      {readOnly ? <p className="mt-2 text-[13px] text-ink-400">Read-only demo. No proposal can be applied here.</p> : null}
 
       <div className="mt-4 space-y-5 divide-y divide-rule">
         {transfers.map((move) => {
@@ -106,7 +115,7 @@ export function PendingTransfers({
                 {move.fee > 0 ? (
                   <>
                     {" · "}
-                    <span className="n">{formatMoney(move.fee, currency)}</span> fee up front
+                    <span className="n">{formatExactMoney(move.fee, currency)}</span> fee up front
                   </>
                 ) : null}
                 {move.revertRate > 0 ? (
@@ -114,7 +123,8 @@ export function PendingTransfers({
                 ) : null}
               </p>
 
-              <dl className="mt-3 grid grid-cols-2 gap-3 rounded-sm bg-cream px-4 py-3">
+              <p className="label mt-3">Estimated comparison</p>
+              <dl className="mt-2 grid grid-cols-2 gap-3 rounded-sm bg-cream px-4 py-3">
                 <div>
                   <dt className="label">Interest now</dt>
                   <dd className="n mt-1 text-[17px] text-root">
@@ -184,7 +194,7 @@ export function PendingTransfers({
                       href={move.sourceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem"
+                      className="inline-flex min-h-11 items-center font-bold text-stem-700 underline decoration-stem/40 underline-offset-2 hover:decoration-stem"
                     >
                       {move.sourceTitle ?? new URL(move.sourceUrl).hostname}
                     </a>
@@ -215,16 +225,16 @@ export function PendingTransfers({
 
               <div className="mt-3 flex items-center gap-3">
                 <button
-                  disabled={busy === move.id}
+                  disabled={busy !== null || readOnly}
                   onClick={() => decide(move.id, "apply")}
-                  className="rounded-full bg-stem-600 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-stem-700 disabled:opacity-60"
+                  className="min-h-11 rounded-full bg-stem-600 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-stem-700 disabled:opacity-60"
                 >
                   {busy === move.id ? "Working" : "The bank did it, apply"}
                 </button>
                 <button
-                  disabled={busy === move.id}
+                  disabled={busy !== null || readOnly}
                   onClick={() => decide(move.id, "discard")}
-                  className="text-[13px] font-bold text-ink-300 transition hover:text-ink-500 disabled:opacity-60"
+                  className="min-h-11 text-[13px] font-bold text-ink-300 transition hover:text-ink-500 disabled:opacity-60"
                 >
                   Not doing this
                 </button>

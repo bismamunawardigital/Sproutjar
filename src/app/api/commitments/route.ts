@@ -9,6 +9,7 @@ import { buildSnapshot } from "@/lib/user";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
+  sessionId: z.string().min(1).optional(),
   wish: z.string().min(1),
   outcome: z.string().default(""),
   obstacle: z.string().default(""),
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid commitment", issues: parsed.error.issues }, { status: 400 });
   }
-  const id = await convexClient().mutation(api.sproutjar.addCommitment, { caller, ...parsed.data });
+  const id = await convexClient().mutation(api.sproutjar.addCommitment, { caller, ...parsed.data, sessionId: parsed.data.sessionId as Id<"sessions"> | undefined });
   return NextResponse.json({ id, ...parsed.data }, { status: 201 });
 }
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { callerFromRenToken, isDemo } from "@/lib/caller";
 import { z } from "zod";
 import { api } from "../../../../../convex/_generated/api";
+import type { Id } from "../../../../../convex/_generated/dataModel";
+import { readRenSessionToken } from "@/lib/ren-token";
 import { convexClient } from "@/lib/convex";
 import { assertToolKey } from "@/lib/tool-auth";
 import { currentUser } from "@/lib/user";
@@ -31,6 +33,9 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
   }
+  if (!parsed.data.ownership_confirmed) {
+    return NextResponse.json({ error: "Nothing saved. Ask the person to confirm this is their step. Retry with ownership_confirmed: true only if they agree." }, { status: 422 });
+  }
   const caller = callerFromRenToken(parsed.data.user);
   if (isDemo(caller)) return NextResponse.json({ error: "This is the demo. Nothing is saved for it." }, { status: 403 });
 
@@ -40,6 +45,7 @@ export async function POST(request: Request) {
 
   const id = await convexClient().mutation(api.sproutjar.addCommitment, {
     caller,
+    sessionId: (readRenSessionToken(parsed.data.user) ?? undefined) as Id<"sessions"> | undefined,
     wish: parsed.data.wish,
     outcome: parsed.data.outcome,
     obstacle: parsed.data.obstacle,

@@ -39,7 +39,7 @@ export function RenSample() {
           type="button"
           aria-label={playing ? "Pause sample" : "Play sample"}
           onClick={togglePlayback}
-          className="shrink-0 rounded-full border border-leaf-300 px-4 py-2 text-[13px] font-bold text-leaf-300 transition hover:bg-leaf-300 hover:text-ink-900"
+          className="min-h-11 shrink-0 rounded-full border border-leaf-300 px-4 py-2 text-[13px] font-bold text-leaf-300 transition hover:bg-leaf-300 hover:text-ink-900"
         >
           {playing ? "Pause" : "Play"}
         </button>
