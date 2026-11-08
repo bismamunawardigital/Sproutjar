@@ -127,7 +127,7 @@ export function Onboarding({ initialName, initialCountry, initialAnswers = {}, i
     body = <><div className="flex items-center gap-3"><span className="h-12 w-12 rounded-full bg-stem/40 shadow-[0_0_25px_8px_#5fa87740]" aria-hidden /><div><h1 className="text-[23px] font-bold">Ren</h1><p className="text-[13px] text-ink-400">Your AI voice coach</p></div></div>{progress.reason ? note(MONEY_REASONS[progress.reason][1]) : null}<section className="rounded-card border border-rule p-4"><h2 className="text-[13px] font-bold">Ren will already know</h2><ul className="mt-3 list-disc space-y-2 pl-4 text-[14px]"><li>{(progress.payment ?? 0) > 0 ? `You have ${m(progress.payment ?? 0)} for your cards` : "There's nothing left for your cards right now"}</li><li>{minimumLabel}: {m(outlook.minimums)}</li>{progress.reason ? <li>{MONEY_REASONS[progress.reason][0]}</li> : null}</ul>{minimumNote}</section><section className="rounded-card border border-rule p-4"><h2 className="text-[13px] font-bold">On this call</h2><ol className="mt-3 list-decimal space-y-2 pl-4 text-[14px]"><li>{progress.help ? MONEY_HELPS[progress.help][1] : "Talk through what's going on"}</li><li>Pick one small thing to try</li></ol></section></>;
     footer = <><button className={primary} onClick={() => void go("save", { callFirst: true })}>Call Ren</button>{(progress.payment ?? 0) > 0 ? <button className={link} onClick={() => void go("plan", { payment: Math.max(progress.payment ?? 0, outlook.minimums), callFirst: false }, answers, true)}>Not now, see the plan at {m(Math.max(progress.payment ?? 0, outlook.minimums))}</button> : null}</>; back = "money";
   } else if (step === "plan") {
-    const focusId = cards.filter((item) => item.balance > 0.005).slice().sort((a, b) => b.monthlyRate - a.monthlyRate || a.balance - b.balance)[0]?.id;
+    const focusId = savedOutlook.focusId;
     body = <>
       <Plant state={SEED} className="mx-auto h-36 w-24" />
       <p className="text-center text-[12px] font-bold uppercase tracking-wide text-root">Estimated</p>
@@ -139,8 +139,8 @@ export function Onboarding({ initialName, initialCountry, initialAnswers = {}, i
           <h2 className="text-[13px] font-bold">This month, pay</h2>
           {cards.map((item) => {
             const focus = focusId === item.id;
-            const amount = item.minimumPayment + (focus ? Math.max(0, savedOutlook.firstMonthPayment - outlook.minimums) : 0);
-            return <div key={item.id} className="flex justify-between gap-3 border-t border-rule pt-3 text-[13px]"><span>{item.name}{focus && cards.length > 1 ? " (focus)" : ""}</span><b className="whitespace-nowrap">{m(Math.min(amount, item.balance * (1 + item.monthlyRate)))}</b></div>;
+            const amount = savedOutlook.firstMonthPayments.get(item.id) ?? 0;
+            return <div key={item.id} className="flex justify-between gap-3 border-t border-rule pt-3 text-[13px]"><span>{item.name}{focus && cards.length > 1 ? " (focus)" : ""}</span><b className="whitespace-nowrap">{m(amount)}</b></div>;
           })}
         </div>
         {savedOutlook.firstMonthPayment < (progress.payment ?? 0) ? note("Your plan also starts a small reserve in the first month.") : null}

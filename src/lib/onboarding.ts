@@ -64,9 +64,19 @@ export function onboardingMoney(cards: OnboardingCard[], money: OnboardingProgre
   const guessed = cards.some((card) => card.balance > 0 && card.estimatedFields?.split(",").includes("minimum"));
   const split = allocateSurplus(payment, STARTER_RESERVE_DEFAULT, 0);
   const firstMonthPayment = Math.max(minimums, split.toDebt);
+  const ordered = cards.filter((card) => card.balance > 0.005).slice().sort((a, b) => b.monthlyRate - a.monthlyRate || a.balance - b.balance);
+  const focusId = ordered[0]?.id;
+  const firstMonthPayments = new Map(cards.map((card) => [card.id, 0]));
+  let remaining = firstMonthPayment;
+  for (const card of ordered.slice(1)) {
+    const amount = Math.min(card.balance * (1 + card.monthlyRate), card.minimumPayment, remaining);
+    firstMonthPayments.set(card.id, amount);
+    remaining -= amount;
+  }
+  if (ordered[0]) firstMonthPayments.set(ordered[0].id, Math.min(ordered[0].balance * (1 + ordered[0].monthlyRate), remaining));
   const plan = buildPayoffPlan(cards, payment, "avalanche", start, split.toDebt);
   const amortizes = cards.every((card) => card.minimumPayment >= card.balance * card.monthlyRate) || payment > plan.monthlyBleed;
-  return { minimums, left, tier, payment, firstMonthPayment, guessed, plan, hasDate: cards.length > 0 && plan.feasible && amortizes && plan.months < 600 };
+  return { minimums, left, tier, payment, firstMonthPayment, firstMonthPayments, focusId, guessed, plan, hasDate: cards.length > 0 && plan.feasible && amortizes && plan.months < 600 };
 }
 
 export function onboardingPlanLabel(hasMore: boolean, count: number) {

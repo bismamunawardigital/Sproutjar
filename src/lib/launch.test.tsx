@@ -124,6 +124,23 @@ test("an unfinished legacy flow adopts its saved card rather than inserting it a
   assert.equal(debts.size, 1);
 }));
 
+test("first-month card amounts give unused minimums to the focus as the simulation does", () => {
+  const cards = [
+    { id: "focus", name: "Layla focus", issuer: "Example", balance: 1000, monthlyRate: 0.1, minimumPayment: 100 },
+    { id: "small", name: "Layla small", issuer: "Example", balance: 10, monthlyRate: 0, minimumPayment: 50 },
+    { id: "paid", name: "Layla paid", issuer: "Example", balance: 0, monthlyRate: 0, minimumPayment: 100 },
+  ];
+  const money = { income: 1000, bills: 0, family: 0, everyday: 0 };
+  const result = onboardingMoney(cards, money);
+  assert.equal(result.focusId, "focus");
+  assert.equal(result.firstMonthPayment, 150);
+  assert.deepEqual([...result.firstMonthPayments], [["focus", 140], ["small", 10], ["paid", 0]]);
+  assert.equal([...result.firstMonthPayments.values()].reduce((a, b) => a + b, 0), result.firstMonthPayment);
+  assert.equal(onboardingMoney([cards[0]], money).firstMonthPayments.get("focus"), 100);
+  assert.equal(onboardingMoney([], money).firstMonthPayments.size, 0);
+  assert.equal(onboardingMoney(cards, { ...money, income: 1 }).hasDate, false);
+});
+
 test("legacy card slots match the active balance-sorted snapshot and stay stable after edits", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {
   for (const [id, balance, status] of [["older", 4800, "active"], ["closed", 0, "closed"], ["newer", 1000, "active"]] as const) {
     debts.set(id, { _id: id, userId: user._id, ...card, balance, openingBalance: balance, status } as unknown as Doc<"debts">);
