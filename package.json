@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:engine": "tsx --test src/lib/debt-engine.test.ts",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
     "ren:sync": "tsx --env-file=.env.local scripts/elevenlabs-sync.ts",
     "convex": "convex dev",

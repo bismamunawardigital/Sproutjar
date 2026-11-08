@@ -11,7 +11,7 @@ import {
   type DebtInput,
   type Strategy,
 } from "@/lib/debt-engine";
-import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars";
+import { debtAllocation, jarProgress, recommendedStarterJar } from "@/lib/jars";
 import { countryProfile } from "@/lib/money";
 import { plantState, principalCleared } from "@/lib/plant";
 
@@ -105,13 +105,14 @@ export async function buildSnapshot(caller?: Caller) {
 
   const starterJar = jarRows.find((j) => j.purpose === "emergency");
   const starterTarget = recommendedStarterJar(starterJar?.target);
-  const split = allocateSurplus(surplus, starterTarget, starterJar?.saved ?? 0);
+  const split = debtAllocation(surplus, jarRows);
 
   // One engine run behind every number on screen: the reserve top-up comes off
   // month one, everything after that is the full amount.
-  const plan = buildPayoffPlan(debts, surplus, strategy, new Date(), split.toDebt);
-  const comparison = compareStrategies(debts, surplus, new Date(), split.toDebt);
-  const minimumsOnly = minimumsOnlyOutlook(debts);
+  const start = new Date();
+  const plan = buildPayoffPlan(debts, surplus, strategy, start, split.toDebt);
+  const comparison = compareStrategies(debts, surplus, start, split.toDebt);
+  const minimumsOnly = minimumsOnlyOutlook(debts, start);
 
   const reviews = live.reviews.map((r) => ({ ...r, id: r._id, completedAt: new Date(r.completedAt) }));
   const lastReview = reviews[0] ?? null;
@@ -130,9 +131,7 @@ export async function buildSnapshot(caller?: Caller) {
 
   const debtFreeDate = (() => {
     if (!plan.feasible || plan.months === 0) return null;
-    const d = new Date();
-    d.setMonth(d.getMonth() + plan.months);
-    return d;
+    return new Date(start.getFullYear(), start.getMonth() + plan.months, 1);
   })();
 
   const openingPrincipal = debtRows.reduce((s, d) => s + (d.openingBalance || d.balance), 0);

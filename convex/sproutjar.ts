@@ -4,7 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
-import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
+import { debtAllocation, STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
 
 const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -80,7 +80,7 @@ export const ensureUser = mutation({
       country: "AE",
       monthlyIncome: 0,
       monthlyEssentials: 0,
-      strategy: "snowball",
+      strategy: "avalanche",
       weeksActive: 0,
       upbringing: "",
       moneyPurpose: "",
@@ -413,7 +413,10 @@ export const recordReview = mutation({
     }
     const attack = debtAttackFor(user).amount;
     const strategy = user.strategy === "avalanche" ? "avalanche" : "snowball";
-    const debtFreeBefore = buildPayoffPlan(active.map(engineInput), attack, strategy).debtFreeOn;
+    const jars = await ctx.db.query("jars").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
+    const firstMonthBudget = debtAllocation(attack, jars).toDebt;
+    const start = new Date(now);
+    const debtFreeBefore = buildPayoffPlan(active.map(engineInput), attack, strategy, start, firstMonthBudget).debtFreeOn;
 
     const reviewId = await ctx.db.insert("reviews", {
       userId: user._id,
@@ -480,6 +483,8 @@ export const recordReview = mutation({
       active.filter((d) => d.balance > 0).map(engineInput),
       attack,
       strategy,
+      start,
+      firstMonthBudget,
     ).debtFreeOn;
     await ctx.db.patch(reviewId, { ...totals, debtFreeAfter });
     if (user.reviewCadence !== args.cadence) {
@@ -917,7 +922,7 @@ export const seed = mutation({
       email: DEMO_EMAIL,
       country: "AE",
       ...args.profile,
-      strategy: "snowball",
+      strategy: "avalanche",
       weeksActive: HISTORY_WEEKS,
       upbringing: "Money was something the adults argued about after we went to bed.",
       moneyPurpose: "So my mother never has to ask anyone for anything.",
@@ -1038,8 +1043,9 @@ export const seed = mutation({
           .map((d, i) => ({ ...engineInputFromSeed(d, i), balance: balances.get(d.name) ?? 0 }))
           .filter((d) => d.balance > 0),
         args.profile.debtAttack,
-        "snowball",
+        "avalanche",
         new Date(weekAt(review.toWeek)),
+        debtAllocation(args.profile.debtAttack, args.jars).toDebt,
       ).debtFreeOn;
     const balancesAt = (week: number) =>
       new Map(

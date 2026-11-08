@@ -46,6 +46,14 @@ export function recommendedStarterJar(existingTarget?: number): number {
   return existingTarget && existingTarget > 0 ? Math.round(existingTarget) : STARTER_RESERVE_DEFAULT;
 }
 
+export function debtAllocation(
+  monthly: number,
+  jars: { purpose: string; target: number; saved: number }[],
+) {
+  const reserve = jars.find((jar) => jar.purpose === "emergency");
+  return allocateSurplus(monthly, recommendedStarterJar(reserve?.target), reserve?.saved ?? 0);
+}
+
 /**
  * Splits the monthly surplus between the starter jar and the debt attack.
  * The jar is filled first, then everything flows to the cards.
