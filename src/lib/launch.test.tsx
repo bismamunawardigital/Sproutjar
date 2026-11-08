@@ -26,7 +26,7 @@ import { HomeAgendas } from "../components/HomeAgendas";
 import { Plant } from "../components/Plant";
 import { PaydayInvitation } from "../components/PaydayInvitation";
 import type { Snapshot } from "./user";
-import { agendasFor } from "./session-agendas";
+import { agendasFor, requestedAgenda } from "./session-agendas";
 import { BUILDING_AGENDAS, generatedAgendas, shuffledStarters } from "./agendas";
 
 test("empty Today uses starter openers and zero jar cover is never formatted as 0.0 months", () => {
@@ -109,6 +109,22 @@ test("Today review invitation reflects the actual cadence and known payday", () 
   assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={0} cadence="payday" />), /It&#x27;s payday/);
   assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={2} cadence="payday" />), /Payday is in 2 days/);
   assert.match(renderToStaticMarkup(<PaydayInvitation daysUntil={null} cadence="payday" />), /Payday review/);
+});
+
+test("check-in links resolve their actual follow-up topic even with past-session generated agendas", () => {
+  const agendas = agendasFor({ horizon: "clearing", debts: [{ balance: 1000 }], user: { name: "Layla" }, beliefs: [], recentCommitments: [], sessions: [{}], plan: { monthlyBleed: 20 }, history: [], lastReview: null, attack: { amount: 200, source: "chosen" }, payday: { isWindow: false } } as unknown as Snapshot);
+  for (const answer of Object.values(CHECKIN_ANSWERS)) {
+    assert.ok(!agendas.some((agenda) => agenda.id === answer.agenda));
+    const picked = requestedAgenda(agendas, answer.agenda);
+    assert.equal(picked?.title, answer.heading);
+    assert.equal(picked?.reason, answer.description);
+    assert.equal(picked?.minutes, answer.minutes);
+    assert.equal(requestedAgenda([], answer.agenda)?.title, answer.heading);
+  }
+  assert.equal(requestedAgenda(agendas, agendas[0].id), agendas[0]);
+  assert.equal(requestedAgenda(agendas, undefined), null);
+  assert.equal(requestedAgenda(agendas, "unknown-topic"), null);
+  assert.equal(requestedAgenda([], "__proto__"), null);
 });
 
 test("check-ins record every answer once, preserve ownership, and reject invalid or demo writes", async () => onboardingFixture(async ({ caller, user }) => {

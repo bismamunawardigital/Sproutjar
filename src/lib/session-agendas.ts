@@ -5,6 +5,20 @@ import {
   type Agenda,
 } from "@/lib/agendas";
 import type { Snapshot } from "@/lib/user";
+import { CHECKIN_ANSWERS } from "@/lib/today";
+
+export function requestedAgenda(agendas: Agenda[], id: string | undefined): Agenda | null {
+  const existing = agendas.find((agenda) => agenda.id === id);
+  if (existing) return existing;
+  const followup = Object.values(CHECKIN_ANSWERS).find((answer) => answer.agenda === id);
+  return followup ? {
+    id: followup.agenda,
+    title: followup.heading,
+    reason: followup.description,
+    technique: "Looking back",
+    minutes: followup.minutes,
+  } : null;
+}
 
 /** The same agenda set backs the Home prompt and Ren's own screen. */
 export function agendasFor(snap: Snapshot): Agenda[] {

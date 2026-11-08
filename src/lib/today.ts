@@ -28,9 +28,9 @@ export function paymentPresets(row: { amount: number; balance: number; minimumPa
 }
 
 export const CHECKIN_ANSWERS = {
-  kept: { button: "Done", heading: "What made this week work", description: "What made this week work, and what got in the way before.", agenda: "months-it-didnt" },
-  partial: { button: "Partly", heading: "Next call, with a smaller step", description: "What the part you did tells you, and how to make next week easier.", agenda: "last-plan" },
-  missed: { button: "Not this week", heading: "The week it didn't happen", description: "No score kept. What got in the way? Then the same step again, smaller.", agenda: "last-plan" },
+  kept: { button: "Done", heading: "What made this week work", description: "What made this week work, and what got in the way before.", agenda: "checkin-kept", minutes: 20 },
+  partial: { button: "Partly", heading: "Next call, with a smaller step", description: "What the part you did tells you, and how to make next week easier.", agenda: "checkin-partial", minutes: 20 },
+  missed: { button: "Not this week", heading: "The week it didn't happen", description: "No score kept. What got in the way? Then the same step again, smaller.", agenda: "checkin-missed", minutes: 10 },
 } as const;
 
 export type CheckinAnswer = keyof typeof CHECKIN_ANSWERS;

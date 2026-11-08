@@ -1,6 +1,6 @@
 import { SessionDeck } from "@/components/SessionDeck";
 import { SessionImpact } from "@/components/SessionImpact";
-import { agendasFor } from "@/lib/session-agendas";
+import { agendasFor, requestedAgenda } from "@/lib/session-agendas";
 import { isGuestDemo } from "@/lib/caller";
 import { buildSnapshot } from "@/lib/user";
 import { pageMetadata } from "@/lib/metadata";
@@ -16,7 +16,7 @@ export default async function RenPage({
 }) {
   const [snap, params, guest] = await Promise.all([buildSnapshot(), searchParams, isGuestDemo()]);
   const agendas = agendasFor(snap);
-  const picked = agendas.find((agenda) => agenda.id === params.agenda) ?? null;
+  const picked = requestedAgenda(agendas, params.agenda);
   const suggested = agendas.find((agenda) => agenda.id !== picked?.id) ?? null;
 
   const talks = snap.sessions.map((session) => {
