@@ -40,6 +40,15 @@ import { renAgendasFor } from "./session-agendas";
 
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
+test("proposal fees retain currency precision without adding decimals to headline amounts", () => {
+  const render = (fee: number, currency: string) => renderToStaticMarkup(<AppRouterContext.Provider value={testRouter}><PendingTransfers transfers={[{ id: "move", fromName: "Layla card", fromRate: .03, toIssuer: "Example", toName: "Example", amount: 12400, monthlyRate: .01, promoMonths: 12, fee, revertRate: .03, note: "", on: "6 Nov" }]} currency={currency} monthlyAttack={1000} /></AppRouterContext.Provider>);
+  assert.match(render(.3, "KWD"), /KWD 0\.300<\/span> fee up front/);
+  assert.match(render(.01, "AED"), /AED 0\.01<\/span> fee up front/);
+  assert.match(render(250.5, "AED"), /AED 250\.50<\/span> fee up front/);
+  assert.match(render(.3, "KWD"), /KWD 12,400<\/span>/);
+  assert.doesNotMatch(render(0, "KWD"), /fee up front/);
+});
+
 test("Ren's first four calls use set B votes, the last-answer tiebreak and a free choice", () => {
   for (let call = 0; call < 4; call++) {
     for (let option = 0; option < 4; option++) {

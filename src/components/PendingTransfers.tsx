@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMoneyShort as formatMoney, formatRate } from "@/lib/money";
+import { formatMoney as formatExactMoney, formatMoneyShort as formatMoney, formatRate } from "@/lib/money";
 import { decideRenProposal } from "@/lib/ren";
 
 export type PendingTransfer = {
@@ -115,7 +115,7 @@ export function PendingTransfers({
                 {move.fee > 0 ? (
                   <>
                     {" · "}
-                    <span className="n">{formatMoney(move.fee, currency)}</span> fee up front
+                    <span className="n">{formatExactMoney(move.fee, currency)}</span> fee up front
                   </>
                 ) : null}
                 {move.revertRate > 0 ? (
