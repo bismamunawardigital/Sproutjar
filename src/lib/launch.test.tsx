@@ -110,6 +110,12 @@ test("Layla's prototype seed preserves figures, eleven weeks, six dated talks an
       const total = rows.balanceEntries.filter((entry) => entry.source === "seed_snapshot" && entry.loggedAt === session.startedAt).reduce((sum, entry) => sum + Number(entry.balance), 0);
       assert.ok(Math.abs(total - LAYLA_SEED.sessions[i].balanceAtStart) < .001);
     }
+    for (const debtId of new Set(rows.balanceEntries.map((entry) => entry.debtId))) {
+      const series = rows.balanceEntries.filter((entry) => entry.debtId === debtId).sort((a, b) => Number(a.loggedAt) - Number(b.loggedAt));
+      for (let i = 1; i < series.length; i++) {
+        assert.ok(Number(series[i].balance) <= Number(series[i - 1].balance), `${debtId}: ${series[i - 1].balance} -> ${series[i].balance} without new borrowing`);
+      }
+    }
     await run(ctx, { ...args, debts: [], jars: [], beliefs: [], commitments: [], sessions: [] });
     assert.equal(rows.users.at(-1)?.weeksActive, 0);
   } finally { if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous; }

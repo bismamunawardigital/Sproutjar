@@ -1017,8 +1017,16 @@ export const seed = mutation({
       newBorrowing: 0,
     }));
 
+    const talks = args.sessions.filter((session) => session.balanceAtStart !== undefined).map((session) => {
+      const week = HISTORY_WEEKS - (session.daysAgo - HISTORY_OFFSET_DAYS) / 7;
+      const weights = (args.debts as SeedDebt[]).map((debt) => seedBalanceAt(debt, Math.max(0, Math.min(HISTORY_WEEKS, Math.round(week)))));
+      const total = weights.reduce((sum, balance) => sum + balance, 0);
+      return { week, daysAgo: session.daysAgo, balances: weights.map((balance) => total > 0 ? session.balanceAtStart! * balance / total : 0) };
+    });
+    const anchors = args.debts.map((_, index) => talks.map((talk) => ({ week: talk.week, balance: talk.balances[index] })));
+
     const seededDebts: { debtId: Id<"debts">; debt: SeedDebt }[] = [];
-    for (const debt of args.debts as SeedDebt[]) {
+    for (const [index, debt] of (args.debts as SeedDebt[]).entries()) {
       const { events, ...fields } = debt;
       const debtId = await ctx.db.insert("debts", {
         ...fields,
@@ -1029,10 +1037,6 @@ export const seed = mutation({
       });
       seededDebts.push({ debtId, debt });
 
-      const lumps = events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
-      const slips = events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
-      // The steady weekly clearance once the one-offs are taken out of the line.
-      const step = (debt.openingBalance - debt.balance - lumps + slips) / HISTORY_WEEKS;
       const weeklyRate = debt.monthlyRate * (7 / 30.4);
 
       let previous = debt.openingBalance;
@@ -1041,8 +1045,7 @@ export const seed = mutation({
         const event = events.find((e) => e.week === week);
         const lump = event?.principal ?? 0;
         const newBorrowing = event?.newBorrowing ?? 0;
-        const balance =
-          week === HISTORY_WEEKS ? debt.balance : previous - step - lump + newBorrowing;
+        const balance = seedBalanceAt(debt, week, anchors[index]);
         const interestCharged = previous * weeklyRate;
         const principalCleared = Math.max(0, previous + newBorrowing - balance);
         const amountPaid = principalCleared + interestCharged;
@@ -1079,12 +1082,10 @@ export const seed = mutation({
     const sessionIds: Id<"sessions">[] = [];
     for (const session of args.sessions) {
       if (session.balanceAtStart !== undefined) {
-        const week = Math.max(0, Math.min(HISTORY_WEEKS, HISTORY_WEEKS - Math.round((session.daysAgo - HISTORY_OFFSET_DAYS) / 7)));
-        const balances = seededDebts.map(({ debt }) => seedBalanceAt(debt, week));
-        const total = balances.reduce((sum, balance) => sum + balance, 0);
-        if (total > 0) for (const [index, { debtId }] of seededDebts.entries()) {
+        const talk = talks.find((talk) => talk.daysAgo === session.daysAgo)!;
+        for (const [index, { debtId }] of seededDebts.entries()) {
           await ctx.db.insert("balanceEntries", {
-            userId, debtId, balance: session.balanceAtStart * balances[index] / total,
+            userId, debtId, balance: talk.balances[index],
             amountPaid: 0, principalCleared: 0, interestCharged: 0, newBorrowing: 0,
             source: "seed_snapshot", loggedAt: now - session.daysAgo * day,
           });
@@ -1139,7 +1140,7 @@ export const seed = mutation({
       ).debtFreeOn;
     const balancesAt = (week: number) =>
       new Map(
-        (args.debts as SeedDebt[]).map((d) => [d.name, seedBalanceAt(d, week)]),
+        (args.debts as SeedDebt[]).map((d, index) => [d.name, seedBalanceAt(d, week, anchors[index])]),
       );
     await ctx.db.insert("reviews", {
       userId,
@@ -1171,8 +1172,14 @@ function engineInputFromSeed(debt: SeedDebt, index: number): DebtInput {
   };
 }
 
-/** Replays the same straight line the history loop lays down, up to a given week. */
-function seedBalanceAt(debt: SeedDebt, week: number): number {
+function seedBalanceAt(debt: SeedDebt, week: number, anchors: { week: number; balance: number }[] = []): number {
+  if (anchors.length > 0) {
+    const points = [{ week: 0, balance: debt.openingBalance }, ...anchors, { week: HISTORY_WEEKS, balance: debt.balance }].sort((a, b) => a.week - b.week);
+    const right = points.findIndex((point) => point.week >= week);
+    if (right <= 0) return points[0].balance;
+    const before = points[right - 1], after = points[right];
+    return before.balance + (after.balance - before.balance) * (week - before.week) / (after.week - before.week);
+  }
   const lumps = debt.events.reduce((sum, e) => sum + (e.principal ?? 0), 0);
   const slips = debt.events.reduce((sum, e) => sum + (e.newBorrowing ?? 0), 0);
   const step = (debt.openingBalance - debt.balance - lumps + slips) / HISTORY_WEEKS;
