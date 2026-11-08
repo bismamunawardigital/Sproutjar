@@ -59,6 +59,7 @@ export type RenTalkRecord = {
   contractChoice: string;
   mode: "voice" | "text";
   startedAt: number;
+  endedAt: number;
 };
 
 export async function recordRenTalk(talk: RenTalkRecord, request: typeof fetch = fetch): Promise<string> {

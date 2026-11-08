@@ -55,13 +55,13 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
   const attempt = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const spoken = useRef<RenLine[]>([]);
-  const talk = useRef<RenTalkRecord | null>(null);
+  const talk = useRef<Omit<RenTalkRecord, "endedAt"> | null>(null);
 
   const finish = useCallback(() => {
     if (ended.current) return;
     ended.current = true;
     setStatus("idle");
-    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current);
+    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current ? { ...talk.current, endedAt: Date.now() } : null);
     router.refresh();
   }, [onEnded, router]);
 

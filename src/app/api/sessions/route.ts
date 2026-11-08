@@ -15,7 +15,8 @@ const recordSchema = z.object({
   contractChoice: z.string().max(200),
   mode: z.enum(["voice", "text"]),
   startedAt: z.number().finite().min(0),
-});
+  endedAt: z.number().finite().min(0),
+}).refine((talk) => talk.endedAt >= talk.startedAt, { message: "The talk must end after it starts." });
 
 export async function POST(request: Request) {
   const caller = await currentCaller();

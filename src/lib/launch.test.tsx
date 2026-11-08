@@ -40,7 +40,7 @@ import { renAgendasFor } from "./session-agendas";
 
 const testRouter = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: "test" };
 
-const completedTalk: RenTalkRecord = { conversationId: "conv_layla", agenda: "A small step", agendaReason: "Looking back", technique: "If-then planning", plannedMinutes: 20, contractChoice: "plan", mode: "voice", startedAt: 1 };
+const completedTalk: RenTalkRecord = { conversationId: "conv_layla", agenda: "A small step", agendaReason: "Looking back", technique: "If-then planning", plannedMinutes: 20, contractChoice: "plan", mode: "voice", startedAt: 1, endedAt: 1000 };
 
 test("a completed talk is recorded before its explicitly kept step is linked", async () => {
   const requests: { url: string; body: Record<string, unknown> }[] = [];
@@ -103,6 +103,43 @@ test("keeping a call step waits for its talk and recording errors offer a retry"
   assert.match(render({ savingTalk: true }), /<button disabled=""[^>]*>Keep this/);
   assert.match(render({ talkError: "The talk did not save", onRetryTalk() {} }), /Try saving the talk again/);
   assert.doesNotMatch(render({ sessionId: "talk-id" }), /<button disabled=""[^>]*>Keep this/);
+});
+
+test("completed talks adopt only this person's confirmed, unlinked steps within the original call window", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "ren-test-key";
+  try {
+    const rows = [
+      { _id: "during", userId: "layla", createdAt: 150, ownershipConfirmed: true },
+      { _id: "start", userId: "layla", createdAt: 100, ownershipConfirmed: true },
+      { _id: "end", userId: "layla", createdAt: 200, ownershipConfirmed: true },
+      { _id: "before", userId: "layla", createdAt: 99, ownershipConfirmed: true },
+      { _id: "after", userId: "layla", createdAt: 201, ownershipConfirmed: true },
+      { _id: "foreign", userId: "other", createdAt: 150, ownershipConfirmed: true },
+      { _id: "linked", userId: "layla", createdAt: 150, ownershipConfirmed: true, sessionId: "old-talk" },
+      { _id: "unconfirmed", userId: "layla", createdAt: 150, ownershipConfirmed: false },
+    ] as Record<string, unknown>[];
+    const sessions: Record<string, unknown>[] = [];
+    const ctx = { db: {
+      query: (table: string) => ({ withIndex: () => ({ unique: async () => ({ _id: "layla" }), collect: async () => table === "sessions" ? sessions : rows.filter((row) => row.userId === "layla") }) }),
+      insert: async (_table: string, row: Record<string, unknown>) => { sessions.push({ ...row, _id: "talk" }); return "talk"; },
+      patch: async (id: string, update: Record<string, unknown>) => Object.assign(rows.find((row) => row._id === id)!, update),
+    } } as unknown as MutationCtx;
+    const record = (recordCompletedSession as unknown as { _handler: (ctx: MutationCtx, args: FunctionArgs<typeof api.sproutjar.recordCompletedSession>) => Promise<Id<"sessions">> })._handler;
+    const args = { ...completedTalk, startedAt: 100, endedAt: 200, caller: { serverKey: "ren-test-key", userKey: "layla" } };
+    assert.equal(await record(ctx, args), "talk");
+    assert.deepEqual(rows.filter((row) => row.sessionId === "talk").map((row) => row._id), ["during", "start", "end"]);
+    rows.push({ _id: "late-arrival", userId: "layla", createdAt: 175, ownershipConfirmed: true });
+    await record(ctx, { ...args, startedAt: 0, endedAt: 500 });
+    assert.equal(sessions.length, 1);
+    assert.equal(rows.find((row) => row._id === "late-arrival")?.sessionId, "talk");
+    assert.equal(rows.find((row) => row._id === "after")?.sessionId, undefined);
+    rows.length = 0;
+    assert.equal(await record(ctx, args), "talk");
+    await assert.rejects(() => record(ctx, { ...args, endedAt: 99 }), /Invalid talk/);
+  } finally {
+    if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous;
+  }
 });
 
 test("proposal fees retain currency precision without adding decimals to headline amounts", () => {
