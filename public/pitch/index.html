@@ -100,11 +100,14 @@ body:hover .navb{opacity:.9}
     '</div><div class="foot">Sources: published schedules of charges from Gulf banks, including Emirates NBD (3.25% to 3.69% a month), and 25 first-person accounts from Gulf debt threads.</div></section>');
 
   S.push('<section class="sl" data-title="The insight">' + brand + '<div class="eye a">What the research said</div>' +
-    '<h2 class="a">What actually works is someone in your corner. Almost nobody can afford one.</h2>' +
-    '<div style="display:flex;gap:40px;align-items:center;margin-top:46px">' +
-      '<div class="card a d1" style="flex:1.3;padding:34px 36px"><div class="big" style="font-size:64px">USD <span data-count="3000">0</span></div><p style="font-size:22px;line-height:1.45;margin-top:12px">One person paid this for six sessions with a human coach, and said the accountability was <b style="color:var(--stem-700)">90% of the value</b>.</p></div>' +
-      '<div class="a d3" style="flex:1"><p style="font-size:20px;line-height:1.55;color:var(--ink-700)">So Sproutjar isn&rsquo;t another calculator. It turns paying off cards into small habits you keep, with a coach who checks in and remembers.</p></div>' +
-    '</div><div class="foot">A single first-person account from the research, and the strongest sign that people pay for accountability.</div></section>');
+    '<h2 class="a">People already pay for someone in their corner. Just not at a price most can afford.</h2>' +
+    '<div style="display:flex;gap:26px;align-items:stretch;margin-top:44px">' +
+      '<div class="card a d1" style="flex:1;padding:30px 32px;background:var(--deep);color:var(--cream);border:0"><div class="lab" style="color:#f2ede4aa">A human money coach</div><div class="big" style="color:var(--cream);font-size:46px">USD <span data-count="500">0</span></div><p style="font-size:18px;margin-top:8px;color:#f2ede4cc">a session. Six sessions cost one person USD 3,000.</p></div>' +
+      '<div class="a d2" style="display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--ink-400)">vs</div>' +
+      '<div class="card a d3" style="flex:1;padding:30px 32px;background:var(--leaf-50);border-color:var(--leaf-100)"><div class="lab" style="color:var(--stem-700)">Ren, on Sproutjar</div><div class="big" style="font-size:46px">USD 8.99</div><p style="font-size:18px;margin-top:8px;color:var(--ink-700)">a month. Checks in every week and remembers.</p></div>' +
+    '</div>' +
+    '<p class="a d4" style="margin-top:34px;font-size:24px;line-height:1.4;font-weight:700;max-width:900px">&ldquo;The accountability was 90% of the value.&rdquo; <span class="mute" style="font-weight:400;font-size:17px">The person who paid for those six sessions</span></p>' +
+    '</section>');
 
   S.push('<section class="sl" data-title="Meet Ren">' + brand +
     '<div style="display:flex;gap:56px;align-items:center;flex:1">' +
@@ -114,22 +117,25 @@ body:hover .navb{opacity:.9}
       '<div style="display:flex;gap:22px">' + phone('ren-call-layla.png', 'a d2') + phone('ren-end-layla.png', 'a d4') + '</div>' +
     '</div></section>');
 
-  var step = function (p, roots, num, t, d, img, dl) { return '<div class="step a ' + dl + '">' + '<div style="height:120px;display:flex;align-items:flex-end">' + SJ.plant(p, roots, { w: 86 }) + '</div><div class="n">' + num + '</div><div><h3>' + t + '</h3><p class="mute" style="font-size:16px">' + d + '</p></div></div>'; };
+  var step = function (pl, num, t, d, when, dl) { return '<div class="step a ' + dl + '" style="width:290px;gap:12px"><div style="height:262px;display:flex;align-items:flex-end;justify-content:center">' + pl + '</div><div class="pill" style="font-size:13px;padding:5px 12px">' + when + '</div><div><h3>' + num + '. ' + t + '</h3><p class="mute" style="font-size:16px">' + d + '</p></div></div>'; };
+  var arrow = '<div class="a d2" style="align-self:center;margin-top:-150px;color:var(--leaf-400)"><svg width="70" height="24" viewBox="0 0 70 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h60M52 3l11 9-11 9"/></svg></div>';
   S.push('<section class="sl" data-title="How it works">' + brand + '<div class="eye a">How it works</div>' +
     '<h2 class="a">Plan, then small habits with Ren, and the sprout grows.</h2>' +
-    '<div style="display:flex;justify-content:space-between;margin-top:40px">' +
-      step(.15, 1, 1, 'Make a plan', 'Add your cards and what comes in. See the date you&rsquo;re debt-free.', '', 'd1') +
-      step(.45, 2, 2, 'Pick one habit', 'Something small, chosen with Ren. Cook at home on Thursday.', '', 'd2') +
-      step(.8, 3, 3, 'Check in', 'Say how it went. Any honest answer grows your sprout, even &ldquo;not this week&rdquo;.', '', 'd3') +
-    '</div><p class="a d4" style="margin-top:34px;text-align:center"><span class="pill">' + SJ.icon('heart', 18) + 'No streaks, no scores. The plant never wilts.</span></p></section>');
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:22px">' +
+      step(SJ.plant(.1, 1, { w: 120, anim: true }), 1, 'Make a plan', 'Add your cards. See your debt-free date.', 'Day one', 'd1') + arrow +
+      step(SJ.plant(.6, 2, { w: 150, anim: true }), 2, 'Pick one habit', 'Something small, chosen with Ren.', 'Every week', 'd3') + arrow.replace('d2', 'd4') +
+      step(SJ.plant(1, 3, { w: 190, anim: true, glow: true, spark: true }), 3, 'Check in', 'Any honest answer grows it, even &ldquo;not this week&rdquo;.', 'Debt-free', 'd5') +
+    '</div></section>');
 
   S.push('<section class="sl" data-title="Real numbers">' + brand +
-    '<div style="display:flex;gap:56px;align-items:center;flex:1">' +
-      '<div style="flex:1"><div class="eye a">Real numbers, not guesses</div><h2 class="a">Layla owes AED ' + n(owed) + ' on ' + cards.length + ' cards.</h2>' +
-      '<div class="row a d2" style="margin-top:30px"><div class="card" style="flex:1"><div class="lab">Paying AED 6,500 a month</div><div class="big"><span data-count="' + plan.months + '">0</span> months</div><p class="mute">to debt-free, highest interest first</p></div>' +
-      '<div class="card" style="flex:1"><div class="lab">Interest she&rsquo;ll pay</div><div class="big">AED <span data-count="' + Math.round(plan.totalInterest) + '">0</span></div><p class="mute">in total, worked out month by month</p></div></div>' +
-      '<p class="a d4" style="font-size:18px;line-height:1.5;color:var(--ink-700);margin-top:22px">If a payment can&rsquo;t beat the interest, Sproutjar says so plainly, and Ren helps find the next step.</p></div>' +
-      '<div style="display:flex;gap:22px">' + phone('today-layla.png', 'a d2') + phone('plan-layla.png', 'a d4') + '</div>' +
+    '<div style="display:flex;gap:80px;align-items:center;flex:1">' +
+      '<div style="flex:1"><div class="eye a">Real numbers, not guesses</div><h2 class="a" style="font-size:38px">Layla owes AED ' + n(owed) + ' on ' + cards.length + ' cards. She can pay AED 6,500 a month.</h2>' +
+      '<div class="a d2" style="display:flex;gap:44px;margin-top:40px;padding-top:26px;border-top:1px solid var(--rule)">' +
+        '<div><div class="lab">Debt-free in</div><div style="font-size:34px;font-weight:800;color:var(--stem-700)"><span data-count="' + plan.months + '">0</span> months</div></div>' +
+        '<div><div class="lab">Interest on the way</div><div style="font-size:34px;font-weight:800;color:var(--stem-700)">AED <span data-count="' + Math.round(plan.totalInterest) + '">0</span></div></div>' +
+      '</div>' +
+      '<p class="a d4 mute" style="font-size:17px;line-height:1.5;margin-top:26px;max-width:520px">Highest interest first. If a payment can&rsquo;t beat the interest, the app says so plainly.</p></div>' +
+      phone('plan-layla.png', 'a d3') +
     '</div><div class="foot">Layla is an invented sample. Every figure comes from the same payoff engine the app uses.</div></section>');
 
   S.push('<section class="sl" data-title="Business model">' + brand + '<div class="eye a">Business model</div>' +
@@ -172,6 +178,7 @@ body:hover .navb{opacity:.9}
     if (cur >= 0) sl[cur].classList.remove('on');
     cur = i; var s = sl[i];
     var g = s.querySelector('.sj8-stage'); if (g) { g.classList.remove('play'); void g.offsetWidth; }
+    s.querySelectorAll('svg.plant').forEach(function (v) { v.outerHTML = v.outerHTML; });
     void s.offsetWidth; s.classList.add('on');
     if (g) setTimeout(function () { g.classList.add('play'); }, 300);
     count(s);
