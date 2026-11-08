@@ -6,6 +6,7 @@ import { StatementImport, type StatementReading } from "@/components/StatementIm
 import { formatRate } from "@/lib/money";
 import { planMoney as formatMoney, savePlanChange } from "@/lib/plan";
 import { paymentPresets } from "@/lib/today";
+import { Plant, type PlantState } from "@/components/Plant";
 
 export type DebtRow = {
   id: string;
@@ -118,12 +119,14 @@ export function DebtBoard({
   currency,
   focusName,
   payments = [],
+  growth,
   readOnly = false,
 }: {
   debts: DebtRow[];
   currency: string;
   focusName: string | null;
   payments?: { id: string; amount: number }[];
+  growth?: PlantState;
   readOnly?: boolean;
 }) {
   const router = useRouter();
@@ -349,7 +352,7 @@ export function DebtBoard({
   return (
     <section className="rounded-card border border-rule bg-card p-5 sm:p-6"><fieldset disabled={readOnly || busy} className="min-w-0">
       {formError ? <p role="alert" className="mb-4 text-[14px] text-root">{formError}</p> : null}
-      {debts.some((debt) => debt.id === paidId && debt.balance <= 0) ? <div role="status" className="mb-5 rounded-card bg-leaf-50 p-5"><p className="label">Cleared</p><h3 className="mt-2 text-[24px] font-bold">{debts.find((debt) => debt.id === paidId)?.name} is paid off.</h3><p className="mt-2 text-[14px]">The stem keeps this. Your plan has been worked out again.</p><button onClick={() => setPaidId(null)} className="min-h-11 font-bold text-stem-700">Keep going</button></div> : null}
+      {debts.some((debt) => debt.id === paidId && debt.balance <= 0) ? <div role="status" className="mb-5 rounded-card bg-leaf-50 p-5 text-center">{growth ? <Plant state={growth} className="mx-auto mb-4 w-24" /> : null}<p className="label">Cleared</p><h3 className="mt-2 text-[24px] font-bold">{debts.find((debt) => debt.id === paidId)?.name} is paid off.</h3><p className="mt-2 text-[14px]">The stem keeps this. Your plan has been worked out again.</p><button onClick={() => setPaidId(null)} className="min-h-11 font-bold text-stem-700">Keep going</button></div> : null}
       <div className="flex flex-col items-start gap-3">
         <p className="label">Your cards</p>
         <div className="flex items-center gap-2">

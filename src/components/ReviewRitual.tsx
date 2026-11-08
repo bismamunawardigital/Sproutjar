@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plant, type PlantState } from "@/components/Plant";
 import { StatementImport, type StatementReading } from "@/components/StatementImport";
 import { planMoney as formatMoney, planMoney as formatMoneyShort, planReviewEntry, savePlanChange, type PlanReviewEntry } from "@/lib/plan";
 
@@ -41,9 +43,11 @@ export function ReviewRitual({
   currency,
   debtFreeOn,
   payday,
+  growth,
   readOnly = false,
 }: {
   readOnly?: boolean;
+  growth?: PlantState;
   reviews: ReviewRow[];
   cards: Card[];
   cadence: "weekly" | "payday";
@@ -141,11 +145,13 @@ export function ReviewRitual({
       </div>
 
       {result ? (
-        <div className="mt-4 rounded-sm bg-cream px-4 py-3">
-          <p className="text-[15px] font-bold text-ink-900">Saved.</p>
+        <div role="status" className="mt-4 rounded-card bg-leaf-50 p-5 text-center">
+          {growth ? <Plant state={growth} className="mx-auto mb-4 w-24" /> : null}
+          <h3 className="text-[22px] font-bold text-ink-900">Saved. Now you know where it stands.</h3>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
             Estimated: {dateLine(result.before, result.after)} Ren has these numbers for next time.
           </p>
+          <Link href="/dashboard" className="mt-3 inline-flex min-h-11 items-center font-bold text-stem-700">Back to Today</Link>
         </div>
       ) : null}
 
