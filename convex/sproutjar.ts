@@ -838,17 +838,16 @@ export const recordCompletedSession = mutation({
     plannedMinutes: v.number(),
     contractChoice: v.string(),
     mode: v.union(v.literal("voice"), v.literal("text")),
-    startedAt: v.number(),
-    endedAt: v.number(),
+    durationMs: v.number(),
   },
-  handler: async (ctx, { caller, ...record }) => {
+  handler: async (ctx, { caller, durationMs, ...record }) => {
     const user = await callerUser(ctx, caller);
     if (caller.userKey === "demo") throw new Error("The demo is read-only.");
-    if (!record.conversationId.trim() || !Number.isFinite(record.startedAt) || !Number.isFinite(record.endedAt) || record.startedAt < 0 || record.endedAt < record.startedAt) throw new Error("Invalid talk.");
+    if (!record.conversationId.trim() || !Number.isFinite(durationMs) || durationMs < 0 || durationMs > 86_400_000) throw new Error("Invalid talk.");
     const sessions = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
     const existing = sessions.find((session) => session.conversationId === record.conversationId);
-    const endedAt = Math.min(record.endedAt, Date.now());
-    const startedAt = Math.min(record.startedAt, endedAt);
+    const endedAt = Date.now();
+    const startedAt = endedAt - durationMs;
     const id = existing?._id ?? await ctx.db.insert("sessions", {
       ...record,
       userId: user._id,
@@ -859,7 +858,7 @@ export const recordCompletedSession = mutation({
     });
     const commitments = await ctx.db.query("commitments").withIndex("by_user", (q) => q.eq("userId", user._id)).collect();
     for (const commitment of commitments) {
-      if (!commitment.sessionId && commitment.ownershipConfirmed && commitment.createdAt >= (existing?.startedAt ?? startedAt) && commitment.createdAt <= (existing?.endedAt ?? endedAt)) {
+      if (!commitment.sessionId && commitment.ownershipConfirmed && commitment.createdAt >= (existing?.startedAt ?? startedAt) - 5000 && commitment.createdAt <= (existing?.endedAt ?? endedAt) + 5000) {
         await ctx.db.patch(commitment._id, { sessionId: id });
       }
     }

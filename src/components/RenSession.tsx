@@ -55,20 +55,22 @@ function RenSessionInner({ userName, agenda = null, agendas = [], onAgenda = () 
   const attempt = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const spoken = useRef<RenLine[]>([]);
-  const talk = useRef<Omit<RenTalkRecord, "endedAt"> | null>(null);
+  const talk = useRef<Omit<RenTalkRecord, "durationMs"> | null>(null);
+  const connectedAt = useRef(0);
 
   const finish = useCallback(() => {
     if (ended.current) return;
     ended.current = true;
     setStatus("idle");
-    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current ? { ...talk.current, endedAt: Date.now() } : null);
+    if (connected.current) onEnded?.(spoken.current.filter((line) => line.role === "you").map((line) => line.text), talk.current ? { ...talk.current, durationMs: Math.max(0, performance.now() - connectedAt.current) } : null);
     router.refresh();
   }, [onEnded, router]);
 
   const conversation = useConversation({
     onConnect: ({ conversationId }) => {
       if (ended.current) return;
-      talk.current = { conversationId, agenda: agenda?.title ?? "Open conversation", agendaReason: agenda?.reason ?? "", technique: agenda?.technique ?? "Open", plannedMinutes: minutes, contractChoice: intent ?? "unstated", mode: typed ? "text" : "voice", startedAt: Date.now() };
+      connectedAt.current = performance.now();
+      talk.current = { conversationId, agenda: agenda?.title ?? "Open conversation", agendaReason: agenda?.reason ?? "", technique: agenda?.technique ?? "Open", plannedMinutes: minutes, contractChoice: intent ?? "unstated", mode: typed ? "text" : "voice" };
       connected.current = true;
       setHadCall(true);
       setStatus("live");
