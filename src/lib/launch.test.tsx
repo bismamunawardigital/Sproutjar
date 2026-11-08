@@ -12,12 +12,12 @@ import { SUPPORT_EMAIL } from "./legal";
 import { pageMetadata } from "./metadata";
 import { onboardingRedirect } from "./onboarding-route";
 import config from "../../next.config";
-import { addCommitment, completeOnboarding, recordCompletedSession, saveOnboardingCard, setCommitmentStatus } from "../../convex/sproutjar";
+import { addCommitment, completeOnboarding, recordCompletedSession, saveOnboardingCard, setCommitmentStatus, snapshot } from "../../convex/sproutjar";
 import { INITIAL_ONBOARDING, ONBOARDING_QUESTIONS, onboardingMoney, onboardingPlanLabel, onboardingProgressSchema, onboardingVoiceContext } from "./onboarding";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import type { FunctionArgs } from "convex/server";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import type { api } from "../../convex/_generated/api";
-import type { MutationCtx } from "../../convex/_generated/server";
+import type { MutationCtx, QueryCtx } from "../../convex/_generated/server";
 import { allocateSurplus, STARTER_RESERVE_DEFAULT } from "./jars";
 import { buildPayoffPlan } from "./debt-engine";
 import { readStatement } from "./statement";
@@ -182,6 +182,41 @@ test("call start needs a server-issued ID and signed token before starting the S
   for (const body of ["{}", '{"sessionId":"talk"}', "null"]) await assert.rejects(() => startRenTalk(data, async () => new Response(body, { status: 201 })), /couldn't start/);
   await assert.rejects(() => startRenTalk(data, async () => new Response("{}", { status: 503 })), /couldn't start/);
   await assert.rejects(() => startRenTalk(data, async () => { throw new Error("offline"); }), /offline/);
+});
+
+test("unfinished attempts cannot displace completed history, advance agendas or grow roots, including the demo", async () => {
+  const previous = process.env.SPROUTJAR_SERVER_KEY;
+  process.env.SPROUTJAR_SERVER_KEY = "ren-test-key";
+  try {
+    const completed = Array.from({ length: 12 }, (_, index) => ({ _id: `done-${index}`, userId: "layla", agenda: `Completed ${index}`, startedAt: index, endedAt: index }));
+    const attempts = Array.from({ length: 12 }, (_, index) => ({ _id: `attempt-${index}`, userId: "layla", agenda: "Failed attempt", startedAt: index + 100 }));
+    let sessions: Record<string, unknown>[] = [...completed, ...attempts];
+    const ctx = { db: { query: (table: string) => ({ withIndex: () => ({ unique: async () => ({ _id: "layla" }), collect: async () => table === "sessions" ? sessions : [] }) }) } } as unknown as QueryCtx;
+    const read = (snapshot as unknown as { _handler: (ctx: QueryCtx, args: FunctionArgs<typeof api.sproutjar.snapshot>) => Promise<FunctionReturnType<typeof api.sproutjar.snapshot>> })._handler;
+    const caller = { serverKey: "ren-test-key", userKey: "layla" };
+    const growth = (count: number) => plantState({ openingPrincipal: 100, currentPrincipal: 100, sessionsHeld: count, commitmentsKept: 0, weeksActive: 1, stemPeak: 0 });
+    const all = await read(ctx, { caller });
+    assert.equal(all.sessions.length, 8);
+    assert.equal(all.completedSessionCount, 12);
+    assert.deepEqual(all.sessions.map((row) => row._id), completed.slice(4).reverse().map((row) => row._id));
+    assert.equal(growth(all.completedSessionCount).rootDepth, 13);
+    assert.equal((await read(ctx, { caller: { ...caller, userKey: "demo" } })).completedSessionCount, 12);
+    const onboarding = { pressure: ONBOARDING_QUESTIONS[2].options[0] };
+    for (const count of [0, 1, 2, 3]) {
+      sessions = [...completed.slice(0, count), ...attempts];
+      const current = await read(ctx, { caller });
+      assert.equal(current.sessions.length, count);
+      assert.equal(current.completedSessionCount, count);
+      assert.equal(growth(current.completedSessionCount).rootDepth, count + 1);
+      const agendas = renAgendasFor({ horizon: "clearing", user: { onboarding }, sessions: current.sessions } as unknown as Snapshot);
+      assert.match(agendas[0].id, new RegExp(`-${count + 1}$`));
+    }
+    sessions = [];
+    assert.equal((await read(ctx, { caller })).sessions.length, 0);
+    await assert.rejects(() => read(ctx, { caller: { ...caller, serverKey: "wrong" } }), /Not from the Sproutjar server/);
+  } finally {
+    if (previous === undefined) delete process.env.SPROUTJAR_SERVER_KEY; else process.env.SPROUTJAR_SERVER_KEY = previous;
+  }
 });
 
 test("proposal fees retain currency precision without adding decimals to headline amounts", () => {

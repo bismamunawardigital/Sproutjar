@@ -170,6 +170,7 @@ export const snapshot = query({
     const user = await callerUser(ctx, caller);
     const { debts, jars, commitments, beliefs, sessions, balanceEntries, proposals, reviews } =
       await rowsFor(ctx, user._id);
+    const completedSessions = sessions.filter((session) => session.endedAt !== undefined);
 
     return {
       user,
@@ -179,7 +180,8 @@ export const snapshot = query({
       jars,
       commitments: commitments.sort((a, b) => b.createdAt - a.createdAt),
       beliefs: beliefs.filter((b) => b.status === "active"),
-      sessions: sessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
+      sessions: completedSessions.sort((a, b) => b.startedAt - a.startedAt).slice(0, 8),
+      completedSessionCount: completedSessions.length,
       balanceEntries: balanceEntries.sort((a, b) => a.loggedAt - b.loggedAt),
       proposals: proposals
         .filter((p) => p.status === "pending")

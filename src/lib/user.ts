@@ -143,7 +143,7 @@ export async function buildSnapshot(caller?: Caller) {
   const growth = plantState({
     openingPrincipal,
     currentPrincipal,
-    sessionsHeld: live.sessions.length,
+    sessionsHeld: live.completedSessionCount,
     checkins: live.commitments.filter((c) => c.checkedInAt !== undefined).length,
     commitmentsKept,
     weeksActive: user.weeksActive,
@@ -191,7 +191,7 @@ export async function buildSnapshot(caller?: Caller) {
       createdAt: new Date(p.createdAt),
     })),
     beliefs: live.beliefs.map((b) => ({ ...b, id: b._id, namedOn: new Date(b.namedOn) })),
-    sessions: live.sessions.filter((s) => s.endedAt !== undefined).map((s) => ({
+    sessions: live.sessions.map((s) => ({
       ...s,
       id: s._id,
       startedAt: new Date(s.startedAt),
