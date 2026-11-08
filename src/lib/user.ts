@@ -14,7 +14,7 @@ import { allocateSurplus, jarProgress, recommendedStarterJar } from "@/lib/jars"
 import { openCommitmentsByDueDate } from "@/lib/today";
 import { countryProfile } from "@/lib/money";
 import { plantState, principalCleared } from "@/lib/plant";
-import { planStrategy } from "@/lib/plan";
+import { planReviewDays, planStrategy } from "@/lib/plan";
 
 export const DEMO_EMAIL = "demo@sproutjar.app";
 
@@ -86,6 +86,7 @@ export async function buildSnapshot(caller?: Caller) {
   const user = live.user;
 
   const debtRows = live.debts;
+  const reviewAsOf = Date.now();
   const settledRows = live.settledDebts ?? [];
   const recordedDebtRows = [...debtRows, ...settledRows];
   const jarRows = live.jars;
@@ -174,6 +175,7 @@ export async function buildSnapshot(caller?: Caller) {
         /** "I paid this" amounts not yet confirmed by a statement review. */
         paidSinceReview,
         reductionSinceReview: sinceLastReview.filter(isPaymentEntry).reduce((sum, entry) => sum + entry.principalCleared, 0),
+        reviewElapsedDays: planReviewDays(d._id, d._creationTime, live.balanceEntries, reviewAsOf),
         /** Any payment or balance edit since the last review, so a card taken to zero still gets reviewed. */
         touchedSinceReview: sinceLastReview.length > 0,
         lastReviewed: reviewed

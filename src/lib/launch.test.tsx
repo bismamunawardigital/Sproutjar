@@ -42,7 +42,7 @@ import { readRenSessionToken, readRenUserToken, renUserToken } from "./ren-token
 import { renAgendasFor } from "./session-agendas";
 import { PlanScreen } from "../components/PlanScreen";
 import { GrowthTabs } from "../components/GrowthTabs";
-import { planMoney, planStrategy, planReviewEntry, planReviewSplit, savePlanChange } from "./plan";
+import { planMoney, planStrategy, planReviewDays, planReviewEntry, planReviewSplit, savePlanChange } from "./plan";
 import { compareStrategies, minimumsOnlyOutlook } from "./debt-engine";
 
 function planFixture(debts = [{ id: "card", name: "A real card", issuer: "ADCB", kind: "credit_card", balance: 1000, openingBalance: 1500, monthlyRate: 0.0325, minimumPayment: 50, isEstimated: true, estimatedFields: "rate", touchedSinceReview: false, lastReviewed: null }], monthly = 200, openingPrincipal = 1500) {
@@ -88,21 +88,37 @@ test("review defaults follow a payment or a newly added card without replacing a
 });
 
 test("unknown spending estimates only the engine's interest, with editable and empty splits", () => {
-  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03), { interestCharged: 30, newBorrowing: 470, estimatedSplit: true });
-  assert.deepEqual(planReviewSplit(1000, 100, 1100, 0.03), { interestCharged: 30, newBorrowing: 170, estimatedSplit: true });
-  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 450), { interestCharged: 50, newBorrowing: 450, estimatedSplit: false });
-  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 0), { interestCharged: 500, newBorrowing: 0, estimatedSplit: false });
-  for (const balance of [900, 1000]) assert.deepEqual(planReviewSplit(1000, 0, balance, 0.03), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
-  assert.deepEqual(planReviewSplit(0, 0, 0, 0.03), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
-  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0), { interestCharged: 0, newBorrowing: 500, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12), { interestCharged: 30, newBorrowing: 470, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 100, 1100, 0.03, 365 / 12), { interestCharged: 30, newBorrowing: 170, estimatedSplit: true });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12, 450), { interestCharged: 50, newBorrowing: 450, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0.03, 365 / 12, 0), { interestCharged: 500, newBorrowing: 0, estimatedSplit: false });
+  for (const balance of [900, 1000]) assert.deepEqual(planReviewSplit(1000, 0, balance, 0.03, 365 / 12), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(0, 0, 0, 0.03, 7), { interestCharged: 0, newBorrowing: 0, estimatedSplit: false });
+  assert.deepEqual(planReviewSplit(1000, 0, 1500, 0, 7), { interestCharged: 0, newBorrowing: 500, estimatedSplit: true });
+});
+
+test("weekly interest uses elapsed days for this card's reading, not a full month or another card's review", () => {
+  const day = 86_400_000, now = 30 * day;
+  const row = (debtId: string, source: string, daysAgo: number) => ({ debtId, source, loggedAt: now - daysAgo * day, amountPaid: 0, balance: 1000 });
+  const readings = [row("card", "review", 7), row("card", "payment", 1), row("other", "review", 0)];
+  assert.equal(planReviewDays("card", 0, readings, now), 7);
+  assert.equal(planReviewDays("card", now - 7 * day, [], now), 7);
+  assert.equal(planReviewDays("card", undefined, [], now), 0);
+  assert.equal(planReviewDays("card", 0, [...readings, row("card", "self_report", 2)], now), 2);
+  assert.equal(planReviewDays("card", 0, [row("card", "review", -1)], now), 0);
+  const split = planReviewSplit(1000, 0, 1500, 0.03, planReviewDays("card", 0, readings, now));
+  assert.ok(Math.abs(split.interestCharged - 1000 * (0.03 * 12 / 365) * 7) < 1e-9);
+  assert.ok(Math.abs(split.newBorrowing - (500 - split.interestCharged)) < 1e-9);
+  assert.equal(planReviewSplit(1000, 0, 1001, 0.03, 7).interestCharged, 1);
+  assert.equal(planReviewSplit(1000, 0, 1500, 0.03, 0).interestCharged, 0);
 });
 
 test("review records an unexplained rise as an Estimated split, preserves explicit readings, and rejects invalid callers", async () => {
   const previous = process.env.SPROUTJAR_SERVER_KEY;
   process.env.SPROUTJAR_SERVER_KEY = "plan-test-key";
   try {
-    for (const spending of [undefined, 450, 0]) {
-      const debt = { _id: "card", userId: "layla", status: "active", name: "Card", issuer: "Bank", balance: 1000, monthlyRate: 0.03, minimumPayment: 50 };
+    for (const days of [365 / 12, 7]) for (const spending of [undefined, 450, 0]) {
+      const debt = { _id: "card", _creationTime: Date.now() - days * 86_400_000, userId: "layla", status: "active", name: "Card", issuer: "Bank", balance: 1000, monthlyRate: 0.03, minimumPayment: 50 };
       const user = { _id: "layla", monthlyIncome: 2000, monthlyEssentials: 1000, debtAttack: 200, debtAttackSource: "chosen", strategy: "avalanche", reviewCadence: "payday" };
       const inserted: Record<string, Record<string, unknown>> = {};
       const ctx = { db: {
@@ -115,7 +131,8 @@ test("review records an unexplained rise as an Estimated split, preserves explic
       await assert.rejects(() => run(ctx, { ...args, caller: { ...args.caller, serverKey: "invalid" } }), /Not from the Sproutjar server/);
       assert.deepEqual(inserted, {});
       await run(ctx, args);
-      const expected = planReviewSplit(1000, 0, 1500, 0.03, spending);
+      const expected = planReviewSplit(1000, 0, 1500, 0.03, planReviewDays("card", debt._creationTime, [], Number(inserted.reviews.completedAt)), spending);
+      if (days === 7 && spending === undefined) assert.ok(Number(inserted.reviews.interestCharged) < 7);
       for (const table of ["reviews", "balanceEntries"]) for (const key of ["interestCharged", "newBorrowing", "estimatedSplit"] as const) assert.equal(inserted[table][key], expected[key]);
       assert.equal(debt.balance, 1500);
     }

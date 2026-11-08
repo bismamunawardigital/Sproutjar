@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { debtAttackFor } from "../src/lib/cash-flow";
 import { buildPayoffPlan, isPaymentEntry, type DebtInput } from "../src/lib/debt-engine";
 import { STARTER_RESERVE_DEFAULT } from "../src/lib/jars";
-import { planReviewSplit, planStrategy } from "../src/lib/plan";
+import { planReviewDays, planReviewSplit, planStrategy } from "../src/lib/plan";
 import { onboardingAnswers, onboardingProgress } from "./onboarding";
 import { INITIAL_ONBOARDING, onboardingAnswersSchema, onboardingProgressSchema } from "../src/lib/onboarding";
 
@@ -450,10 +450,11 @@ export const recordReview = mutation({
     // what was handed over, `reduction` what came off the card (an overpayment
     // on a small balance stops at zero).
     const loggedSince = new Map<Id<"debts">, { paid: number; reduction: number }>();
-    for (const entry of await ctx.db
+    const balanceEntries = await ctx.db
       .query("balanceEntries")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .collect()) {
+      .collect();
+    for (const entry of balanceEntries) {
       if (!isPaymentEntry(entry) || entry.loggedAt <= previous) continue;
       const sum = loggedSince.get(entry.debtId) ?? { paid: 0, reduction: 0 };
       loggedSince.set(entry.debtId, {
@@ -489,7 +490,8 @@ export const recordReview = mutation({
       const paid = Math.max(0, entry.paid, logged.paid);
       const balance = Math.max(0, entry.balance);
       const opening = debt.balance + logged.reduction;
-      const { newBorrowing, interestCharged, estimatedSplit } = planReviewSplit(opening, paid, balance, debt.monthlyRate, entry.newBorrowing);
+      const days = planReviewDays(debt._id, debt._creationTime, balanceEntries, now);
+      const { newBorrowing, interestCharged, estimatedSplit } = planReviewSplit(opening, paid, balance, debt.monthlyRate, days, entry.newBorrowing);
       const principalRepaid = Math.max(0, Math.min(paid, opening + newBorrowing) - interestCharged);
 
       totals.openingDebt += opening;

@@ -23,7 +23,7 @@ export type ReviewRow = {
   reflection: string;
 };
 
-type Card = { id: string; name: string; balance: number; monthlyRate: number; minimumPayment: number; paidSinceReview?: number; reductionSinceReview?: number };
+type Card = { id: string; name: string; balance: number; monthlyRate: number; reviewElapsedDays: number; minimumPayment: number; paidSinceReview?: number; reductionSinceReview?: number };
 
 /**
  * The review is where the plan meets what happened. Four numbers, one per card
@@ -70,7 +70,7 @@ export function ReviewRitual({
   const entryFor = (card: Card) => planReviewEntry(card, entries);
   const splitFor = (card: Card) => {
     const entry = entryFor(card);
-    return planReviewSplit(card.balance + (card.reductionSinceReview ?? card.paidSinceReview ?? 0), Math.max(card.paidSinceReview ?? 0, Number(entry.paid || 0)), Number(entry.balance), card.monthlyRate, entry.newBorrowing.trim() ? Number(entry.newBorrowing) : undefined);
+    return planReviewSplit(card.balance + (card.reductionSinceReview ?? card.paidSinceReview ?? 0), Math.max(card.paidSinceReview ?? 0, Number(entry.paid || 0)), Number(entry.balance), card.monthlyRate, card.reviewElapsedDays, entry.newBorrowing.trim() ? Number(entry.newBorrowing) : undefined);
   };
 
   function update(id: string, patch: Partial<PlanReviewEntry>) {
@@ -169,7 +169,7 @@ export function ReviewRitual({
       {open ? (
         <form onSubmit={submit} className="mt-4 space-y-4">
           <p className="text-[13px] leading-relaxed text-ink-500">
-            One reading per card, off the statement or the app. Logged payments already count. Without a spending figure, the saved monthly rate estimates interest; the rest is Estimated new spending. Check and edit the split against your statement.
+            One reading per card, off the statement or the app. Logged payments already count. Without a spending figure, the saved rate estimates interest for the days since this card&apos;s last reading; the rest is Estimated new spending. Check and edit the split against your statement.
           </p>
 
           {cards.map((card) => (
@@ -207,7 +207,7 @@ export function ReviewRitual({
                     onChange={(e) => update(card.id, { balance: e.target.value })}
                     className={input}
                   />
-                </label><p className="mt-3 text-[13px] text-ink-500">{splitFor(card).estimatedSplit ? "Estimated split" : "Split"}: {formatMoney(splitFor(card).interestCharged, currency)} interest, {formatMoney(splitFor(card).newBorrowing, currency)} new spending. Edit new spending below to adjust the split.</p><label className="mt-3 block text-[12px] font-bold text-ink-500">New spending ({currency}, optional)<input type="number" step="any" min={0} inputMode="decimal" value={entryFor(card).newBorrowing} placeholder={String(splitFor(card).newBorrowing)} onChange={(e) => update(card.id, { newBorrowing: e.target.value })} className={input} /></label><details className="mt-3"><summary className="flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-ink-500">Payments (optional)</summary><p className="mb-3 text-[12px] text-ink-400">Logged payments already count. Fill this only to replace them with the statement total.</p><div><label className="text-[12px] font-bold text-ink-500">
+                </label><p className="mt-3 text-[13px] text-ink-500">{splitFor(card).estimatedSplit ? "Estimated split" : "Split"}: {formatMoney(splitFor(card).interestCharged, currency)} interest, {formatMoney(splitFor(card).newBorrowing, currency)} new spending. Edit new spending below to adjust the split.</p><label className="mt-3 block text-[12px] font-bold text-ink-500">New spending ({currency}, optional)<input type="number" step="any" min={0} inputMode="decimal" value={entryFor(card).newBorrowing} placeholder={String(Number(splitFor(card).newBorrowing.toFixed(3)))} onChange={(e) => update(card.id, { newBorrowing: e.target.value })} className={input} /></label><details className="mt-3"><summary className="flex min-h-11 cursor-pointer items-center text-[13px] font-bold text-ink-500">Payments (optional)</summary><p className="mb-3 text-[12px] text-ink-400">Logged payments already count. Fill this only to replace them with the statement total.</p><div><label className="text-[12px] font-bold text-ink-500">
                   Payments on the statement ({currency}, optional)
                   <input
                     type="number"
