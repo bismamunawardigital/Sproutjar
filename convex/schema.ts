@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { onboardingAnswers, onboardingProgress } from "./onboarding";
 
 export default defineSchema({
   users: defineTable({
@@ -7,15 +8,9 @@ export default defineSchema({
     clerkId: v.optional(v.string()),
     name: v.string(),
     email: v.string(),
-    /** The four first-screen answers: why, pattern, carrying, help. */
-    onboarding: v.optional(
-      v.object({
-        why: v.optional(v.string()),
-        pattern: v.optional(v.string()),
-        carrying: v.optional(v.string()),
-        help: v.optional(v.string()),
-      }),
-    ),
+    onboarding: v.optional(onboardingAnswers),
+    onboardingProgress: v.optional(onboardingProgress),
+    onboardingCardIds: v.optional(v.array(v.id("debts"))),
     onboardedAt: v.optional(v.number()),
     country: v.string(),
     monthlyIncome: v.number(),

@@ -5,6 +5,7 @@ import { elevenLabsConfig, fetchConversationToken } from "@/lib/elevenlabs";
 import { buildSnapshot } from "@/lib/user";
 import { renUserToken } from "@/lib/ren-token";
 import { formatMoney, speakableAmount } from "@/lib/money";
+import { onboardingProgressSchema, onboardingVoiceContext } from "@/lib/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +27,15 @@ export async function GET() {
   const currency = snap.country.currency;
 
   const onboarding = snap.user.onboarding ?? {};
+  const savedProgress = onboardingProgressSchema.safeParse(snap.user.onboardingProgress);
   const dynamicVariables = {
     user_token: renUserToken(caller.userKey),
     user_name: snap.user.name,
     first_name: snap.user.name.split(" ")[0],
-    onboarding_why: onboarding.why ?? "",
-    onboarding_pattern: onboarding.pattern ?? "",
-    onboarding_carrying: onboarding.carrying ?? "",
-    onboarding_help: onboarding.help ?? "",
+    onboarding_why: onboarding.statement ?? onboarding.why ?? "",
+    onboarding_pattern: onboarding.setback ?? onboarding.pattern ?? "",
+    onboarding_carrying: onboarding.pressure ?? onboarding.carrying ?? "",
+    onboarding_help: savedProgress.success ? onboardingVoiceContext(onboarding, savedProgress.data, snap.debts) : onboarding.help ?? "",
     country: snap.country.name,
     currency,
     currency_spoken: snap.country.currencyWord,
