@@ -99,14 +99,18 @@ body:hover .navb{opacity:.9}
       '<div class="card a d3" style="flex:1"><div class="lab">People you can say the number to</div><div class="big">Nobody</div><p class="mute" style="margin-top:8px">Debt isn&rsquo;t talked about with family, friends or colleagues.</p></div>' +
     '</div><div class="foot">Sources: published schedules of charges from Gulf banks, including Emirates NBD (3.25% to 3.69% a month), and 25 first-person accounts from Gulf debt threads.</div></section>');
 
-  S.push('<section class="sl" data-title="The insight">' + brand + '<div class="eye a">What the research said</div>' +
-    '<h2 class="a">People already pay for someone in their corner. Just not at a price most can afford.</h2>' +
-    '<div style="display:flex;gap:26px;align-items:stretch;margin-top:44px">' +
-      '<div class="card a d1" style="flex:1;padding:30px 32px;background:var(--deep);color:var(--cream);border:0"><div class="lab" style="color:#f2ede4aa">A human money coach</div><div class="big" style="color:var(--cream);font-size:46px">USD <span data-count="500">0</span></div><p style="font-size:18px;margin-top:8px;color:#f2ede4cc">a session. Six sessions cost one person USD 3,000.</p></div>' +
-      '<div class="a d2" style="display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--ink-400)">vs</div>' +
-      '<div class="card a d3" style="flex:1;padding:30px 32px;background:var(--leaf-50);border-color:var(--leaf-100)"><div class="lab" style="color:var(--stem-700)">Ren, on Sproutjar</div><div class="big" style="font-size:46px">USD 8.99</div><p style="font-size:18px;margin-top:8px;color:var(--ink-700)">a month. Checks in every week and remembers.</p></div>' +
-    '</div>' +
-    '<p class="a d4" style="margin-top:34px;font-size:24px;line-height:1.4;font-weight:700;max-width:900px">&ldquo;The accountability was 90% of the value.&rdquo; <span class="mute" style="font-weight:400;font-size:17px">The person who paid for those six sessions</span></p>' +
+  S.push('<section class="sl jr-rt" data-title="The insight" style="background:var(--cream)">' + brand + '<div class="eye a">What the research said</div>' +
+    '<h2 class="a" style="max-width:900px">The numbers are the easy part. Small habits are what pay off your cards.</h2>' +
+    '<div class="a d1" style="position:absolute;left:84px;right:84px;top:300px;height:110px">' +
+      '<svg width="84" height="136" viewBox="0 0 64 104" aria-hidden="true" style="position:absolute;left:50px;bottom:-4px"><path d="M36 104V48" stroke="#3d7a55" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M36 58C20 56 12 44 11 30c15 1 25 11 25 28Z" fill="#6fbf88"/><path d="M36 46c0-17 9-28 23-31 1 16-8 29-23 31Z" fill="#3d7a55"/></svg>' +
+      '<div class="rt-lb" style="position:absolute;left:170px;bottom:18px"><small>What you see</small><b style="font-size:24px">Your payoff plan</b><span style="font-size:17px">Built from your cards and debts.</span></div></div>' +
+    '<div class="rt-soil" style="position:absolute;left:0;right:0;bottom:0;height:310px">' +
+      '<svg class="rt-svg" viewBox="0 0 80 300" preserveAspectRatio="none" aria-hidden="true" style="left:118px;width:110px">' +
+        '<path pathLength="1" stroke-width="5" vector-effect="non-scaling-stroke" d="M36 0C34 40 42 70 38 105S30 170 41 205 36 265 40 300"/><path pathLength="1" stroke-width="3" vector-effect="non-scaling-stroke" d="M38 58C24 70 16 82 8 104"/><path pathLength="1" stroke-width="3" vector-effect="non-scaling-stroke" d="M38 112C48 122 52 132 58 150"/><path pathLength="1" stroke-width="2.5" vector-effect="non-scaling-stroke" d="M36 170C24 182 14 196 10 225"/><path pathLength="1" stroke-width="2.5" vector-effect="non-scaling-stroke" d="M41 225C50 240 54 256 60 280"/></svg>' +
+      '<div style="position:absolute;left:254px;right:84px;top:48px;display:flex;gap:64px">' +
+        '<div class="rt-lb a d3" style="flex:1.2"><small>What holds it up</small><b style="font-size:28px">Your new habits</b><span style="font-size:18px;line-height:1.45;margin-top:8px">The heavy lifting, and how you actually become debt-free.</span></div>' +
+        '<div class="rt-lb a d4" style="flex:1;display:flex;gap:16px;align-items:flex-start"><div style="flex:none;margin-top:4px">' + SJ.orb('listen', 40) + '</div><div><small>Right beside you</small><b style="font-size:28px">Ren, your AI voice coach</b><span style="font-size:18px;line-height:1.45;margin-top:8px">Helps you build them, every step of the way.</span></div></div>' +
+      '</div></div>' +
     '</section>');
 
   S.push('<section class="sl" data-title="Meet Ren">' + brand +
@@ -184,6 +188,7 @@ body:hover .navb{opacity:.9}
     cur = i; var s = sl[i];
     var g = s.querySelector('.sj8-stage'); if (g) { g.classList.remove('play'); void g.offsetWidth; }
     s.querySelectorAll('svg.plant').forEach(function (v) { v.outerHTML = v.outerHTML; });
+    if (s.classList.contains('jr-rt')) { s.classList.remove('in'); setTimeout(function () { s.classList.add('in'); }, 500); }
     void s.offsetWidth; s.classList.add('on');
     if (g) setTimeout(function () { g.classList.add('play'); }, 300);
     count(s);
