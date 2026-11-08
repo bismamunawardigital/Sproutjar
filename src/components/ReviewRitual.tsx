@@ -29,9 +29,9 @@ type Entry = { paid: string; newBorrowing: string; balance: string };
  * reading, one line in the person's own words, and the date recomputed. No
  * score, no streak: the numbers are the feedback.
  */
-/** An empty date means the plan does not close yet (payments below the minimums). */
+/** An empty date means the plan does not close yet. */
 function dateLine(before: string, after: string): string {
-  if (!after) return "No debt-free date yet: what goes to the cards is under the minimums.";
+  if (!after) return "No debt-free date yet at this payment and these rates.";
   if (!before) return `Debt-free date is now ${after}.`;
   return before === after ? `Debt-free date holds at ${after}.` : `Debt-free date was ${before}, now ${after}.`;
 }

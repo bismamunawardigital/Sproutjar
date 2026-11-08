@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { callerFromRenToken } from "@/lib/caller";
 import { assertToolKey } from "@/lib/tool-auth";
 import { buildSnapshot } from "@/lib/user";
-import { buildPayoffPlan, monthsOfLifeBack, type Strategy } from "@/lib/debt-engine";
+import { buildPayoffPlan, compareStrategies, monthsOfLifeBack, payoffUnavailableMessage, type Strategy } from "@/lib/debt-engine";
 import { formatMoney, speakableAmount } from "@/lib/money";
+import { debtAllocation } from "@/lib/jars";
 
 export const dynamic = "force-dynamic";
 
@@ -37,19 +38,21 @@ export async function GET(request: Request) {
   const requestedStrategy = params.get("strategy");
   const strategy: Strategy = requestedStrategy === "avalanche" ? "avalanche" : requestedStrategy === "snowball" ? "snowball" : snap.strategy;
 
-  const plan = buildPayoffPlan(debts, budget, strategy);
+  const firstMonthBudget = debtAllocation(budget, snap.jars).toDebt;
+  const start = new Date();
+  const plan = buildPayoffPlan(debts, budget, strategy, start, firstMonthBudget);
 
   if (!plan.feasible) {
     return NextResponse.json({
       has_data: true,
       feasible: false,
       shortfall: formatMoney(plan.shortfall, currency),
-      message:
-        "That monthly amount does not cover the minimum payments. This is a hardship conversation, not a plan conversation — the bank's restructuring team needs to be involved.",
+      message: payoffUnavailableMessage(plan.shortfall),
     });
   }
 
   const extra = 500;
+  const comparison = compareStrategies(debts, budget, start, firstMonthBudget);
   return NextResponse.json({
     has_data: true,
     feasible: true,
@@ -70,11 +73,15 @@ export async function GET(request: Request) {
       ? formatMoney(snap.minimumsOnly.totalInterest, currency)
       : null,
     strategy_comparison: {
-      snowball_months: snap.comparison.snowball.months,
-      avalanche_months: snap.comparison.avalanche.months,
-      interest_saved_by_avalanche: formatMoney(Math.max(0, snap.comparison.interestSavedByAvalanche), currency),
-      first_win_sooner_with_snowball_months: snap.comparison.firstWinMonthsSoonerWithSnowball,
+      snowball_months: comparison.snowball.feasible ? comparison.snowball.months : null,
+      avalanche_months: comparison.avalanche.feasible ? comparison.avalanche.months : null,
+      interest_saved_by_avalanche: formatMoney(Math.max(0, comparison.interestSavedByAvalanche), currency),
+      first_win_sooner_with_snowball_months: comparison.firstWinMonthsSoonerWithSnowball,
     },
-    extra_500_a_month_buys_months_back: monthsOfLifeBack(debts, budget, extra, strategy),
+    extra_500_a_month_buys_months_back: monthsOfLifeBack(
+      debts, budget, extra, strategy, firstMonthBudget,
+      debtAllocation(budget + extra, snap.jars).toDebt,
+      start,
+    ),
   });
 }

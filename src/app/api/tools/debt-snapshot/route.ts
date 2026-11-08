@@ -76,8 +76,10 @@ export async function GET(request: Request) {
     },
     /** True when the bank took more last month than the plan cleared; the only time to raise a transfer unprompted. */
     interest_outweighs_principal: snap.interestOutweighsPrincipal,
-    smallest_card: snap.comparison.snowball.order[0] ?? null,
-    highest_rate_card: snap.comparison.avalanche.order[0] ?? null,
+    smallest_card: snap.debts.filter((debt) => debt.balance > 0.005)
+      .sort((a, b) => a.balance - b.balance)[0]?.name ?? null,
+    highest_rate_card: snap.debts.filter((debt) => debt.balance > 0.005)
+      .sort((a, b) => b.monthlyRate - a.monthlyRate || a.balance - b.balance)[0]?.name ?? null,
     jars: snap.jars.map((j) => ({
       name: j.name,
       purpose: j.purpose,

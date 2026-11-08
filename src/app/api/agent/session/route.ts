@@ -42,7 +42,8 @@ export async function GET() {
     monthly_surplus: formatMoney(snap.surplus, currency),
     monthly_bleed_spoken: speakableAmount(snap.plan.monthlyBleed, currency),
     debt_free_date: snap.plan.feasible ? snap.plan.debtFreeOn : "not yet reachable",
-    smallest_card: snap.comparison.snowball.order[0] ?? "none logged",
+    smallest_card: snap.debts.filter((debt) => debt.balance > 0.005)
+      .sort((a, b) => a.balance - b.balance)[0]?.name ?? "none logged",
     strategy: snap.strategy,
     jar_progress:
       snap.jars.length > 0

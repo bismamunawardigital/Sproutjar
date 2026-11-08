@@ -8,7 +8,7 @@ type Option = {
   key: "snowball" | "avalanche";
   title: string;
   months: number;
-  interest: number;
+  interest: number | null;
   blurb: string;
 };
 
@@ -59,7 +59,7 @@ export function StrategyPicker({
                 {option.title}
                 {active ? <span className="chip c-grow">Your pick</span> : null}
               </p>
-              {option.months > 0 ? (
+              {option.months > 0 && option.interest !== null ? (
                 <>
                   <p className="n mt-3 text-[22px] text-ink-900">{option.months} months</p>
                   <p className="mt-1 text-[13px] text-root">
@@ -69,7 +69,7 @@ export function StrategyPicker({
                 </>
               ) : (
                 <p className="mt-3 text-[15px] text-ink-400">
-                  No timeline yet — there isn&rsquo;t enough spare to cover the minimums.
+                  No payoff date yet at this payment and these rates.
                 </p>
               )}
               <p className="mt-3 text-[13px] leading-relaxed text-ink-400">{option.blurb}</p>

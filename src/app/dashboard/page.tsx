@@ -5,6 +5,7 @@ import { Plant } from "@/components/Plant";
 import { formatMoneyShort } from "@/lib/money";
 import { agendasFor } from "@/lib/session-agendas";
 import { buildSnapshot } from "@/lib/user";
+import { payoffUnavailableMessage } from "@/lib/debt-engine";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function Today() {
             <p className="mt-2 text-[13px] text-ink-400">
               {plan.feasible && plan.months > 0
                 ? `${plan.months} months at ${formatMoneyShort(snap.attack.amount, currency)} a month`
-                : "The minimums need more than there is right now. Ren can help you work the other side of it."}
+                : payoffUnavailableMessage(plan.shortfall)}
             </p>
           </>
         )}

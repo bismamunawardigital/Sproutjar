@@ -22,17 +22,23 @@ export type PayoffPlan = {
   strategy: Strategy;
   months: number;
   debtFreeOn: string;
-  totalInterest: number;
-  totalPaid: number;
   monthlyBleed: number;
   order: string[];
   milestones: PayoffMilestone[];
-  feasible: boolean;
   /** Set when the surplus cannot even cover the minimums. */
   shortfall: number;
-};
+} & (
+  | { feasible: true; totalInterest: number; totalPaid: number }
+  | { feasible: false; totalInterest: null; totalPaid: null }
+);
 
 const MAX_MONTHS = 600;
+
+export function payoffUnavailableMessage(shortfall: number): string {
+  return shortfall > 0
+    ? "This amount does not cover the minimum payments. Ren can help you look at the options."
+    : "At this payment and these rates, the cards do not have a payoff date yet. Ren can help you look at the options.";
+}
 
 export function monthlyBleed(debts: DebtInput[]): number {
   return debts.reduce((sum, d) => sum + d.balance * d.monthlyRate, 0);
@@ -60,9 +66,7 @@ function orderDebts(debts: DebtInput[], strategy: Strategy): DebtInput[] {
 }
 
 function addMonths(from: Date, months: number): Date {
-  const d = new Date(from.getTime());
-  d.setMonth(d.getMonth() + months);
-  return d;
+  return new Date(from.getFullYear(), from.getMonth() + months, 1);
 }
 
 export function formatMonthYear(date: Date): string {
@@ -100,25 +104,30 @@ export function buildPayoffPlan(
 
   if (ordered.length === 0) return empty;
 
-  if (monthlyBudget < minimums) {
-    return {
-      ...empty,
-      feasible: false,
-      shortfall: minimums - monthlyBudget,
-      months: 0,
-      debtFreeOn: "",
-    };
+  const never = (shortfall = 0): PayoffPlan => ({
+    ...empty,
+    feasible: false,
+    shortfall,
+    debtFreeOn: "",
+    totalInterest: null,
+    totalPaid: null,
+  });
+
+  if (!Number.isFinite(monthlyBudget) || !Number.isFinite(firstMonthBudget)) return never();
+  if (monthlyBudget < minimums || monthlyBudget <= bleed) {
+    return never(Math.max(0, minimums - monthlyBudget));
   }
 
   const remaining = new Map(ordered.map((d) => [d.id, d.balance]));
   const interestByDebt = new Map(ordered.map((d) => [d.id, 0]));
   const milestones: PayoffMilestone[] = [];
+  const attacked: DebtInput[] = [];
   let totalInterest = 0;
   let totalPaid = 0;
   let month = 0;
 
   while (month < MAX_MONTHS) {
-    const live = ordered.filter((d) => (remaining.get(d.id) ?? 0) > 0.005);
+    const live = debts.filter((d) => (remaining.get(d.id) ?? 0) > 0.005);
     if (live.length === 0) break;
     month += 1;
 
@@ -130,11 +139,9 @@ export function buildPayoffPlan(
       totalInterest += interest;
     }
 
-    let budget = month === 1 ? Math.max(minimums, firstMonthBudget) : monthlyBudget;
+    let budget = Math.max(0, month === 1 ? firstMonthBudget : monthlyBudget);
 
-    // Minimums on everything except the focus debt, which absorbs the surplus.
-    const focus = live[0];
-    for (const debt of live.slice(1)) {
+    for (const debt of live) {
       const balance = remaining.get(debt.id) ?? 0;
       const pay = Math.min(balance, debt.minimumPayment, budget);
       remaining.set(debt.id, balance - pay);
@@ -142,10 +149,18 @@ export function buildPayoffPlan(
       totalPaid += pay;
     }
 
-    const focusBalance = remaining.get(focus.id) ?? 0;
-    const focusPay = Math.min(focusBalance, budget);
-    remaining.set(focus.id, focusBalance - focusPay);
-    totalPaid += focusPay;
+    const focusOrder = orderDebts(
+      live.map((debt) => ({ ...debt, balance: remaining.get(debt.id) ?? 0 })),
+      strategy,
+    );
+    for (const debt of focusOrder) {
+      const balance = remaining.get(debt.id) ?? 0;
+      const pay = Math.min(balance, budget);
+      if (pay > 0 && !attacked.some((card) => card.id === debt.id)) attacked.push(debt);
+      remaining.set(debt.id, balance - pay);
+      totalPaid += pay;
+      budget -= pay;
+    }
 
     for (const debt of live) {
       if ((remaining.get(debt.id) ?? 0) <= 0.005 && !milestones.some((m) => m.debtId === debt.id)) {
@@ -161,6 +176,8 @@ export function buildPayoffPlan(
     }
   }
 
+  if ([...remaining.values()].some((balance) => balance > 0.005)) return never();
+
   return {
     strategy,
     months: month,
@@ -168,7 +185,8 @@ export function buildPayoffPlan(
     totalInterest: Math.round(totalInterest),
     totalPaid: Math.round(totalPaid),
     monthlyBleed: Math.round(bleed),
-    order: ordered.map((d) => d.name),
+    order: [...attacked, ...ordered.filter((debt) => !attacked.some((card) => card.id === debt.id))]
+      .map((debt) => debt.name),
     milestones,
     feasible: true,
     shortfall: 0,
@@ -196,9 +214,10 @@ export function compareStrategies(
   return {
     snowball,
     avalanche,
-    interestSavedByAvalanche: snowball.totalInterest - avalanche.totalInterest,
-    monthsSavedByAvalanche: snowball.months - avalanche.months,
-    firstWinMonthsSoonerWithSnowball: firstAvalanche - firstSnowball,
+    interestSavedByAvalanche: snowball.totalInterest !== null && avalanche.totalInterest !== null
+      ? snowball.totalInterest - avalanche.totalInterest : 0,
+    monthsSavedByAvalanche: snowball.feasible && avalanche.feasible ? snowball.months - avalanche.months : 0,
+    firstWinMonthsSoonerWithSnowball: snowball.feasible && avalanche.feasible ? firstAvalanche - firstSnowball : 0,
   };
 }
 
@@ -215,9 +234,12 @@ export function monthsOfLifeBack(
   monthlyBudget: number,
   extraPerMonth: number,
   strategy: Strategy,
+  firstMonthBudget = monthlyBudget,
+  boostedFirstMonthBudget = firstMonthBudget + extraPerMonth,
+  start = new Date(),
 ): number {
-  const base = buildPayoffPlan(debts, monthlyBudget, strategy);
-  const boosted = buildPayoffPlan(debts, monthlyBudget + extraPerMonth, strategy);
+  const base = buildPayoffPlan(debts, monthlyBudget, strategy, start, firstMonthBudget);
+  const boosted = buildPayoffPlan(debts, monthlyBudget + extraPerMonth, strategy, start, boostedFirstMonthBudget);
   if (!base.feasible || !boosted.feasible) return 0;
   return base.months - boosted.months;
 }
