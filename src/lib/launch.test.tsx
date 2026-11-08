@@ -119,9 +119,21 @@ test("onboarding card retries update a stable flow slot without duplicate debts 
 }));
 
 test("an unfinished legacy flow adopts its saved card rather than inserting it again", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {
-  debts.set("legacy", { _id: "legacy", userId: user._id, ...card, openingBalance: card.balance } as unknown as Doc<"debts">);
+  debts.set("legacy", { _id: "legacy", userId: user._id, ...card, openingBalance: card.balance, status: "active" } as unknown as Doc<"debts">);
   assert.equal((await runCard(ctx, card)).id, "legacy");
   assert.equal(debts.size, 1);
+}));
+
+test("legacy card slots match the active balance-sorted snapshot and stay stable after edits", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {
+  for (const [id, balance, status] of [["older", 4800, "active"], ["closed", 0, "closed"], ["newer", 1000, "active"]] as const) {
+    debts.set(id, { _id: id, userId: user._id, ...card, balance, openingBalance: balance, status } as unknown as Doc<"debts">);
+  }
+  assert.equal((await runCard(ctx, { ...card, balance: 6000 })).id, "newer");
+  assert.deepEqual(user.onboardingCardIds, ["newer", "older"]);
+  assert.equal(debts.get("older")?.balance, 4800);
+  assert.equal(debts.get("newer")?.openingBalance, 1000);
+  assert.equal((await runCard(ctx, { ...card, balance: 7000 })).id, "newer");
+  assert.equal(debts.size, 3);
 }));
 
 test("onboarding card rejects invalid, foreign, missing, finished and demo saves", async () => onboardingFixture(async ({ ctx, card, user, debts }) => {

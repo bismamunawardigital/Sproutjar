@@ -220,7 +220,7 @@ export const saveOnboardingCard = mutation({
     const user = await callerUser(ctx, caller);
     if (caller.userKey === "demo" || user.onboardedAt) throw new Error("Onboarding is already finished.");
     if (!Number.isInteger(slot) || slot < 0 || slot > 49 || !fields.name.trim() || !Number.isFinite(fields.balance) || fields.balance <= 0 || !Number.isFinite(fields.monthlyRate) || fields.monthlyRate < 0 || fields.monthlyRate > 1 || !Number.isFinite(fields.minimumPayment) || fields.minimumPayment < 0) throw new Error("Check the card figures and try again.");
-    const ids = user.onboardingCardIds ?? (await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()).map((debt) => debt._id);
+    const ids = user.onboardingCardIds ?? (await ctx.db.query("debts").withIndex("by_user", (q) => q.eq("userId", user._id)).collect()).filter((debt) => debt.status === "active").sort((a, b) => a.balance - b.balance).map((debt) => debt._id);
     if (slot > ids.length) throw new Error("Save the previous card first.");
     let id = ids[slot];
     if (id) {
